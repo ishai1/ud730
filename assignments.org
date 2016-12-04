@@ -1,0 +1,4099 @@
+-*- eval: (auto-revert-mode 1); -*-
+#+TITLE: UD730 assignments
+#+TODO: TODO IN-PROGRESS WAITING DONE
+#+STARTUP: indent
+#+OPTIONS: author:nil
+
+* Deep Learning
+
+** Assignment 4
+:PROPERTIES:
+:header-args: :session a4py
+:END:
+
+
+*** Starter code
+
+Previously in =2_fullyconnected.ipynb= and =3_regularization.ipynb=, we
+trained fully connected networks to classify
+[[http://yaroslavvb.blogspot.com/2011/09/notmnist-dataset.html][notMNIST]]
+characters.
+
+The goal of this assignment is make the neural network convolutional.
+
+#+BEGIN_SRC python :session a4aspyc
+  # These are all the modules we'll be using later. Make sure you can import them
+  # before proceeding further.
+  from __future__ import print_function
+  import numpy as np
+  import tensorflow as tf
+  from six.moves import cPickle as pickle
+  from six.moves import range
+#+END_SRC
+
+#+RESULTS:
+
+
+#+BEGIN_SRC python :session a4aspy :results output
+  pickle_file = 'notMNIST.pickle'
+
+  with open(pickle_file, 'rb') as f:
+    save = pickle.load(f)
+    train_dataset = save['train_dataset']
+    train_labels = save['train_labels']
+    valid_dataset = save['valid_dataset']
+    valid_labels = save['valid_labels']
+    test_dataset = save['test_dataset']
+    test_labels = save['test_labels']
+    del save  # hint to help gc free up memory
+#+END_SRC
+
+#+RESULTS:
+    
+#+BEGIN_SRC python :session a4aspy :results output
+  print('Training set', train_dataset.shape, train_labels.shape)
+  print('Validation set', valid_dataset.shape, valid_labels.shape)
+  print('Test set', test_dataset.shape, test_labels.shape)
+#+END_SRC
+
+#+RESULTS:
+: Training set (200000, 28, 28) (200000,)
+: Validation set (10000, 28, 28) (10000,)
+: Test set (10000, 28, 28) (10000,)
+
+
+
+
+#+BEGIN_EXAMPLE
+     Training set (200000, 28, 28) (200000,)
+     Validation set (10000, 28, 28) (10000,)
+     Test set (18724, 28, 28) (18724,)
+#+END_EXAMPLE
+
+Reformat into a TensorFlow-friendly shape: - convolutions need the image
+data formatted as a cube (width by height by #channels) - labels as
+float 1-hot encodings.
+
+#+BEGIN_SRC python :session a4aspy :results output
+  image_size = 28
+  num_labels = 10
+  num_channels = 1 # grayscale
+
+  import numpy as np
+
+  def reformat(dataset, labels):
+    dataset = dataset.reshape(
+      (-1, image_size, image_size, num_channels)).astype(np.float32)
+    labels = (np.arange(num_labels) == labels[:,None]).astype(np.float32)
+    return dataset, labels
+#+END_SRC
+
+#+RESULTS:
+  
+#+BEGIN_SRC python :session a4aspy :results output
+  train_dataset, train_labels = reformat(train_dataset, train_labels)
+  valid_dataset, valid_labels = reformat(valid_dataset, valid_labels)
+  test_dataset, test_labels = reformat(test_dataset, test_labels)
+#+END_SRC
+
+#+RESULTS:
+   
+#+BEGIN_SRC python :session a4aspy :results output
+   print('Training set', train_dataset.shape, train_labels.shape)
+   print('Validation set', valid_dataset.shape, valid_labels.shape)
+   print('Test set', test_dataset.shape, test_labels.shape)
+#+END_SRC
+
+#+RESULTS:
+: Training set (200000, 28, 28, 1) (200000, 10)
+: Validation set (10000, 28, 28, 1) (10000, 10)
+: Test set (10000, 28, 28, 1) (10000, 10)
+
+
+
+#+BEGIN_EXAMPLE
+     Training set (200000, 28, 28, 1) (200000, 10)
+     Validation set (10000, 28, 28, 1) (10000, 10)
+     Test set (18724, 28, 28, 1) (18724, 10)
+#+END_EXAMPLE
+
+#+BEGIN_SRC python :session a4aspy :results output
+  def accuracy(predictions, labels):
+    return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
+            / predictions.shape[0])
+#+END_SRC
+
+#+RESULTS:
+
+Let's build a small network with two convolutional layers, followed by
+one fully connected layer. Convolutional networks are more expensive
+computationally, so we'll limit its depth and number of fully connected
+nodes.
+
+#+BEGIN_SRC python :session a4aspy :results output
+  batch_size = 16
+  patch_size = 5
+  depth = 16
+  num_hidden = 64
+
+  graph = tf.Graph()
+
+  with graph.as_default():
+    # Input data.
+    tf_train_dataset = tf.placeholder(
+      tf.float32, shape=(batch_size, image_size, image_size, num_channels))
+    tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+    tf_valid_dataset = tf.constant(valid_dataset)
+    tf_test_dataset = tf.constant(test_dataset)
+    # Variables.
+    layer1_weights = tf.Variable(tf.truncated_normal(
+      [patch_size, patch_size, num_channels, depth], stddev=0.1))
+    layer1_biases = tf.Variable(tf.zeros([depth]))
+    layer2_weights = tf.Variable(tf.truncated_normal(
+      [patch_size, patch_size, depth, depth], stddev=0.1))
+    layer2_biases = tf.Variable(tf.constant(1.0, shape=[depth]))
+    layer3_weights = tf.Variable(tf.truncated_normal(
+      [image_size // 4 * image_size // 4 * depth, num_hidden], stddev=0.1))
+    layer3_biases = tf.Variable(tf.constant(1.0, shape=[num_hidden]))
+    layer4_weights = tf.Variable(tf.truncated_normal(
+      [num_hidden, num_labels], stddev=0.1))
+    layer4_biases = tf.Variable(tf.constant(1.0, shape=[num_labels]))
+    # Model.
+    def model(data):
+      conv = tf.nn.conv2d(data, layer1_weights, [1, 2, 2, 1], padding='SAME')
+      hidden = tf.nn.relu(conv + layer1_biases)
+      conv = tf.nn.conv2d(hidden, layer2_weights, [1, 2, 2, 1], padding='SAME')
+      hidden = tf.nn.relu(conv + layer2_biases)
+      shape = hidden.get_shape().as_list()
+      reshape = tf.reshape(hidden, [shape[0], shape[1] * shape[2] * shape[3]])
+      hidden = tf.nn.relu(tf.matmul(reshape, layer3_weights) + layer3_biases)
+      return tf.matmul(hidden, layer4_weights) + layer4_biases
+    # Training computation.
+    logits = model(tf_train_dataset)
+    loss = tf.reduce_mean(
+      tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
+    # Optimizer.
+    optimizer = tf.train.GradientDescentOptimizer(0.05).minimize(loss)
+    # Predictions for the training, validation, and test data.
+    train_prediction = tf.nn.softmax(logits)
+    valid_prediction = tf.nn.softmax(model(tf_valid_dataset))
+    test_prediction = tf.nn.softmax(model(tf_test_dataset))
+#+END_SRC
+
+#+RESULTS:
+
+#+NAME: run_graph
+#+BEGIN_SRC python :var nsteps = 1001 :session a4aspy :results output
+  num_steps = nsteps
+
+  with tf.Session(graph=graph) as session:
+    tf.initialize_all_variables().run()
+    print('Initialized')
+    for step in range(num_steps):
+      offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
+      batch_data = train_dataset[offset:(offset + batch_size), :, :, :]
+      batch_labels = train_labels[offset:(offset + batch_size), :]
+      feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
+      _, l, predictions = session.run(
+        [optimizer, loss, train_prediction], feed_dict=feed_dict)
+      if (step % 50 == 0):
+        print('Minibatch loss at step %d: %f' % (step, l))
+        print('Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
+        print('Validation accuracy: %.1f%%' % accuracy(
+          valid_prediction.eval(), valid_labels))
+    print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(), test_labels))
+#+END_SRC
+
+#+RESULTS: run_graph
+#+begin_example
+
+>>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... E tensorflow/stream_executor/cuda/cuda_driver.cc:504] failed call to cuInit: CUDA_ERROR_UNKNOWN
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:158] retrieving CUDA diagnostic information for host: iThinkPad
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:165] hostname: iThinkPad
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:189] libcuda reported version is: 367.57.0
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:363] driver version file contents: """NVRM version: NVIDIA UNIX x86_64 Kernel Module  367.57  Mon Oct  3 20:37:01 PDT 2016
+GCC version:  gcc version 5.4.0 20160609 (Ubuntu 5.4.0-6ubuntu1~16.04.4) 
+"""
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:193] kernel reported version is: 367.57.0
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:300] kernel version seems to match DSO: 367.57.0
+Initialized
+Minibatch loss at step 0: 4.567382
+Minibatch accuracy: 25.0%
+Validation accuracy: 12.6%
+Minibatch loss at step 50: 1.289298
+Minibatch accuracy: 50.0%
+Validation accuracy: 49.7%
+Minibatch loss at step 100: 0.675994
+Minibatch accuracy: 75.0%
+Validation accuracy: 76.9%
+Minibatch loss at step 150: 0.686060
+Minibatch accuracy: 87.5%
+Validation accuracy: 79.1%
+Minibatch loss at step 200: 0.472252
+Minibatch accuracy: 93.8%
+Validation accuracy: 78.3%
+Minibatch loss at step 250: 0.223513
+Minibatch accuracy: 93.8%
+Validation accuracy: 82.2%
+Minibatch loss at step 300: 0.599479
+Minibatch accuracy: 81.2%
+Validation accuracy: 82.7%
+Minibatch loss at step 350: 0.293377
+Minibatch accuracy: 93.8%
+Validation accuracy: 81.8%
+Minibatch loss at step 400: 0.340657
+Minibatch accuracy: 87.5%
+Validation accuracy: 82.2%
+Minibatch loss at step 450: 0.421099
+Minibatch accuracy: 81.2%
+Validation accuracy: 82.3%
+Minibatch loss at step 500: 0.742172
+Minibatch accuracy: 87.5%
+Validation accuracy: 82.3%
+Minibatch loss at step 550: 0.484545
+Minibatch accuracy: 81.2%
+Validation accuracy: 83.4%
+Minibatch loss at step 600: 1.002739
+Minibatch accuracy: 75.0%
+Validation accuracy: 83.6%
+Minibatch loss at step 650: 0.614431
+Minibatch accuracy: 81.2%
+Validation accuracy: 84.0%
+Minibatch loss at step 700: 0.407295
+Minibatch accuracy: 87.5%
+Validation accuracy: 83.2%
+Minibatch loss at step 750: 0.438802
+Minibatch accuracy: 87.5%
+Validation accuracy: 83.7%
+Minibatch loss at step 800: 0.443605
+Minibatch accuracy: 87.5%
+Validation accuracy: 84.5%
+Minibatch loss at step 850: 0.340271
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.3%
+Minibatch loss at step 900: 0.829116
+Minibatch accuracy: 68.8%
+Validation accuracy: 85.2%
+Minibatch loss at step 950: 0.425079
+Minibatch accuracy: 93.8%
+Validation accuracy: 85.6%
+Minibatch loss at step 1000: 0.239554
+Minibatch accuracy: 93.8%
+Validation accuracy: 85.7%
+Test accuracy: 73.2%
+#+end_example
+
+
+
+*** Problem 1 
+
+The convolutional model above uses convolutions with stride 2 to reduce
+the dimensionality. Replace the strides by a max pooling operation
+(=nn.max_pool()=) of stride 2 and kernel size 2.
+
+#+BEGIN_SRC python :session a4aspy :results output
+  batch_size = 16
+  patch_size = 5
+  depth = 16
+  num_hidden = 64
+
+  graph = tf.Graph()
+
+  with graph.as_default():
+    # Input data.
+    tf_train_dataset = tf.placeholder(
+      tf.float32, shape=(batch_size, image_size, image_size, num_channels))
+    tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+    tf_valid_dataset = tf.constant(valid_dataset)
+    tf_test_dataset = tf.constant(test_dataset)
+    # Variables.
+    layer1_weights = tf.Variable(tf.truncated_normal(
+      [patch_size, patch_size, num_channels, depth], stddev=0.1))
+    layer1_biases = tf.Variable(tf.zeros([depth]))
+    layer2_weights = tf.Variable(tf.truncated_normal(
+      [patch_size, patch_size, depth, depth], stddev=0.1))
+    layer2_biases = tf.Variable(tf.constant(1.0, shape=[depth]))
+    layer3_weights = tf.Variable(tf.truncated_normal(
+      [image_size // 4 * image_size // 4 * depth, num_hidden], stddev=0.1))
+    layer3_biases = tf.Variable(tf.constant(1.0, shape=[num_hidden]))
+    layer4_weights = tf.Variable(tf.truncated_normal(
+      [num_hidden, num_labels], stddev=0.1))
+    layer4_biases = tf.Variable(tf.constant(1.0, shape=[num_labels]))
+    # Model.
+    def model(data):
+      conv = tf.nn.conv2d(data, layer1_weights, [1, 1, 1, 1], padding='SAME')
+      hidden = tf.nn.relu(conv + layer1_biases)
+      # IK: add pooling
+      hidden = tf.nn.max_pool(hidden, ksize = [1,2,2,1], 
+                              strides=[1,2,2,1], padding='SAME')
+      # adjust convolution stride and add pooling stride
+      conv = tf.nn.conv2d(hidden, layer2_weights, [1, 1, 1, 1], padding='SAME')
+      hidden = tf.nn.relu(conv + layer2_biases)
+      hidden = tf.nn.max_pool(hidden, ksize = [1,2,2,1], 
+                              strides=[1,2,2,1], padding='SAME')
+      shape = hidden.get_shape().as_list()
+      reshape = tf.reshape(hidden, [shape[0], shape[1] * shape[2] * shape[3]])
+      hidden = tf.nn.relu(tf.matmul(reshape, layer3_weights) + layer3_biases)
+      return tf.matmul(hidden, layer4_weights) + layer4_biases
+    # Training computation.
+    logits = model(tf_train_dataset)
+    loss = tf.reduce_mean(
+      tf.nn.softmax_cross_entropy_with_logits(logits,tf_train_labels))
+    # Optimizer.
+    optimizer = tf.train.GradientDescentOptimizer(0.05).minimize(loss)
+    # Predictions for the training, validation, and test data.
+    train_prediction = tf.nn.softmax(logits)
+    valid_prediction = tf.nn.softmax(model(tf_valid_dataset))
+    test_prediction = tf.nn.softmax(model(tf_test_dataset))
+#+END_SRC
+
+#+RESULTS:
+
+
+#+BEGIN_SRC python :session a4aspy :results output :var results=run_graph(nsteps=1001) :results output
+
+#+END_SRC
+
+#+RESULTS:
+
+
+
+*** Problem 2
+Try to get the best performance you can using a convolutional net. Look
+for example at the classic [[http://yann.lecun.com/exdb/lenet/][LeNet5]]
+architecture, adding Dropout, and/or adding learning rate decay.
+
+**** experiments
+#+BEGIN_SRC python :session a4aspy :results output :var results=run_graph(nsteps=1001)
+print("complete")
+#+END_SRC
+
+
+***** 3
+regularizers
+#+BEGIN_SRC python :session a4aspy :results output
+  batch_size = 16
+  patch_size = 5
+  depth = 16
+  num_hidden = 64
+  SEED = 66478
+  beta = 5e-4
+  graph = tf.Graph()
+
+  with graph.as_default():
+    batch = tf.Variable(0)
+    rate_param = .01
+    global_step = batch*batch_size
+    decay_steps=len(train_dataset)  
+    decay_rate=.95
+    learning_rate =  tf.train.exponential_decay(
+      learning_rate=rate_param, 
+      global_step=global_step, 
+      decay_steps=decay_steps,  
+      decay_rate=decay_rate, 
+      staircase=True)
+    keep_prob = tf.placeholder(tf.float32)
+    # Input data.
+    tf_train_dataset = tf.placeholder(
+      tf.float32, shape=(batch_size, image_size, image_size, num_channels))
+    tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+    tf_valid_dataset = tf.constant(valid_dataset)
+    tf_test_dataset = tf.constant(test_dataset)
+    # Variables.
+    layer1_weights = tf.Variable(tf.truncated_normal(
+      [patch_size, patch_size, num_channels, depth], stddev=0.1, seed = SEED))
+    layer1_biases = tf.Variable(tf.zeros([depth]))
+    layer2_weights = tf.Variable(tf.truncated_normal(
+      [patch_size, patch_size, depth, depth], stddev=0.1, seed=SEED))
+    layer2_biases = tf.Variable(tf.constant(1.0, shape=[depth]))
+    layer3_weights = tf.Variable(tf.truncated_normal(
+      [image_size // 4 * image_size // 4 * depth, num_hidden], stddev=0.1, seed=SEED))
+    layer3_biases = tf.Variable(tf.constant(1.0, shape=[num_hidden]))
+    layer4_weights = tf.Variable(tf.truncated_normal(
+      [num_hidden, num_labels], stddev=0.1, seed=SEED))
+    layer4_biases = tf.Variable(tf.constant(1.0, shape=[num_labels]))
+    # Model.
+    def model(data, keep_prob):
+      conv = tf.nn.conv2d(data, layer1_weights, [1, 1, 1, 1], padding='SAME')
+      hidden = tf.nn.relu(conv + layer1_biases)
+      # IK: add pooling
+      h_pool = tf.nn.max_pool(hidden, ksize = [1,2,2,1], 
+                              strides=[1,2,2,1], padding='SAME')
+      # adjust convolution stride and add pooling stride
+      conv = tf.nn.conv2d(h_pool, layer2_weights, [1, 1, 1, 1], padding='SAME')
+      hidden = tf.nn.relu(conv + layer2_biases)
+      h_pool = tf.nn.max_pool(hidden, ksize = [1,2,2,1], 
+                              strides=[1,2,2,1], padding='SAME')
+      shape = h_pool.get_shape().as_list()
+      reshape = tf.reshape(h_pool, [shape[0], shape[1] * shape[2] * shape[3]])
+      # apply dropout to fully connected layer
+      hidden = tf.nn.dropout(tf.nn.relu(tf.matmul(reshape, layer3_weights) + layer3_biases), keep_prob, seed=SEED)*(1/keep_prob)
+      return tf.matmul(hidden, layer4_weights) + layer4_biases
+    # Training computation.
+    logits = model(tf_train_dataset,.6)
+    loss = tf.reduce_mean(
+      tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
+    regularizers = (tf.nn.l2_loss(layer1_weights) + tf.nn.l2_loss(layer1_biases) + 
+                    tf.nn.l2_loss(layer2_weights) + tf.nn.l2_loss(layer2_biases) + 
+                    tf.nn.l2_loss(layer3_weights) + tf.nn.l2_loss(layer3_biases) + 
+                    tf.nn.l2_loss(layer4_weights) + tf.nn.l2_loss(layer4_biases))
+    loss += beta*regularizers
+    # Optimizer.
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+    # Predictions for the training, validation, and test data.
+    train_prediction = tf.nn.softmax(logits)
+    valid_prediction = tf.nn.softmax(model(tf_valid_dataset,1.))
+    test_prediction = tf.nn.softmax(model(tf_test_dataset,1.))
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :var nsteps = 6001 :session a4aspy :results output
+  num_steps = nsteps
+
+  with tf.Session(graph=graph) as session:
+    tf.initialize_all_variables().run()
+    print('Initialized')
+    for step in range(num_steps):
+      offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
+      batch_data = train_dataset[offset:(offset + batch_size), :, :, :]
+      batch_labels = train_labels[offset:(offset + batch_size), :]
+      feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
+      _, l, predictions = session.run(
+        [optimizer, loss, train_prediction], feed_dict=feed_dict)
+      if (step % 50 == 0):
+        print('Minibatch loss at step %d: %f' % (step, l))
+        print('Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
+        print('Validation accuracy: %.1f%%' % accuracy(
+          valid_prediction.eval(), valid_labels))
+    print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(), test_labels))
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+>>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... I tensorflow/core/common_runtime/gpu/gpu_device.cc:1034] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Quadro M2000M, pci bus id: 0000:01:00.0)
+Initialized
+Minibatch loss at step 0: 7.552904
+Minibatch accuracy: 6.2%
+Validation accuracy: 12.7%
+Minibatch loss at step 50: 1.868548
+Minibatch accuracy: 50.0%
+Validation accuracy: 38.4%
+Minibatch loss at step 100: 1.686023
+Minibatch accuracy: 62.5%
+Validation accuracy: 57.3%
+Minibatch loss at step 150: 1.543465
+Minibatch accuracy: 56.2%
+Validation accuracy: 67.3%
+Minibatch loss at step 200: 1.106614
+Minibatch accuracy: 68.8%
+Validation accuracy: 65.8%
+Minibatch loss at step 250: 0.951548
+Minibatch accuracy: 62.5%
+Validation accuracy: 74.3%
+Minibatch loss at step 300: 1.207042
+Minibatch accuracy: 56.2%
+Validation accuracy: 74.8%
+Minibatch loss at step 350: 0.748152
+Minibatch accuracy: 81.2%
+Validation accuracy: 77.5%
+Minibatch loss at step 400: 0.749116
+Minibatch accuracy: 81.2%
+Validation accuracy: 75.8%
+Minibatch loss at step 450: 0.971119
+Minibatch accuracy: 75.0%
+Validation accuracy: 78.9%
+Minibatch loss at step 500: 0.901104
+Minibatch accuracy: 87.5%
+Validation accuracy: 79.2%
+Minibatch loss at step 550: 0.951675
+Minibatch accuracy: 68.8%
+Validation accuracy: 80.0%
+Minibatch loss at step 600: 1.279480
+Minibatch accuracy: 50.0%
+Validation accuracy: 81.3%
+Minibatch loss at step 650: 0.930019
+Minibatch accuracy: 75.0%
+Validation accuracy: 81.5%
+Minibatch loss at step 700: 0.912175
+Minibatch accuracy: 68.8%
+Validation accuracy: 81.3%
+Minibatch loss at step 750: 0.850602
+Minibatch accuracy: 75.0%
+Validation accuracy: 81.9%
+Minibatch loss at step 800: 1.193454
+Minibatch accuracy: 62.5%
+Validation accuracy: 82.2%
+Minibatch loss at step 850: 0.831148
+Minibatch accuracy: 75.0%
+Validation accuracy: 82.3%
+Minibatch loss at step 900: 0.923164
+Minibatch accuracy: 68.8%
+Validation accuracy: 81.8%
+Minibatch loss at step 950: 0.908230
+Minibatch accuracy: 81.2%
+Validation accuracy: 82.8%
+Minibatch loss at step 1000: 0.454398
+Minibatch accuracy: 100.0%
+Validation accuracy: 82.9%
+Minibatch loss at step 1050: 1.427735
+Minibatch accuracy: 56.2%
+Validation accuracy: 82.1%
+Minibatch loss at step 1100: 0.757183
+Minibatch accuracy: 81.2%
+Validation accuracy: 81.8%
+Minibatch loss at step 1150: 0.962808
+Minibatch accuracy: 75.0%
+Validation accuracy: 83.1%
+Minibatch loss at step 1200: 0.966435
+Minibatch accuracy: 81.2%
+Validation accuracy: 83.6%
+Minibatch loss at step 1250: 0.478997
+Minibatch accuracy: 81.2%
+Validation accuracy: 83.6%
+Minibatch loss at step 1300: 1.662576
+Minibatch accuracy: 56.2%
+Validation accuracy: 82.9%
+Minibatch loss at step 1350: 1.098325
+Minibatch accuracy: 68.8%
+Validation accuracy: 82.2%
+Minibatch loss at step 1400: 0.804765
+Minibatch accuracy: 75.0%
+Validation accuracy: 83.1%
+Minibatch loss at step 1450: 1.078651
+Minibatch accuracy: 68.8%
+Validation accuracy: 83.1%
+Minibatch loss at step 1500: 0.710050
+Minibatch accuracy: 81.2%
+Validation accuracy: 82.7%
+Minibatch loss at step 1550: 0.976368
+Minibatch accuracy: 68.8%
+Validation accuracy: 82.8%
+Minibatch loss at step 1600: 0.337521
+Minibatch accuracy: 93.8%
+Validation accuracy: 83.2%
+Minibatch loss at step 1650: 0.411596
+Minibatch accuracy: 87.5%
+Validation accuracy: 83.3%
+Minibatch loss at step 1700: 0.389294
+Minibatch accuracy: 93.8%
+Validation accuracy: 83.5%
+Minibatch loss at step 1750: 0.668555
+Minibatch accuracy: 87.5%
+Validation accuracy: 83.7%
+Minibatch loss at step 1800: 1.027090
+Minibatch accuracy: 81.2%
+Validation accuracy: 83.5%
+Minibatch loss at step 1850: 0.860049
+Minibatch accuracy: 75.0%
+Validation accuracy: 83.9%
+Minibatch loss at step 1900: 0.936876
+Minibatch accuracy: 75.0%
+Validation accuracy: 84.3%
+Minibatch loss at step 1950: 0.844571
+Minibatch accuracy: 87.5%
+Validation accuracy: 83.9%
+Minibatch loss at step 2000: 0.877765
+Minibatch accuracy: 75.0%
+Validation accuracy: 83.4%
+Minibatch loss at step 2050: 0.723814
+Minibatch accuracy: 81.2%
+Validation accuracy: 84.4%
+Minibatch loss at step 2100: 0.649591
+Minibatch accuracy: 81.2%
+Validation accuracy: 84.3%
+Minibatch loss at step 2150: 1.025875
+Minibatch accuracy: 75.0%
+Validation accuracy: 84.3%
+Minibatch loss at step 2200: 0.674252
+Minibatch accuracy: 75.0%
+Validation accuracy: 84.4%
+Minibatch loss at step 2250: 0.830879
+Minibatch accuracy: 81.2%
+Validation accuracy: 84.4%
+Minibatch loss at step 2300: 0.543495
+Minibatch accuracy: 87.5%
+Validation accuracy: 84.7%
+Minibatch loss at step 2350: 1.183975
+Minibatch accuracy: 62.5%
+Validation accuracy: 84.3%
+Minibatch loss at step 2400: 1.248241
+Minibatch accuracy: 56.2%
+Validation accuracy: 84.7%
+Minibatch loss at step 2450: 0.511514
+Minibatch accuracy: 87.5%
+Validation accuracy: 84.4%
+Minibatch loss at step 2500: 0.572464
+Minibatch accuracy: 87.5%
+Validation accuracy: 84.5%
+Minibatch loss at step 2550: 0.662893
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.1%
+Minibatch loss at step 2600: 0.606034
+Minibatch accuracy: 81.2%
+Validation accuracy: 84.4%
+Minibatch loss at step 2650: 0.745028
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.1%
+Minibatch loss at step 2700: 0.710003
+Minibatch accuracy: 81.2%
+Validation accuracy: 84.5%
+Minibatch loss at step 2750: 0.755669
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.5%
+Minibatch loss at step 2800: 1.292098
+Minibatch accuracy: 62.5%
+Validation accuracy: 85.2%
+Minibatch loss at step 2850: 0.425851
+Minibatch accuracy: 100.0%
+Validation accuracy: 85.4%
+Minibatch loss at step 2900: 0.399912
+Minibatch accuracy: 93.8%
+Validation accuracy: 85.5%
+Minibatch loss at step 2950: 0.972225
+Minibatch accuracy: 68.8%
+Validation accuracy: 85.1%
+Minibatch loss at step 3000: 0.970749
+Minibatch accuracy: 75.0%
+Validation accuracy: 85.3%
+Minibatch loss at step 3050: 0.469023
+Minibatch accuracy: 93.8%
+Validation accuracy: 85.4%
+Minibatch loss at step 3100: 0.770181
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.7%
+Minibatch loss at step 3150: 0.575410
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.9%
+Minibatch loss at step 3200: 0.608307
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.2%
+Minibatch loss at step 3250: 0.929261
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.4%
+Minibatch loss at step 3300: 0.534638
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.1%
+Minibatch loss at step 3350: 0.639192
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.8%
+Minibatch loss at step 3400: 0.533000
+Minibatch accuracy: 93.8%
+Validation accuracy: 85.9%
+Minibatch loss at step 3450: 0.679216
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.7%
+Minibatch loss at step 3500: 0.658223
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.7%
+Minibatch loss at step 3550: 0.646314
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.8%
+Minibatch loss at step 3600: 0.284332
+Minibatch accuracy: 93.8%
+Validation accuracy: 85.6%
+Minibatch loss at step 3650: 0.725764
+Minibatch accuracy: 75.0%
+Validation accuracy: 85.4%
+Minibatch loss at step 3700: 0.388132
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.3%
+Minibatch loss at step 3750: 0.525476
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.2%
+Minibatch loss at step 3800: 0.366758
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.0%
+Minibatch loss at step 3850: 0.693061
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.1%
+Minibatch loss at step 3900: 0.789479
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.1%
+Minibatch loss at step 3950: 1.024155
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.2%
+Minibatch loss at step 4000: 0.731043
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.4%
+Minibatch loss at step 4050: 0.488768
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.8%
+Minibatch loss at step 4100: 0.440151
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.4%
+Minibatch loss at step 4150: 0.793504
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.5%
+Minibatch loss at step 4200: 0.245356
+Minibatch accuracy: 100.0%
+Validation accuracy: 86.2%
+Minibatch loss at step 4250: 1.080213
+Minibatch accuracy: 68.8%
+Validation accuracy: 85.9%
+Minibatch loss at step 4300: 0.746080
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.3%
+Minibatch loss at step 4350: 0.834907
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.3%
+Minibatch loss at step 4400: 0.622606
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.3%
+Minibatch loss at step 4450: 1.020952
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.3%
+Minibatch loss at step 4500: 0.437958
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.4%
+Minibatch loss at step 4550: 0.640179
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.7%
+Minibatch loss at step 4600: 0.499977
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.9%
+Minibatch loss at step 4650: 0.564801
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.7%
+Minibatch loss at step 4700: 0.595163
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.0%
+Minibatch loss at step 4750: 0.845680
+Minibatch accuracy: 75.0%
+Validation accuracy: 87.0%
+Minibatch loss at step 4800: 0.803662
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.5%
+Minibatch loss at step 4850: 0.709128
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.7%
+Minibatch loss at step 4900: 1.098710
+Minibatch accuracy: 68.8%
+Validation accuracy: 87.0%
+Minibatch loss at step 4950: 0.629900
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.6%
+Minibatch loss at step 5000: 0.339497
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.9%
+Minibatch loss at step 5050: 0.741941
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.2%
+Minibatch loss at step 5100: 0.750215
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.6%
+Minibatch loss at step 5150: 0.503329
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.8%
+Minibatch loss at step 5200: 0.392885
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.0%
+Minibatch loss at step 5250: 1.174028
+Minibatch accuracy: 68.8%
+Validation accuracy: 86.8%
+Minibatch loss at step 5300: 0.454586
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.0%
+Minibatch loss at step 5350: 0.304404
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.9%
+Minibatch loss at step 5400: 0.539259
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.7%
+Minibatch loss at step 5450: 0.668616
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.1%
+Minibatch loss at step 5500: 0.777650
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.9%
+Minibatch loss at step 5550: 0.566293
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.3%
+Minibatch loss at step 5600: 0.576272
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.9%
+Minibatch loss at step 5650: 0.572772
+Minibatch accuracy: 75.0%
+Validation accuracy: 87.2%
+Minibatch loss at step 5700: 0.795984
+Minibatch accuracy: 75.0%
+Validation accuracy: 87.2%
+Minibatch loss at step 5750: 1.100185
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.9%
+Minibatch loss at step 5800: 0.618431
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.3%
+Minibatch loss at step 5850: 0.333045
+Minibatch accuracy: 100.0%
+Validation accuracy: 87.6%
+Minibatch loss at step 5900: 0.742232
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.2%
+Minibatch loss at step 5950: 0.973624
+Minibatch accuracy: 75.0%
+Validation accuracy: 87.2%
+Minibatch loss at step 6000: 0.468864
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.0%
+Test accuracy: 73.8%
+#+end_example
+
+
+
+***** 2
+
+learning rate_decay + dropout 1
+best so far: 74.9 at 9001 steps
+#+BEGIN_SRC python :session a4aspy :results output
+  batch_size = 16
+  patch_size = 5
+  depth = 16
+  num_hidden = 64
+
+  graph = tf.Graph()
+
+  with graph.as_default():
+    batch = tf.Variable(0)
+    rate_param = .01
+    global_step = batch*batch_size
+    decay_steps=len(train_dataset)  
+    decay_rate=.95
+    learning_rate =  tf.train.exponential_decay(
+      learning_rate=rate_param, 
+      global_step=global_step, 
+      decay_steps=decay_steps,  
+      decay_rate=decay_rate, 
+      staircase=True)
+    keep_prob = tf.placeholder(tf.float32)
+    # Input data.
+    tf_train_dataset = tf.placeholder(
+      tf.float32, shape=(batch_size, image_size, image_size, num_channels))
+    tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+    tf_valid_dataset = tf.constant(valid_dataset)
+    tf_test_dataset = tf.constant(test_dataset)
+    # Variables.
+    layer1_weights = tf.Variable(tf.truncated_normal(
+      [patch_size, patch_size, num_channels, depth], stddev=0.1))
+    layer1_biases = tf.Variable(tf.zeros([depth]))
+    layer2_weights = tf.Variable(tf.truncated_normal(
+      [patch_size, patch_size, depth, depth], stddev=0.1))
+    layer2_biases = tf.Variable(tf.constant(1.0, shape=[depth]))
+    layer3_weights = tf.Variable(tf.truncated_normal(
+      [image_size // 4 * image_size // 4 * depth, num_hidden], stddev=0.1))
+    layer3_biases = tf.Variable(tf.constant(1.0, shape=[num_hidden]))
+    layer4_weights = tf.Variable(tf.truncated_normal(
+      [num_hidden, num_labels], stddev=0.1))
+    layer4_biases = tf.Variable(tf.constant(1.0, shape=[num_labels]))
+    # Model.
+    def model(data, keep_prob):
+      conv = tf.nn.conv2d(data, layer1_weights, [1, 1, 1, 1], padding='SAME')
+      hidden = tf.nn.relu(conv + layer1_biases)
+      # IK: add pooling
+      h_pool = tf.nn.max_pool(hidden, ksize = [1,2,2,1], 
+                              strides=[1,2,2,1], padding='SAME')
+      # adjust convolution stride and add pooling stride
+      conv = tf.nn.conv2d(h_pool, layer2_weights, [1, 1, 1, 1], padding='SAME')
+      hidden = tf.nn.relu(conv + layer2_biases)
+      h_pool = tf.nn.max_pool(hidden, ksize = [1,2,2,1], 
+                              strides=[1,2,2,1], padding='SAME')
+      shape = h_pool.get_shape().as_list()
+      reshape = tf.reshape(h_pool, [shape[0], shape[1] * shape[2] * shape[3]])
+      # apply dropout to fully connected layer
+      hidden = tf.nn.dropout(tf.nn.relu(tf.matmul(reshape, layer3_weights) + layer3_biases), keep_prob)*(1/keep_prob)
+      return tf.matmul(hidden, layer4_weights) + layer4_biases
+    # Training computation.
+    logits = model(tf_train_dataset,.6)
+    loss = tf.reduce_mean(
+      tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
+    # Optimizer.
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+    # Predictions for the training, validation, and test data.
+    train_prediction = tf.nn.softmax(logits)
+    valid_prediction = tf.nn.softmax(model(tf_valid_dataset,1.))
+    test_prediction = tf.nn.softmax(model(tf_test_dataset,1.))
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :var nsteps = 9001 :session a4aspy :results output
+  num_steps = nsteps
+
+  with tf.Session(graph=graph) as session:
+    tf.initialize_all_variables().run()
+    print('Initialized')
+    for step in range(num_steps):
+      offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
+      batch_data = train_dataset[offset:(offset + batch_size), :, :, :]
+      batch_labels = train_labels[offset:(offset + batch_size), :]
+      feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
+      _, l, predictions = session.run(
+        [optimizer, loss, train_prediction], feed_dict=feed_dict)
+      if (step % 50 == 0):
+        print('Minibatch loss at step %d: %f' % (step, l))
+        print('Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
+        print('Validation accuracy: %.1f%%' % accuracy(
+          valid_prediction.eval(), valid_labels))
+    print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(), test_labels))
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+>>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... I tensorflow/core/common_runtime/gpu/gpu_device.cc:1034] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Quadro M2000M, pci bus id: 0000:01:00.0)
+Initialized
+Minibatch loss at step 0: 10.217341
+Minibatch accuracy: 0.0%
+Validation accuracy: 12.5%
+Minibatch loss at step 50: 1.901007
+Minibatch accuracy: 31.2%
+Validation accuracy: 25.3%
+Minibatch loss at step 100: 1.716664
+Minibatch accuracy: 25.0%
+Validation accuracy: 61.2%
+Minibatch loss at step 150: 1.404220
+Minibatch accuracy: 50.0%
+Validation accuracy: 67.6%
+Minibatch loss at step 200: 1.162590
+Minibatch accuracy: 68.8%
+Validation accuracy: 72.9%
+Minibatch loss at step 250: 0.774594
+Minibatch accuracy: 87.5%
+Validation accuracy: 74.3%
+Minibatch loss at step 300: 1.180029
+Minibatch accuracy: 56.2%
+Validation accuracy: 78.2%
+Minibatch loss at step 350: 0.922411
+Minibatch accuracy: 75.0%
+Validation accuracy: 79.1%
+Minibatch loss at step 400: 0.535455
+Minibatch accuracy: 87.5%
+Validation accuracy: 77.9%
+Minibatch loss at step 450: 0.979195
+Minibatch accuracy: 75.0%
+Validation accuracy: 79.3%
+Minibatch loss at step 500: 1.241119
+Minibatch accuracy: 87.5%
+Validation accuracy: 79.9%
+Minibatch loss at step 550: 0.855008
+Minibatch accuracy: 68.8%
+Validation accuracy: 79.4%
+Minibatch loss at step 600: 1.293591
+Minibatch accuracy: 56.2%
+Validation accuracy: 80.8%
+Minibatch loss at step 650: 0.607245
+Minibatch accuracy: 87.5%
+Validation accuracy: 81.8%
+Minibatch loss at step 700: 0.797803
+Minibatch accuracy: 68.8%
+Validation accuracy: 81.5%
+Minibatch loss at step 750: 0.823959
+Minibatch accuracy: 81.2%
+Validation accuracy: 80.0%
+Minibatch loss at step 800: 1.169000
+Minibatch accuracy: 62.5%
+Validation accuracy: 81.9%
+Minibatch loss at step 850: 0.701765
+Minibatch accuracy: 81.2%
+Validation accuracy: 82.7%
+Minibatch loss at step 900: 1.354591
+Minibatch accuracy: 68.8%
+Validation accuracy: 82.2%
+Minibatch loss at step 950: 0.554118
+Minibatch accuracy: 87.5%
+Validation accuracy: 82.8%
+Minibatch loss at step 1000: 0.597194
+Minibatch accuracy: 81.2%
+Validation accuracy: 82.7%
+Minibatch loss at step 1050: 1.066285
+Minibatch accuracy: 56.2%
+Validation accuracy: 82.7%
+Minibatch loss at step 1100: 0.738086
+Minibatch accuracy: 68.8%
+Validation accuracy: 82.9%
+Minibatch loss at step 1150: 0.745425
+Minibatch accuracy: 75.0%
+Validation accuracy: 83.0%
+Minibatch loss at step 1200: 0.552734
+Minibatch accuracy: 87.5%
+Validation accuracy: 83.2%
+Minibatch loss at step 1250: 0.436012
+Minibatch accuracy: 87.5%
+Validation accuracy: 82.8%
+Minibatch loss at step 1300: 1.073946
+Minibatch accuracy: 62.5%
+Validation accuracy: 83.1%
+Minibatch loss at step 1350: 1.081193
+Minibatch accuracy: 75.0%
+Validation accuracy: 82.8%
+Minibatch loss at step 1400: 0.724149
+Minibatch accuracy: 75.0%
+Validation accuracy: 84.0%
+Minibatch loss at step 1450: 0.873476
+Minibatch accuracy: 81.2%
+Validation accuracy: 84.0%
+Minibatch loss at step 1500: 0.512037
+Minibatch accuracy: 87.5%
+Validation accuracy: 82.9%
+Minibatch loss at step 1550: 1.176669
+Minibatch accuracy: 56.2%
+Validation accuracy: 83.1%
+Minibatch loss at step 1600: 0.134104
+Minibatch accuracy: 93.8%
+Validation accuracy: 83.8%
+Minibatch loss at step 1650: 0.358381
+Minibatch accuracy: 87.5%
+Validation accuracy: 83.2%
+Minibatch loss at step 1700: 0.208498
+Minibatch accuracy: 93.8%
+Validation accuracy: 84.2%
+Minibatch loss at step 1750: 0.720953
+Minibatch accuracy: 87.5%
+Validation accuracy: 84.1%
+Minibatch loss at step 1800: 0.895711
+Minibatch accuracy: 81.2%
+Validation accuracy: 83.9%
+Minibatch loss at step 1850: 0.881983
+Minibatch accuracy: 75.0%
+Validation accuracy: 84.2%
+Minibatch loss at step 1900: 0.697529
+Minibatch accuracy: 87.5%
+Validation accuracy: 84.7%
+Minibatch loss at step 1950: 0.646642
+Minibatch accuracy: 75.0%
+Validation accuracy: 83.8%
+Minibatch loss at step 2000: 0.734193
+Minibatch accuracy: 81.2%
+Validation accuracy: 83.5%
+Minibatch loss at step 2050: 0.332985
+Minibatch accuracy: 87.5%
+Validation accuracy: 84.3%
+Minibatch loss at step 2100: 0.718663
+Minibatch accuracy: 75.0%
+Validation accuracy: 84.3%
+Minibatch loss at step 2150: 1.062643
+Minibatch accuracy: 68.8%
+Validation accuracy: 84.3%
+Minibatch loss at step 2200: 0.406806
+Minibatch accuracy: 87.5%
+Validation accuracy: 84.6%
+Minibatch loss at step 2250: 0.600188
+Minibatch accuracy: 75.0%
+Validation accuracy: 84.4%
+Minibatch loss at step 2300: 0.368519
+Minibatch accuracy: 87.5%
+Validation accuracy: 84.3%
+Minibatch loss at step 2350: 0.815262
+Minibatch accuracy: 75.0%
+Validation accuracy: 84.5%
+Minibatch loss at step 2400: 1.009128
+Minibatch accuracy: 62.5%
+Validation accuracy: 84.8%
+Minibatch loss at step 2450: 0.442663
+Minibatch accuracy: 93.8%
+Validation accuracy: 84.8%
+Minibatch loss at step 2500: 0.334077
+Minibatch accuracy: 93.8%
+Validation accuracy: 84.6%
+Minibatch loss at step 2550: 0.755665
+Minibatch accuracy: 75.0%
+Validation accuracy: 85.3%
+Minibatch loss at step 2600: 0.492959
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.3%
+Minibatch loss at step 2650: 0.515493
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.1%
+Minibatch loss at step 2700: 0.659037
+Minibatch accuracy: 75.0%
+Validation accuracy: 84.1%
+Minibatch loss at step 2750: 0.521527
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.3%
+Minibatch loss at step 2800: 0.975360
+Minibatch accuracy: 62.5%
+Validation accuracy: 85.3%
+Minibatch loss at step 2850: 0.497808
+Minibatch accuracy: 87.5%
+Validation accuracy: 84.9%
+Minibatch loss at step 2900: 0.412503
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.6%
+Minibatch loss at step 2950: 1.354580
+Minibatch accuracy: 62.5%
+Validation accuracy: 85.6%
+Minibatch loss at step 3000: 0.706733
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.3%
+Minibatch loss at step 3050: 0.131155
+Minibatch accuracy: 100.0%
+Validation accuracy: 85.8%
+Minibatch loss at step 3100: 0.582790
+Minibatch accuracy: 75.0%
+Validation accuracy: 85.5%
+Minibatch loss at step 3150: 0.518745
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.0%
+Minibatch loss at step 3200: 0.538316
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.5%
+Minibatch loss at step 3250: 0.565349
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.5%
+Minibatch loss at step 3300: 0.448692
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.9%
+Minibatch loss at step 3350: 0.604608
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.6%
+Minibatch loss at step 3400: 0.779694
+Minibatch accuracy: 68.8%
+Validation accuracy: 86.2%
+Minibatch loss at step 3450: 0.637949
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.1%
+Minibatch loss at step 3500: 0.536732
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.9%
+Minibatch loss at step 3550: 0.497536
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.0%
+Minibatch loss at step 3600: 0.180090
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.1%
+Minibatch loss at step 3650: 0.551766
+Minibatch accuracy: 75.0%
+Validation accuracy: 85.9%
+Minibatch loss at step 3700: 0.293851
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.2%
+Minibatch loss at step 3750: 0.263068
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.4%
+Minibatch loss at step 3800: 0.370420
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.3%
+Minibatch loss at step 3850: 0.886709
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.2%
+Minibatch loss at step 3900: 0.801355
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.4%
+Minibatch loss at step 3950: 0.679693
+Minibatch accuracy: 68.8%
+Validation accuracy: 86.4%
+Minibatch loss at step 4000: 0.473770
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.4%
+Minibatch loss at step 4050: 0.379127
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.3%
+Minibatch loss at step 4100: 0.555311
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.5%
+Minibatch loss at step 4150: 0.574208
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.8%
+Minibatch loss at step 4200: 0.284687
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.3%
+Minibatch loss at step 4250: 0.497705
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.8%
+Minibatch loss at step 4300: 0.485333
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.8%
+Minibatch loss at step 4350: 0.833850
+Minibatch accuracy: 68.8%
+Validation accuracy: 86.8%
+Minibatch loss at step 4400: 0.446757
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.0%
+Minibatch loss at step 4450: 1.207085
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.5%
+Minibatch loss at step 4500: 0.298299
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.5%
+Minibatch loss at step 4550: 0.553604
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.5%
+Minibatch loss at step 4600: 0.263351
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.0%
+Minibatch loss at step 4650: 0.752121
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.7%
+Minibatch loss at step 4700: 0.480976
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.0%
+Minibatch loss at step 4750: 0.502001
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.6%
+Minibatch loss at step 4800: 0.729118
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.8%
+Minibatch loss at step 4850: 0.508766
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.7%
+Minibatch loss at step 4900: 0.735236
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.8%
+Minibatch loss at step 4950: 0.504930
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.8%
+Minibatch loss at step 5000: 0.235487
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.9%
+Minibatch loss at step 5050: 0.572293
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.5%
+Minibatch loss at step 5100: 0.599076
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.8%
+Minibatch loss at step 5150: 0.353266
+Minibatch accuracy: 93.8%
+Validation accuracy: 87.0%
+Minibatch loss at step 5200: 0.332135
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.9%
+Minibatch loss at step 5250: 1.320656
+Minibatch accuracy: 68.8%
+Validation accuracy: 86.7%
+Minibatch loss at step 5300: 0.508076
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.0%
+Minibatch loss at step 5350: 0.095383
+Minibatch accuracy: 100.0%
+Validation accuracy: 87.1%
+Minibatch loss at step 5400: 0.458464
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.2%
+Minibatch loss at step 5450: 0.468286
+Minibatch accuracy: 93.8%
+Validation accuracy: 87.0%
+Minibatch loss at step 5500: 0.755360
+Minibatch accuracy: 68.8%
+Validation accuracy: 87.0%
+Minibatch loss at step 5550: 0.486609
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.9%
+Minibatch loss at step 5600: 0.441597
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.4%
+Minibatch loss at step 5650: 0.321139
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.5%
+Minibatch loss at step 5700: 0.588963
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.2%
+Minibatch loss at step 5750: 0.787152
+Minibatch accuracy: 68.8%
+Validation accuracy: 87.5%
+Minibatch loss at step 5800: 0.511678
+Minibatch accuracy: 75.0%
+Validation accuracy: 87.4%
+Minibatch loss at step 5850: 0.140539
+Minibatch accuracy: 100.0%
+Validation accuracy: 87.5%
+Minibatch loss at step 5900: 0.580482
+Minibatch accuracy: 75.0%
+Validation accuracy: 87.5%
+Minibatch loss at step 5950: 0.838468
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.9%
+Minibatch loss at step 6000: 0.574959
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.1%
+Minibatch loss at step 6050: 0.497272
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.5%
+Minibatch loss at step 6100: 0.305750
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.3%
+Minibatch loss at step 6150: 0.446855
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.4%
+Minibatch loss at step 6200: 0.413655
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.4%
+Minibatch loss at step 6250: 0.255216
+Minibatch accuracy: 93.8%
+Validation accuracy: 87.6%
+Minibatch loss at step 6300: 0.328991
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.4%
+Minibatch loss at step 6350: 0.399737
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.7%
+Minibatch loss at step 6400: 0.576837
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.4%
+Minibatch loss at step 6450: 0.768810
+Minibatch accuracy: 68.8%
+Validation accuracy: 87.3%
+Minibatch loss at step 6500: 0.480283
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.3%
+Minibatch loss at step 6550: 0.468112
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.6%
+Minibatch loss at step 6600: 0.551207
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.3%
+Minibatch loss at step 6650: 1.118600
+Minibatch accuracy: 75.0%
+Validation accuracy: 87.8%
+Minibatch loss at step 6700: 0.230128
+Minibatch accuracy: 100.0%
+Validation accuracy: 87.9%
+Minibatch loss at step 6750: 0.541451
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.6%
+Minibatch loss at step 6800: 0.484172
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.8%
+Minibatch loss at step 6850: 0.575396
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.8%
+Minibatch loss at step 6900: 0.619090
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.0%
+Minibatch loss at step 6950: 0.337633
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.9%
+Minibatch loss at step 7000: 0.413715
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.8%
+Minibatch loss at step 7050: 0.450452
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.7%
+Minibatch loss at step 7100: 0.713609
+Minibatch accuracy: 68.8%
+Validation accuracy: 87.6%
+Minibatch loss at step 7150: 0.137439
+Minibatch accuracy: 100.0%
+Validation accuracy: 87.9%
+Minibatch loss at step 7200: 0.365590
+Minibatch accuracy: 93.8%
+Validation accuracy: 87.9%
+Minibatch loss at step 7250: 0.360435
+Minibatch accuracy: 93.8%
+Validation accuracy: 87.8%
+Minibatch loss at step 7300: 0.444241
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.7%
+Minibatch loss at step 7350: 0.911179
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.0%
+Minibatch loss at step 7400: 0.839497
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.7%
+Minibatch loss at step 7450: 0.285658
+Minibatch accuracy: 93.8%
+Validation accuracy: 87.6%
+Minibatch loss at step 7500: 0.108055
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.1%
+Minibatch loss at step 7550: 0.417158
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.0%
+Minibatch loss at step 7600: 0.867456
+Minibatch accuracy: 68.8%
+Validation accuracy: 87.8%
+Minibatch loss at step 7650: 0.182858
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.2%
+Minibatch loss at step 7700: 0.351644
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.0%
+Minibatch loss at step 7750: 0.480466
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.6%
+Minibatch loss at step 7800: 0.405093
+Minibatch accuracy: 93.8%
+Validation accuracy: 87.8%
+Minibatch loss at step 7850: 0.559737
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.9%
+Minibatch loss at step 7900: 0.809748
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.1%
+Minibatch loss at step 7950: 0.433778
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.8%
+Minibatch loss at step 8000: 0.118903
+Minibatch accuracy: 100.0%
+Validation accuracy: 87.6%
+Minibatch loss at step 8050: 0.025950
+Minibatch accuracy: 100.0%
+Validation accuracy: 87.9%
+Minibatch loss at step 8100: 0.304847
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.9%
+Minibatch loss at step 8150: 0.402380
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.2%
+Minibatch loss at step 8200: 0.407174
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.9%
+Minibatch loss at step 8250: 0.085110
+Minibatch accuracy: 100.0%
+Validation accuracy: 87.9%
+Minibatch loss at step 8300: 0.260617
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.1%
+Minibatch loss at step 8350: 0.105973
+Minibatch accuracy: 100.0%
+Validation accuracy: 87.7%
+Minibatch loss at step 8400: 0.802626
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.0%
+Minibatch loss at step 8450: 0.191482
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.0%
+Minibatch loss at step 8500: 0.292776
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.1%
+Minibatch loss at step 8550: 0.414011
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.0%
+Minibatch loss at step 8600: 0.328727
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.2%
+Minibatch loss at step 8650: 0.349144
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.4%
+Minibatch loss at step 8700: 0.104163
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.0%
+Minibatch loss at step 8750: 0.515413
+Minibatch accuracy: 68.8%
+Validation accuracy: 88.0%
+Minibatch loss at step 8800: 0.275915
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.2%
+Minibatch loss at step 8850: 0.353553
+Minibatch accuracy: 100.0%
+Validation accuracy: 88.0%
+Minibatch loss at step 8900: 0.324793
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.2%
+Minibatch loss at step 8950: 0.556808
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.2%
+Minibatch loss at step 9000: 0.622893
+Minibatch accuracy: 75.0%
+Validation accuracy: 88.3%
+Test accuracy: 75.3%
+#+end_example
+
+
+
+***** 1
+
+only dropout
+#+BEGIN_SRC python :session a4aspy :results output
+  batch_size = 16
+  patch_size = 5
+  depth = 16
+  num_hidden = 64
+  
+  graph = tf.Graph()
+
+  with graph.as_default():
+    keep_prob = tf.placeholder(tf.float32)
+    # Input data.
+    tf_train_dataset = tf.placeholder(
+      tf.float32, shape=(batch_size, image_size, image_size, num_channels))
+    tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+    tf_valid_dataset = tf.constant(valid_dataset)
+    tf_test_dataset = tf.constant(test_dataset)
+    # Variables.
+    layer1_weights = tf.Variable(tf.truncated_normal(
+      [patch_size, patch_size, num_channels, depth], stddev=0.1))
+    layer1_biases = tf.Variable(tf.zeros([depth]))
+    layer2_weights = tf.Variable(tf.truncated_normal(
+      [patch_size, patch_size, depth, depth], stddev=0.1))
+    layer2_biases = tf.Variable(tf.constant(1.0, shape=[depth]))
+    layer3_weights = tf.Variable(tf.truncated_normal(
+      [image_size // 4 * image_size // 4 * depth, num_hidden], stddev=0.1))
+    layer3_biases = tf.Variable(tf.constant(1.0, shape=[num_hidden]))
+    layer4_weights = tf.Variable(tf.truncated_normal(
+      [num_hidden, num_labels], stddev=0.1))
+    layer4_biases = tf.Variable(tf.constant(1.0, shape=[num_labels]))
+    # Model.
+    def model(data, keep_prob):
+      conv = tf.nn.conv2d(data, layer1_weights, [1, 1, 1, 1], padding='SAME')
+      hidden = tf.nn.relu(conv + layer1_biases)
+      # IK: add pooling
+      h_pool = tf.nn.max_pool(hidden, ksize = [1,2,2,1], 
+                              strides=[1,2,2,1], padding='SAME')
+      # adjust convolution stride and add pooling stride
+      conv = tf.nn.conv2d(h_pool, layer2_weights, [1, 1, 1, 1], padding='SAME')
+      hidden = tf.nn.relu(conv + layer2_biases)
+      h_pool = tf.nn.max_pool(hidden, ksize = [1,2,2,1],
+                              strides=[1,2,2,1], padding='SAME')
+      shape = h_pool.get_shape().as_list()
+      reshape = tf.reshape(h_pool, [shape[0], shape[1] * shape[2] * shape[3]])
+      # apply dropout to fully connected layer
+      hidden = tf.nn.dropout(
+        tf.nn.relu(tf.matmul(reshape, layer3_weights) + layer3_biases), 
+        keep_prob)*(1/keep_prob)
+      return tf.matmul(hidden, layer4_weights) + layer4_biases
+    # Training computation.
+    logits = model(tf_train_dataset,.6)
+    loss = tf.reduce_mean(
+      tf.nn.softmax_cross_entropy_with_logits(logits,tf_train_labels))
+    # Optimizer.
+    optimizer = tf.train.GradientDescentOptimizer(0.05).minimize(loss)
+    # Predictions for the training, validation, and test data.
+    train_prediction = tf.nn.softmax(logits)
+    valid_prediction = tf.nn.softmax(model(tf_valid_dataset,1.))
+    test_prediction = tf.nn.softmax(model(tf_test_dataset,1.))
+#+END_SRC
+
+#+RESULTS:
+
+
+#+BEGIN_SRC python :var nsteps = 6001 :session a4aspy :results output
+  num_steps = nsteps
+
+  with tf.Session(graph=graph) as session:
+    tf.initialize_all_variables().run()
+    print('Initialized')
+    for step in range(num_steps):
+      offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
+      batch_data = train_dataset[offset:(offset + batch_size), :, :, :]
+      batch_labels = train_labels[offset:(offset + batch_size), :]
+      feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
+      _, l, predictions = session.run(
+        [optimizer, loss, train_prediction], feed_dict=feed_dict)
+      if (step % 50 == 0):
+        print('Minibatch loss at step %d: %f' % (step, l))
+        print('Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
+        print('Validation accuracy: %.1f%%' % accuracy(
+          valid_prediction.eval(), valid_labels))
+    print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(), test_labels))
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+>>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... I tensorflow/core/common_runtime/gpu/gpu_device.cc:1034] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Quadro M2000M, pci bus id: 0000:01:00.0)
+Initialized
+Minibatch loss at step 0: 7.703359
+Minibatch accuracy: 12.5%
+Validation accuracy: 12.5%
+Minibatch loss at step 50: 1.453293
+Minibatch accuracy: 56.2%
+Validation accuracy: 52.5%
+Minibatch loss at step 100: 1.111036
+Minibatch accuracy: 68.8%
+Validation accuracy: 71.6%
+Minibatch loss at step 150: 1.992369
+Minibatch accuracy: 43.8%
+Validation accuracy: 72.9%
+Minibatch loss at step 200: 0.988855
+Minibatch accuracy: 62.5%
+Validation accuracy: 68.2%
+Minibatch loss at step 250: 0.770999
+Minibatch accuracy: 62.5%
+Validation accuracy: 79.7%
+Minibatch loss at step 300: 0.957460
+Minibatch accuracy: 75.0%
+Validation accuracy: 80.2%
+Minibatch loss at step 350: 0.683521
+Minibatch accuracy: 68.8%
+Validation accuracy: 79.8%
+Minibatch loss at step 400: 0.679164
+Minibatch accuracy: 75.0%
+Validation accuracy: 80.8%
+Minibatch loss at step 450: 0.421687
+Minibatch accuracy: 87.5%
+Validation accuracy: 82.0%
+Minibatch loss at step 500: 1.042448
+Minibatch accuracy: 81.2%
+Validation accuracy: 81.8%
+Minibatch loss at step 550: 1.006495
+Minibatch accuracy: 62.5%
+Validation accuracy: 82.5%
+Minibatch loss at step 600: 0.988384
+Minibatch accuracy: 68.8%
+Validation accuracy: 83.6%
+Minibatch loss at step 650: 0.580334
+Minibatch accuracy: 75.0%
+Validation accuracy: 83.2%
+Minibatch loss at step 700: 0.474393
+Minibatch accuracy: 81.2%
+Validation accuracy: 83.0%
+Minibatch loss at step 750: 0.829427
+Minibatch accuracy: 87.5%
+Validation accuracy: 84.2%
+Minibatch loss at step 800: 0.748837
+Minibatch accuracy: 75.0%
+Validation accuracy: 84.0%
+Minibatch loss at step 850: 0.637818
+Minibatch accuracy: 75.0%
+Validation accuracy: 85.2%
+Minibatch loss at step 900: 0.636577
+Minibatch accuracy: 81.2%
+Validation accuracy: 84.9%
+Minibatch loss at step 950: 0.739790
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.1%
+Minibatch loss at step 1000: 0.494076
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.5%
+Minibatch loss at step 1050: 0.667214
+Minibatch accuracy: 68.8%
+Validation accuracy: 85.2%
+Minibatch loss at step 1100: 0.536276
+Minibatch accuracy: 75.0%
+Validation accuracy: 85.7%
+Minibatch loss at step 1150: 0.717775
+Minibatch accuracy: 68.8%
+Validation accuracy: 85.6%
+Minibatch loss at step 1200: 0.551628
+Minibatch accuracy: 75.0%
+Validation accuracy: 85.4%
+Minibatch loss at step 1250: 0.560189
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.1%
+Minibatch loss at step 1300: 1.119643
+Minibatch accuracy: 75.0%
+Validation accuracy: 85.8%
+Minibatch loss at step 1350: 0.511195
+Minibatch accuracy: 75.0%
+Validation accuracy: 85.8%
+Minibatch loss at step 1400: 0.600486
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.8%
+Minibatch loss at step 1450: 1.538319
+Minibatch accuracy: 68.8%
+Validation accuracy: 85.5%
+Minibatch loss at step 1500: 0.542604
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.8%
+Minibatch loss at step 1550: 1.144598
+Minibatch accuracy: 75.0%
+Validation accuracy: 85.7%
+Minibatch loss at step 1600: 0.149813
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.7%
+Minibatch loss at step 1650: 0.222449
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.7%
+Minibatch loss at step 1700: 0.268436
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.5%
+Minibatch loss at step 1750: 0.598422
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.9%
+Minibatch loss at step 1800: 1.087819
+Minibatch accuracy: 75.0%
+Validation accuracy: 87.1%
+Minibatch loss at step 1850: 0.790796
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.8%
+Minibatch loss at step 1900: 1.074700
+Minibatch accuracy: 75.0%
+Validation accuracy: 87.4%
+Minibatch loss at step 1950: 0.631297
+Minibatch accuracy: 68.8%
+Validation accuracy: 86.8%
+Minibatch loss at step 2000: 0.620251
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.9%
+Minibatch loss at step 2050: 0.281859
+Minibatch accuracy: 100.0%
+Validation accuracy: 86.8%
+Minibatch loss at step 2100: 0.664190
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.4%
+Minibatch loss at step 2150: 0.816639
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.7%
+Minibatch loss at step 2200: 0.431455
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.3%
+Minibatch loss at step 2250: 0.430422
+Minibatch accuracy: 93.8%
+Validation accuracy: 87.3%
+Minibatch loss at step 2300: 0.440268
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.0%
+Minibatch loss at step 2350: 0.733630
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.3%
+Minibatch loss at step 2400: 0.785089
+Minibatch accuracy: 75.0%
+Validation accuracy: 87.2%
+Minibatch loss at step 2450: 0.339766
+Minibatch accuracy: 93.8%
+Validation accuracy: 87.4%
+Minibatch loss at step 2500: 0.277850
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.8%
+Minibatch loss at step 2550: 0.562286
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.5%
+Minibatch loss at step 2600: 0.442142
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.2%
+Minibatch loss at step 2650: 0.587847
+Minibatch accuracy: 75.0%
+Validation accuracy: 87.6%
+Minibatch loss at step 2700: 0.537113
+Minibatch accuracy: 75.0%
+Validation accuracy: 85.6%
+Minibatch loss at step 2750: 0.551168
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.9%
+Minibatch loss at step 2800: 0.851702
+Minibatch accuracy: 68.8%
+Validation accuracy: 87.7%
+Minibatch loss at step 2850: 0.342875
+Minibatch accuracy: 87.5%
+Validation accuracy: 87.9%
+Minibatch loss at step 2900: 0.192347
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.0%
+Minibatch loss at step 2950: 0.734541
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.3%
+Minibatch loss at step 3000: 0.727084
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.8%
+Minibatch loss at step 3050: 0.219189
+Minibatch accuracy: 100.0%
+Validation accuracy: 87.8%
+Minibatch loss at step 3100: 0.514300
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.5%
+Minibatch loss at step 3150: 0.204189
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.0%
+Minibatch loss at step 3200: 0.398616
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.7%
+Minibatch loss at step 3250: 0.365987
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.0%
+Minibatch loss at step 3300: 0.232628
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.0%
+Minibatch loss at step 3350: 0.408626
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.8%
+Minibatch loss at step 3400: 0.328191
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.3%
+Minibatch loss at step 3450: 0.641322
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.3%
+Minibatch loss at step 3500: 0.337487
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.2%
+Minibatch loss at step 3550: 0.638126
+Minibatch accuracy: 75.0%
+Validation accuracy: 87.7%
+Minibatch loss at step 3600: 0.178808
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.4%
+Minibatch loss at step 3650: 0.275481
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.3%
+Minibatch loss at step 3700: 0.418931
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.2%
+Minibatch loss at step 3750: 0.327169
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.5%
+Minibatch loss at step 3800: 0.219871
+Minibatch accuracy: 100.0%
+Validation accuracy: 88.1%
+Minibatch loss at step 3850: 0.544495
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.5%
+Minibatch loss at step 3900: 0.600975
+Minibatch accuracy: 75.0%
+Validation accuracy: 88.5%
+Minibatch loss at step 3950: 0.456590
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.8%
+Minibatch loss at step 4000: 0.620138
+Minibatch accuracy: 75.0%
+Validation accuracy: 88.8%
+Minibatch loss at step 4050: 0.348265
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.1%
+Minibatch loss at step 4100: 0.189196
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.1%
+Minibatch loss at step 4150: 0.659856
+Minibatch accuracy: 75.0%
+Validation accuracy: 88.3%
+Minibatch loss at step 4200: 0.118239
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.5%
+Minibatch loss at step 4250: 0.532288
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.6%
+Minibatch loss at step 4300: 0.591780
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.7%
+Minibatch loss at step 4350: 0.559559
+Minibatch accuracy: 75.0%
+Validation accuracy: 88.9%
+Minibatch loss at step 4400: 0.370801
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.2%
+Minibatch loss at step 4450: 1.050965
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.4%
+Minibatch loss at step 4500: 0.293047
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.7%
+Minibatch loss at step 4550: 0.455999
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.1%
+Minibatch loss at step 4600: 0.297718
+Minibatch accuracy: 87.5%
+Validation accuracy: 89.0%
+Minibatch loss at step 4650: 0.224106
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.8%
+Minibatch loss at step 4700: 0.474958
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.8%
+Minibatch loss at step 4750: 0.587448
+Minibatch accuracy: 81.2%
+Validation accuracy: 89.0%
+Minibatch loss at step 4800: 0.506016
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.4%
+Minibatch loss at step 4850: 0.504431
+Minibatch accuracy: 81.2%
+Validation accuracy: 87.7%
+Minibatch loss at step 4900: 0.515334
+Minibatch accuracy: 75.0%
+Validation accuracy: 88.6%
+Minibatch loss at step 4950: 0.238837
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.6%
+Minibatch loss at step 5000: 0.197913
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.7%
+Minibatch loss at step 5050: 0.963532
+Minibatch accuracy: 75.0%
+Validation accuracy: 88.3%
+Minibatch loss at step 5100: 0.866537
+Minibatch accuracy: 75.0%
+Validation accuracy: 87.8%
+Minibatch loss at step 5150: 0.384256
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.5%
+Minibatch loss at step 5200: 0.224600
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.9%
+Minibatch loss at step 5250: 0.969593
+Minibatch accuracy: 75.0%
+Validation accuracy: 88.3%
+Minibatch loss at step 5300: 0.274430
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.9%
+Minibatch loss at step 5350: 0.047597
+Minibatch accuracy: 100.0%
+Validation accuracy: 88.5%
+Minibatch loss at step 5400: 0.226244
+Minibatch accuracy: 93.8%
+Validation accuracy: 88.8%
+Minibatch loss at step 5450: 0.533304
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.6%
+Minibatch loss at step 5500: 0.730091
+Minibatch accuracy: 81.2%
+Validation accuracy: 88.6%
+Minibatch loss at step 5550: 0.301287
+Minibatch accuracy: 93.8%
+Validation accuracy: 89.2%
+Minibatch loss at step 5600: 0.360858
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.0%
+Minibatch loss at step 5650: 0.387872
+Minibatch accuracy: 87.5%
+Validation accuracy: 89.4%
+Minibatch loss at step 5700: 0.525682
+Minibatch accuracy: 75.0%
+Validation accuracy: 89.3%
+Minibatch loss at step 5750: 0.696057
+Minibatch accuracy: 68.8%
+Validation accuracy: 89.1%
+Minibatch loss at step 5800: 0.403799
+Minibatch accuracy: 87.5%
+Validation accuracy: 89.1%
+Minibatch loss at step 5850: 0.081617
+Minibatch accuracy: 100.0%
+Validation accuracy: 89.1%
+Minibatch loss at step 5900: 0.429070
+Minibatch accuracy: 75.0%
+Validation accuracy: 88.8%
+Minibatch loss at step 5950: 0.934973
+Minibatch accuracy: 68.8%
+Validation accuracy: 88.4%
+Minibatch loss at step 6000: 0.315617
+Minibatch accuracy: 87.5%
+Validation accuracy: 88.0%
+Test accuracy: 75.1%
+#+end_example
+
+
+
+*** notes
+
+**** DONE add learning rate
+
+
+** Assignment 5
+:PROPERTIES:
+:header-args: :session a5py :results output
+:END:
+
+*** starter
+:PROPERTIES:
+:ATTACH_DIR_INHERIT: t
+:END:
+
+The goal of this assignment is to train a Word2Vec skip-gram model over
+[[http://mattmahoney.net/dc/textdata][Text8]] data.
+
+#+BEGIN_SRC python
+  # These are all the modules we'll be using later. Make sure you can import them
+  # before proceeding further.
+  # %matplotlib inline
+  from __future__ import print_function
+  import collections
+  import math
+  import numpy as np
+  import os
+  import random
+  import tensorflow as tf
+  import zipfile
+  from matplotlib import pylab
+  from six.moves import range
+  from six.moves.urllib.request import urlretrieve
+  from sklearn.manifold import TSNE
+#+END_SRC
+
+#+RESULTS:
+: 
+: >>> >>> ... ... ... >>> >>> >>> >>> I tensorflow/stream_executor/dso_loader.cc:125] successfully opened CUDA library libcublas.so.7.5 locally
+: I tensorflow/stream_executor/dso_loader.cc:125] successfully opened CUDA library libcudnn.so.5.0.5 locally
+: I tensorflow/stream_executor/dso_loader.cc:125] successfully opened CUDA library libcufft.so.7.5 locally
+: I tensorflow/stream_executor/dso_loader.cc:125] successfully opened CUDA library libcuda.so.1 locally
+: I tensorflow/stream_executor/dso_loader.cc:125] successfully opened CUDA library libcurand.so.7.5 locally
+
+Download the data from the source website if necessary.
+
+#+BEGIN_SRC python
+  Url = 'http://mattmahoney.net/dc/'
+
+  def maybe_download(filename, expected_bytes):
+    """Download a file if not present, and make sure it's the right size."""
+    if not os.path.exists(filename):
+      filename, _ = urlretrieve(url + filename, filename)
+    statinfo = os.stat(filename)
+    if statinfo.st_size == expected_bytes:
+      print('Found and verified %s' % filename)
+    else:
+      print(statinfo.st_size)
+      raise Exception(
+        'Failed to verify ' + filename + '. Can you get to it with a browser?')
+    return filename
+
+  filename = maybe_download('text8.zip', 31344016)
+#+END_SRC
+
+#+RESULTS:
+: 
+: >>> ... ... ... ... ... ... ... ... ... ... ... ... >>> Found and verified text8.zip
+
+#+BEGIN_EXAMPLE
+     Found and verified text8.zip
+#+END_EXAMPLE
+
+Read the data into a string.
+
+#+BEGIN_SRC python
+     def read_data(filename):
+       """Extract the first file enclosed in a zip file as a list of words"""
+       with zipfile.ZipFile(filename) as f:
+         data = tf.compat.as_str(f.read(f.namelist()[0])).split()
+       return data
+      
+     words = read_data(filename)
+     print('Data size %d' % len(words))
+#+END_SRC
+
+#+RESULTS:
+: 
+: ... ... ... ... >>> >>> Data size 17005207
+
+#+BEGIN_EXAMPLE
+     Data size 17005207
+#+END_EXAMPLE
+
+Build the dictionary and replace rare words with UNK token.
+
+#+BEGIN_SRC python
+     vocabulary_size = 50000
+
+     def build_dataset(words):
+       count = [['UNK', -1]]
+       count.extend(collections.Counter(words).most_common(vocabulary_size - 1))
+       dictionary = dict()
+       for word, _ in count:
+         dictionary[word] = len(dictionary)
+       data = list()
+       unk_count = 0
+       for word in words:
+         if word in dictionary:
+           index = dictionary[word]
+         else:
+           index = 0  # dictionary['UNK']
+           unk_count = unk_count + 1
+         data.append(index)
+       count[0][1] = unk_count
+       reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys())) 
+       return data, count, dictionary, reverse_dictionary
+
+     data, count, dictionary, reverse_dictionary = build_dataset(words)
+     print('Most common words (+UNK)', count[:5])
+     print('Sample data', data[:10])
+     del words  # Hint to reduce memory.
+#+END_SRC
+
+#+RESULTS:
+: 
+: >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... >>> >>> Most common words (+UNK) [['UNK', 418391], ('the', 1061396), ('of', 593677), ('and', 416629), ('one', 411764)]
+: Sample data [5242, 3081, 12, 6, 195, 2, 3134, 46, 59, 156]
+
+#+BEGIN_EXAMPLE
+     Most common words (+UNK) [['UNK', 418391], ('the', 1061396), ('of', 593677), ('and', 416629), ('one', 411764)]
+     Sample data [5243, 3083, 12, 6, 195, 2, 3136, 46, 59, 156]
+#+END_EXAMPLE
+
+Function to generate a training batch for the skip-gram model.
+
+#+BEGIN_SRC python
+  data_index = 0
+
+  def generate_batch(batch_size, num_skips, skip_window):
+    global data_index
+    assert batch_size % num_skips == 0
+    assert num_skips <= 2 * skip_window
+    batch = np.ndarray(shape=(batch_size), dtype=np.int32)
+    labels = np.ndarray(shape=(batch_size, 1), dtype=np.int32)
+    span = 2 * skip_window + 1 # [ skip_window target skip_window ]
+    buffer = collections.deque(maxlen=span)
+    for _ in range(span):
+      buffer.append(data[data_index])
+      data_index = (data_index + 1) % len(data)
+    for i in range(batch_size // num_skips):
+      target = skip_window  # target label at the center of the buffer
+      targets_to_avoid = [ skip_window ]
+      for j in range(num_skips):
+        while target in targets_to_avoid:
+          target = random.randint(0, span - 1)
+        targets_to_avoid.append(target)
+        batch[i * num_skips + j] = buffer[skip_window]
+        labels[i * num_skips + j, 0] = buffer[target]
+      buffer.append(data[data_index])
+      data_index = (data_index + 1) % len(data)
+    return batch, labels
+
+  print('data:', [reverse_dictionary[di] for di in data[:8]])
+
+  for num_skips, skip_window in [(2, 1), (4, 2)]:
+      data_index = 0
+      batch, labels = generate_batch(batch_size=8, num_skips=num_skips, skip_window=skip_window)
+      print('\nwith num_skips = %d and skip_window = %d:' % (num_skips, skip_window))
+      print('    batch:', [reverse_dictionary[bi] for bi in batch])
+      print('    labels:', [reverse_dictionary[li] for li in labels.reshape(8)])
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+>>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... >>> data: ['anarchism', 'originated', 'as', 'a', 'term', 'of', 'abuse', 'first']
+>>> ... ... ... ... ... ... 
+with num_skips = 2 and skip_window = 1:
+    batch: ['originated', 'originated', 'as', 'as', 'a', 'a', 'term', 'term']
+    labels: ['as', 'anarchism', 'a', 'originated', 'as', 'term', 'a', 'of']
+
+with num_skips = 4 and skip_window = 2:
+    batch: ['as', 'as', 'as', 'as', 'a', 'a', 'a', 'a']
+    labels: ['anarchism', 'term', 'a', 'originated', 'originated', 'of', 'term', 'as']
+#+end_example
+
+#+BEGIN_EXAMPLE
+     data: ['anarchism', 'originated', 'as', 'a', 'term', 'of', 'abuse', 'first']
+
+     with num_skips = 2 and skip_window = 1:
+         batch: ['originated', 'originated', 'as', 'as', 'a', 'a', 'term', 'term']
+         labels: ['as', 'anarchism', 'a', 'originated', 'term', 'as', 'a', 'of']
+
+     with num_skips = 4 and skip_window = 2:
+         batch: ['as', 'as', 'as', 'as', 'a', 'a', 'a', 'a']
+         labels: ['anarchism', 'originated', 'term', 'a', 'as', 'of', 'originated', 'term']
+#+END_EXAMPLE
+
+Train a skip-gram model.
+
+#+BEGIN_SRC python
+  batch_size = 128
+  embedding_size = 128 # Dimension of the embedding vector.
+  skip_window = 1 # How many words to consider left and right.
+  num_skips = 2 # How many times to reuse an input to generate a label.
+  # We pick a random validation set to sample nearest neighbors. here we limit the
+  # validation samples to the words that have a low numeric ID, which by
+  # construction are also the most frequent. 
+  valid_size = 16 # Random set of words to evaluate similarity on.
+  valid_window = 100 # Only pick dev samples in the head of the distribution.
+  valid_examples = np.array(random.sample(range(valid_window), valid_size))
+  num_sampled = 64 # Number of negative examples to sample.
+
+  graph = tf.Graph()
+
+  with graph.as_default(), tf.device('/cpu:0'):
+    # Input data.
+    train_dataset = tf.placeholder(tf.int32, shape=[batch_size])
+    train_labels = tf.placeholder(tf.int32, shape=[batch_size, 1])
+    valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
+    # Variables.
+    embeddings = tf.Variable(
+      tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
+    softmax_weights = tf.Variable(
+      tf.truncated_normal([vocabulary_size, embedding_size],
+                           stddev=1.0 / math.sqrt(embedding_size)))
+    softmax_biases = tf.Variable(tf.zeros([vocabulary_size]))
+    # Model.
+    # Look up embeddings for inputs.
+    embed = tf.nn.embedding_lookup(embeddings, train_dataset)
+    # Compute the softmax loss, using a sample of the negative labels each time.
+    loss = tf.reduce_mean(
+      tf.nn.sampled_softmax_loss(softmax_weights, softmax_biases, embed,
+                                 train_labels, num_sampled, vocabulary_size))
+    # Optimizer.
+    # Note: The optimizer will optimize the softmax_weights AND the embeddings.
+    # This is because the embeddings are defined as a variable quantity and the
+    # optimizer's `minimize` method will by default modify all variable quantities 
+    # that contribute to the tensor it is passed.
+    # See docs on `tf.train.Optimizer.minimize()` for more details.
+    optimizer = tf.train.AdagradOptimizer(1.0).minimize(loss)
+    # Compute the similarity between minibatch examples and all embeddings.
+    # We use the cosine distance:
+    norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keep_dims=True))
+    normalized_embeddings = embeddings / norm
+    valid_embeddings = tf.nn.embedding_lookup(
+      normalized_embeddings, valid_dataset)
+    similarity = tf.matmul(valid_embeddings, tf.transpose(normalized_embeddings))
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+  num_steps = 100001
+
+  with tf.Session(graph=graph) as session:
+    tf.initialize_all_variables().run()
+    print('Initialized')
+    average_loss = 0
+    for step in range(num_steps):
+      batch_data, batch_labels = generate_batch(
+        batch_size, num_skips, skip_window)
+      feed_dict = {train_dataset : batch_data, train_labels : batch_labels}
+      _, l = session.run([optimizer, loss], feed_dict=feed_dict)
+      average_loss += l
+      if step % 2000 == 0:
+        if step > 0:
+          average_loss = average_loss / 2000
+        # The average loss is an estimate of the loss over the last 2000 batches.
+        print('Average loss at step %d: %f' % (step, average_loss))
+        average_loss = 0
+      # note that this is expensive (~20% slowdown if computed every 500 steps)
+      if step % 10000 == 0:
+        sim = similarity.eval()
+        for i in range(valid_size):
+          valid_word = reverse_dictionary[valid_examples[i]]
+          top_k = 8 # number of nearest neighbors
+          nearest = (-sim[i, :]).argsort()[1:top_k+1]
+          log = 'Nearest to %s:' % valid_word
+          for k in range(top_k):
+            close_word = reverse_dictionary[nearest[k]]
+            log = '%s %s,' % (log, close_word)
+          print(log)
+    final_embeddings = normalized_embeddings.eval()
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+>>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... E tensorflow/stream_executor/cuda/cuda_driver.cc:504] failed call to cuInit: CUDA_ERROR_UNKNOWN
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:158] retrieving CUDA diagnostic information for host: iThinkPad
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:165] hostname: iThinkPad
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:189] libcuda reported version is: 367.57.0
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:363] driver version file contents: """NVRM version: NVIDIA UNIX x86_64 Kernel Module  367.57  Mon Oct  3 20:37:01 PDT 2016
+GCC version:  gcc version 5.4.0 20160609 (Ubuntu 5.4.0-6ubuntu1~16.04.4) 
+"""
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:193] kernel reported version is: 367.57.0
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:300] kernel version seems to match DSO: 367.57.0
+Initialized
+Average loss at step 0: 7.916452
+Nearest to one: processions, were, prophecies, overlapped, perkins, biddle, sapkowski, hagi,
+Nearest to during: updating, comedian, destroys, kindred, moose, subordinated, vivant, resumption,
+Nearest to was: umts, cingular, dynastic, malibu, iie, pedophilia, apparitions, yoakum,
+Nearest to first: jadwiga, deposing, salazar, lvares, cups, extensions, tramiel, voivodship,
+Nearest to a: cnidaria, henriques, depending, sens, avesta, examined, hers, ajax,
+Nearest to their: blemish, children, kanu, nonexistence, ath, frac, reload, laconia,
+Nearest to th: yuma, hayek, behaviorist, unconnected, grammatically, glorantha, thicknesses, intentionality,
+Nearest to so: coolant, oder, baryogenesis, interruption, ladino, gaelic, giga, dukes,
+Nearest to two: visual, percival, sarti, aligned, recognizably, howstuffworks, objector, showers,
+Nearest to also: hyperlinks, injection, variational, width, prey, iced, cleanse, tardis,
+Nearest to known: habilis, pngimage, apply, africana, tee, ww, abdicates, tear,
+Nearest to has: bud, hrothgar, stipulation, irvine, archives, mercantile, negated, softening,
+Nearest to often: sns, elucidate, fijian, pinscher, brigade, equiv, causes, opposed,
+Nearest to most: bandit, ground, empresses, strengthens, ideologue, run, vir, tourists,
+Nearest to are: canes, cplp, macs, dagger, quests, doodle, desperate, cheap,
+Nearest to were: one, razed, transpose, epithet, bourgeoisie, thule, read, academies,
+Average loss at step 2000: 4.354806
+Average loss at step 4000: 3.865634
+Average loss at step 6000: 3.790162
+Average loss at step 8000: 3.690257
+Average loss at step 10000: 3.615377
+Nearest to one: three, two, four, five, seven, six, eight, hurst,
+Nearest to during: on, with, hester, amoeba, in, eamon, fires, destroys,
+Nearest to was: is, were, has, had, by, are, be, been,
+Nearest to first: deposing, ess, rove, about, lvares, salazar, gyro, cups,
+Nearest to a: the, this, any, evidence, ju, mezzo, permitting, his,
+Nearest to their: his, its, formerly, voltage, machinery, mor, leaning, ojibwa,
+Nearest to th: behaviorist, beings, nd, shawnee, unconnected, destabilize, hayek, grammatically,
+Nearest to so: baryogenesis, oder, gaelic, veritable, dukes, mohenjo, comes, menial,
+Nearest to two: three, five, four, eight, seven, six, nine, zero,
+Nearest to also: which, often, ballparks, xxxviii, not, sometimes, chinon, cleanse,
+Nearest to known: habilis, such, present, well, faro, used, pngimage, commute,
+Nearest to has: had, is, was, have, rcs, orally, carneiro, tesco,
+Nearest to often: it, also, he, causes, marlowe, licensure, turbofans, winchester,
+Nearest to most: apeiron, shelf, jeannette, all, vir, ideologue, georgia, bolshevik,
+Nearest to are: were, is, have, was, doodle, but, spectator, feast,
+Nearest to were: are, was, been, had, is, haydn, read, be,
+Average loss at step 12000: 3.600304
+Average loss at step 14000: 3.571341
+Average loss at step 16000: 3.407872
+Average loss at step 18000: 3.459439
+Average loss at step 20000: 3.538420
+Nearest to one: six, three, two, eight, four, seven, five, nine,
+Nearest to during: on, with, in, when, after, for, amoeba, at,
+Nearest to was: is, were, has, had, became, been, be, are,
+Nearest to first: second, ess, deposing, old, rove, same, keillor, by,
+Nearest to a: the, mezzo, this, any, another, ju, learnt, amulets,
+Nearest to their: its, his, the, her, them, gorge, any, leaning,
+Nearest to th: nd, behaviorist, beings, hayek, shawnee, destabilize, married, unconnected,
+Nearest to so: baryogenesis, oder, mohenjo, menial, gaelic, look, criticizes, veritable,
+Nearest to two: five, three, four, six, eight, seven, zero, nine,
+Nearest to also: which, often, sometimes, never, now, not, who, karen,
+Nearest to known: such, used, well, habilis, faro, highness, reluctantly, elbaradei,
+Nearest to has: had, have, was, is, rcs, hertogenbosch, carneiro, orally,
+Nearest to often: also, it, who, which, sometimes, galvani, localized, widely,
+Nearest to most: more, some, apeiron, all, shelf, ideologue, many, jeannette,
+Nearest to are: were, is, have, was, locative, sharpened, lada, influences,
+Nearest to were: are, was, had, by, been, have, be, is,
+Average loss at step 22000: 3.504639
+Average loss at step 24000: 3.490412
+Average loss at step 26000: 3.482481
+Average loss at step 28000: 3.478874
+Average loss at step 30000: 3.505072
+Nearest to one: two, four, seven, three, eight, six, five, nine,
+Nearest to during: after, when, in, on, at, with, through, gilchrist,
+Nearest to was: is, had, became, were, has, been, be, when,
+Nearest to first: second, deposing, same, last, ess, old, best, smelling,
+Nearest to a: any, the, permitting, another, intercontinental, ju, wakefulness, no,
+Nearest to their: its, his, the, her, these, our, gorge, some,
+Nearest to th: nd, behaviorist, hayek, tiling, shawnee, numeral, six, unconnected,
+Nearest to so: baryogenesis, menial, criticizes, handlebars, rahman, mohenjo, jeong, veritable,
+Nearest to two: four, three, one, five, seven, six, eight, nine,
+Nearest to also: often, now, never, sometimes, usually, still, which, amicable,
+Nearest to known: used, well, such, described, regarded, faro, called, habilis,
+Nearest to has: had, have, is, was, rcs, carneiro, orally, hertogenbosch,
+Nearest to often: sometimes, also, usually, generally, widely, always, they, commonly,
+Nearest to most: more, many, some, bred, legalistic, among, shelf, apeiron,
+Nearest to are: were, have, is, include, eudes, these, goldfish, recessions,
+Nearest to were: are, was, have, been, had, by, be, digit,
+Average loss at step 32000: 3.501719
+Average loss at step 34000: 3.492923
+Average loss at step 36000: 3.458800
+Average loss at step 38000: 3.302050
+Average loss at step 40000: 3.426942
+Nearest to one: seven, two, four, six, eight, three, five, nine,
+Nearest to during: after, when, on, before, in, at, eros, temptations,
+Nearest to was: is, became, has, were, had, been, when, be,
+Nearest to first: second, last, deposing, next, rove, fated, best, chic,
+Nearest to a: mezzo, the, sharpe, another, wakefulness, brainwashed, ju, learnt,
+Nearest to their: its, his, her, the, them, our, these, any,
+Nearest to th: nd, hayek, behaviorist, shawnee, scrimmage, tiling, unconnected, mage,
+Nearest to so: baryogenesis, jeong, criticizes, mohenjo, rahman, menial, atzma, supercontinent,
+Nearest to two: three, four, six, five, seven, eight, one, nine,
+Nearest to also: often, never, which, usually, now, still, sometimes, typically,
+Nearest to known: used, such, well, regarded, described, possible, habilis, called,
+Nearest to has: had, have, was, is, having, carneiro, hauk, rcs,
+Nearest to often: usually, generally, sometimes, also, still, commonly, widely, always,
+Nearest to most: more, many, some, among, all, ovaries, bred, legalistic,
+Nearest to are: were, have, is, but, these, while, recessions, be,
+Nearest to were: are, have, was, while, been, had, but, those,
+Average loss at step 42000: 3.437635
+Average loss at step 44000: 3.449876
+Average loss at step 46000: 3.447851
+Average loss at step 48000: 3.348519
+Average loss at step 50000: 3.385307
+Nearest to one: two, six, eight, four, seven, three, five, nine,
+Nearest to during: after, when, in, before, at, through, gilchrist, from,
+Nearest to was: is, were, has, had, became, been, be, are,
+Nearest to first: second, last, next, under, same, deposing, balancing, mutagenesis,
+Nearest to a: another, wakefulness, any, the, tocantins, mezzo, fl, permitting,
+Nearest to their: its, his, the, her, these, your, insurgencies, our,
+Nearest to th: nd, hayek, six, bce, one, behaviorist, abdel, noisy,
+Nearest to so: baryogenesis, vasily, banana, then, meditation, mohenjo, jeong, note,
+Nearest to two: three, six, four, one, five, eight, seven, zero,
+Nearest to also: often, now, never, which, still, typically, usually, sometimes,
+Nearest to known: used, such, well, described, regarded, possible, called, defined,
+Nearest to has: had, have, was, is, having, orally, substantial, raza,
+Nearest to often: usually, generally, sometimes, commonly, also, still, widely, now,
+Nearest to most: more, many, some, ovaries, among, assignments, less, all,
+Nearest to are: were, is, have, these, be, sharpened, was, those,
+Nearest to were: are, was, have, be, had, been, avalon, those,
+Average loss at step 52000: 3.436014
+Average loss at step 54000: 3.428417
+Average loss at step 56000: 3.439921
+Average loss at step 58000: 3.400723
+Average loss at step 60000: 3.394617
+Nearest to one: seven, four, two, eight, five, six, nine, three,
+Nearest to during: after, before, in, when, despite, although, under, through,
+Nearest to was: is, became, had, were, has, be, when, been,
+Nearest to first: second, last, same, next, best, amalthea, final, polytechnical,
+Nearest to a: another, the, any, wakefulness, mezzo, this, odysseus, amulets,
+Nearest to their: its, his, her, the, these, your, some, insurgencies,
+Nearest to th: nd, eight, hayek, bce, six, abdel, bc, behaviorist,
+Nearest to so: baryogenesis, note, then, meditation, jihad, discusses, concluded, banana,
+Nearest to two: four, three, five, six, seven, eight, one, zero,
+Nearest to also: now, often, still, never, usually, typically, sometimes, generally,
+Nearest to known: used, well, such, possible, described, regarded, called, defined,
+Nearest to has: had, have, is, was, having, substantial, guglielmo, contains,
+Nearest to often: sometimes, usually, generally, commonly, also, now, frequently, still,
+Nearest to most: more, many, some, among, all, ovaries, defections, essendon,
+Nearest to are: were, is, have, eudes, be, include, including, recessions,
+Nearest to were: are, was, have, had, been, although, while, those,
+Average loss at step 62000: 3.243951
+Average loss at step 64000: 3.255204
+Average loss at step 66000: 3.400393
+Average loss at step 68000: 3.395339
+Average loss at step 70000: 3.362295
+Nearest to one: two, seven, six, eight, four, five, nine, three,
+Nearest to during: after, in, before, despite, throughout, when, until, through,
+Nearest to was: is, has, were, had, been, became, be, when,
+Nearest to first: second, last, next, same, best, earliest, final, original,
+Nearest to a: another, the, any, this, mezzo, homeowners, hd, quite,
+Nearest to their: its, his, her, the, your, our, these, some,
+Nearest to th: nd, bce, hayek, bc, one, behaviorist, abdel, eighth,
+Nearest to so: baryogenesis, thus, when, then, crematoria, ishiro, jihad, banana,
+Nearest to two: three, four, six, seven, one, five, eight, zero,
+Nearest to also: now, still, often, which, never, typically, usually, generally,
+Nearest to known: used, such, regarded, defined, described, well, called, seen,
+Nearest to has: had, have, is, was, since, substantial, having, contains,
+Nearest to often: usually, sometimes, generally, commonly, now, frequently, also, still,
+Nearest to most: more, many, some, all, among, legalistic, less, hiberno,
+Nearest to are: were, is, have, include, these, while, be, including,
+Nearest to were: are, was, have, had, be, been, although, those,
+Average loss at step 72000: 3.378108
+Average loss at step 74000: 3.350002
+Average loss at step 76000: 3.309625
+Average loss at step 78000: 3.348543
+Average loss at step 80000: 3.376354
+Nearest to one: seven, six, two, three, four, five, eight, nine,
+Nearest to during: after, before, when, in, despite, throughout, although, within,
+Nearest to was: is, became, were, had, has, been, although, becomes,
+Nearest to first: second, last, next, same, earliest, final, third, fourth,
+Nearest to a: another, the, mezzo, every, polycarbonate, any, wakefulness, violet,
+Nearest to their: its, his, her, your, our, the, these, insurgencies,
+Nearest to th: nd, bc, bce, hayek, six, rd, paasikivi, cutter,
+Nearest to so: baryogenesis, when, banana, then, concluded, meditation, leveraged, crematoria,
+Nearest to two: three, six, four, five, seven, one, eight, zero,
+Nearest to also: now, often, still, typically, sometimes, which, never, actually,
+Nearest to known: used, regarded, called, described, such, defined, possible, serve,
+Nearest to has: had, have, is, was, since, having, contains, includes,
+Nearest to often: sometimes, usually, generally, commonly, frequently, still, now, typically,
+Nearest to most: more, some, many, ovaries, among, katha, especially, legalistic,
+Nearest to are: were, have, those, is, include, although, fsln, be,
+Nearest to were: are, was, have, had, those, being, been, these,
+Average loss at step 82000: 3.409099
+Average loss at step 84000: 3.409469
+Average loss at step 86000: 3.389135
+Average loss at step 88000: 3.351981
+Average loss at step 90000: 3.367400
+Nearest to one: seven, two, four, five, eight, six, three, th,
+Nearest to during: after, before, in, despite, while, throughout, when, within,
+Nearest to was: is, had, were, became, be, been, has, being,
+Nearest to first: second, last, earliest, next, original, fourth, third, same,
+Nearest to a: another, any, mezzo, hd, wakefulness, every, amulets, the,
+Nearest to their: its, his, her, your, our, the, heading, whose,
+Nearest to th: nd, seven, bce, one, bc, eighth, six, paasikivi,
+Nearest to so: thus, baryogenesis, when, discusses, banana, ishiro, jihad, phallus,
+Nearest to two: three, four, six, five, seven, one, eight, zero,
+Nearest to also: now, often, still, which, never, typically, sometimes, actually,
+Nearest to known: used, regarded, described, such, called, possible, defined, seen,
+Nearest to has: had, have, is, having, was, since, contains, includes,
+Nearest to often: sometimes, usually, generally, commonly, frequently, now, typically, still,
+Nearest to most: more, some, many, among, less, ovaries, especially, anchorage,
+Nearest to are: were, is, these, include, have, contain, those, although,
+Nearest to were: are, was, had, while, have, although, those, these,
+Average loss at step 92000: 3.396319
+Average loss at step 94000: 3.250602
+Average loss at step 96000: 3.355531
+Average loss at step 98000: 3.241937
+Average loss at step 100000: 3.360208
+Nearest to one: two, four, seven, six, eight, five, three, nine,
+Nearest to during: after, in, before, throughout, within, despite, when, until,
+Nearest to was: is, became, has, had, been, were, remains, koalas,
+Nearest to first: second, last, next, third, fourth, best, final, same,
+Nearest to a: another, any, the, mezzo, virility, unfriendly, harford, wakefulness,
+Nearest to their: its, his, her, your, our, the, these, whose,
+Nearest to th: nd, bc, rd, eighth, bce, paasikivi, twentieth, sainte,
+Nearest to so: thus, then, when, baryogenesis, crematoria, ishiro, rosser, sometimes,
+Nearest to two: three, four, five, six, seven, one, eight, zero,
+Nearest to also: now, still, never, often, typically, sometimes, actually, generally,
+Nearest to known: used, such, regarded, described, possible, defined, seen, identified,
+Nearest to has: had, have, is, was, having, since, contains, recently,
+Nearest to often: usually, sometimes, generally, commonly, typically, frequently, still, now,
+Nearest to most: more, less, especially, many, ovaries, some, among, all,
+Nearest to are: were, have, is, include, although, those, these, be,
+Nearest to were: are, have, those, these, was, had, include, although,
+#+end_example
+
+#+BEGIN_EXAMPLE
+     Initialized
+     Average loss at step 0 : 8.58149623871
+     Nearest to been: unfavourably, marmara, ancestral, legal, bogart, glossaries, worst, rooms,
+     Nearest to time: conformist, strawberries, sindhi, waterfall, xia, nominates, psp, sensitivity,
+     Nearest to over: overlord, panda, golden, semigroup, rawlings, involved, shreveport, handling,
+     Nearest to not: hymenoptera, reintroducing, lamiaceae, because, davao, omnipotent, combustion, debilitating,
+     Nearest to three: catalog, koza, gn, braque, holstein, postgresql, luddite, justine,
+     Nearest to if: chilled, vince, fiddler, represented, sandinistas, happiness, lya, glands,
+     Nearest to there: coast, photosynthetic, kimmei, legally, inner, illyricum, formats, fullmetal,
+     Nearest to between: chuvash, prinz, suitability, wolfe, guideline, computability, diminutive, paulo,
+     Nearest to from: tanganyika, workshop, elphinstone, spearhead, resurrected, kevlar, shangri, loves,
+     Nearest to state: sextus, wuppertal, glaring, inches, unrounded, courageous, adler, connie,
+     Nearest to on: gino, phocas, rhine, jg, macrocosm, jackass, jays, theorie,
+     Nearest to and: standings, towed, reyes, willard, equality, juggling, wladislaus, faked,
+     Nearest to eight: gresham, dogg, moko, tennis, superseded, telegraphy, scramble, vinod,
+     Nearest to they: prisons, divisor, coder, ribeira, willingness, factional, nne, lotta,
+     Nearest to more: blues, fur, sterling, tangier, khwarizmi, discouraged, cal, deicide,
+     Nearest to other: enemies, bogged, brassicaceae, lascaux, dispense, alexandrians, crimea, dou,
+     Average loss at step 2000 : 4.39983723116
+     Average loss at step 4000 : 3.86921076906
+     Average loss at step 6000 : 3.72542127335
+     Average loss at step 8000 : 3.57835536212
+     Average loss at step 10000 : 3.61056993055
+     Nearest to been: glossaries, legal, unfavourably, be, hadad, wore, scarcity, were,
+     Nearest to time: strawberries, conformist, gleichschaltung, waterfall, molality, nominates, baal, dole,
+     Nearest to over: golden, semigroup, catus, motorways, brick, shehri, mussolini, overlord,
+     Nearest to not: hinayana, it, often, they, boots, also, noaa, lindsey,
+     Nearest to three: four, seven, six, five, nine, eight, two, zero,
+     Nearest to if: glands, euros, wallpaper, redefine, toho, confuse, unsound, shepherd,
+     Nearest to there: it, they, fullmetal, pace, legally, harpsichord, mma, bug,
+     Nearest to between: chuvash, wandering, from, kirsch, pursuant, eurocents, suitability, jackie,
+     Nearest to from: into, in, workshop, to, at, misogynist, elphinstone, spearhead,
+     Nearest to state: sextus, glaring, connie, adler, esoteric, didactic, handedness, presidents,
+     Nearest to on: in, at, for, ruminants, wakefulness, torrey, foley, gino,
+     Nearest to and: or, who, but, zelda, of, for, thirst, chisel,
+     Nearest to eight: nine, six, seven, five, four, three, zero, two,
+     Nearest to they: he, prisons, there, we, hydrate, it, not, cumbersome,
+     Nearest to more: skye, blues, trypomastigotes, deicide, most, readable, used, sterling,
+     Nearest to other: trochaic, hush, surveyors, joachim, differentiation, attackers, reverence, attestation,
+     Average loss at step 12000 : 3.66169466591
+     Average loss at step 14000 : 3.60342905837
+     Average loss at step 16000 : 3.57761328053
+     Average loss at step 18000 : 3.57667332476
+     Average loss at step 20000 : 3.53310145146
+     Nearest to been: be, become, was, hadad, unfavourably, were, wore, partido,
+     Nearest to time: gleichschaltung, strawberries, year, nominates, conformist, etch, admittedly, treasuries,
+     Nearest to over: golden, semigroup, motorways, rawlings, triangle, trey, ustawa, mattingly,
+     Nearest to not: they, boots, often, dieppe, still, hinayana, nearly, be,
+     Nearest to three: two, four, five, seven, eight, six, nine, one,
+     Nearest to if: wallpaper, euros, before, toho, unsound, so, bg, pfc,
+     Nearest to there: they, it, he, usually, which, we, not, transactions,
+     Nearest to between: from, with, about, near, reactance, eurocents, wandering, voltaire,
+     Nearest to from: into, workshop, by, between, in, on, elphinstone, under,
+     Nearest to state: glaring, esoteric, succeeding, sextus, vorarlberg, presidents, depends, connie,
+     Nearest to on: in, at, upon, during, from, janis, foley, nubian,
+     Nearest to and: or, thirst, but, where, s, who, pfaff, including,
+     Nearest to eight: nine, seven, six, five, four, three, zero, one,
+     Nearest to they: there, he, we, not, it, you, prisons, who,
+     Nearest to more: less, most, deicide, skye, trypomastigotes, interventionism, toed, drummond,
+     Nearest to other: such, joachim, hush, attackers, surveyors, trochaic, differentiation, reverence,
+     Average loss at step 22000 : 3.59519316927
+     Average loss at step 24000 : 3.55378576797
+     Average loss at step 26000 : 3.56455037558
+     Average loss at step 28000 : 3.5040882225
+     Average loss at step 30000 : 3.39208897972
+     Nearest to been: become, be, were, was, spotless, hadad, by, hausdorff,
+     Nearest to time: gleichschaltung, year, day, nominates, jesus, strawberries, way, admittedly,
+     Nearest to over: golden, semigroup, motorways, rawlings, interventionism, counternarcotics, adaption, brick,
+     Nearest to not: often, they, it, never, still, nor, boots, pki,
+     Nearest to three: four, six, two, eight, five, seven, nine, zero,
+     Nearest to if: when, before, so, should, toho, where, bg, wallpaper,
+     Nearest to there: they, it, which, usually, he, that, also, now,
+     Nearest to between: with, from, in, panasonic, presupposes, churchmen, hijacking, where,
+     Nearest to from: into, elphinstone, workshop, between, through, speculates, sosa, in,
+     Nearest to state: esoteric, glaring, presidents, vorarlberg, atmosphere, succeeding, lute, connie,
+     Nearest to on: upon, in, janis, during, torrey, against, infield, catalans,
+     Nearest to and: or, thirst, in, but, of, sobib, cleaves, including,
+     Nearest to eight: nine, six, four, seven, three, zero, five, one,
+     Nearest to they: we, there, he, you, it, these, who, i,
+     Nearest to more: less, most, deicide, faster, toed, very, skye, tonic,
+     Nearest to other: different, attackers, joachim, various, such, many, differentiation, these,
+     Average loss at step 32000 : 3.49501452419
+     Average loss at step 34000 : 3.48593705952
+     Average loss at step 36000 : 3.50112806576
+     Average loss at step 38000 : 3.49244426501
+     Average loss at step 40000 : 3.3890105716
+     Nearest to been: become, be, were, was, jolie, hausdorff, spotless, had,
+     Nearest to time: year, way, gleichschaltung, period, day, stanislav, stage, outcome,
+     Nearest to over: through, semigroup, rawlings, golden, about, brick, on, motorways,
+     Nearest to not: they, radiated, never, pki, still, omnipotent, hinayana, really,
+     Nearest to three: four, six, five, two, seven, eight, one, nine,
+     Nearest to if: when, before, where, then, bg, because, can, should,
+     Nearest to there: they, it, he, usually, this, typically, still, often,
+     Nearest to between: with, in, from, about, against, churchmen, johansen, presupposes,
+     Nearest to from: into, through, elphinstone, in, workshop, between, suing, under,
+     Nearest to state: esoteric, presidents, atmosphere, vorarlberg, lute, succeeding, glaring, didactic,
+     Nearest to on: upon, at, in, during, unitarians, under, catalans, batavians,
+     Nearest to and: or, but, s, incapacitation, including, while, of, which,
+     Nearest to eight: nine, six, seven, four, five, three, one, two,
+     Nearest to they: we, he, there, you, she, i, not, it,
+     Nearest to more: less, most, deicide, toed, greater, faster, quite, longer,
+     Nearest to other: various, different, attackers, joachim, clutter, nz, trochaic, apulia,
+     Average loss at step 42000 : 3.45294014364
+     Average loss at step 44000 : 3.47660055941
+     Average loss at step 46000 : 3.47458503014
+     Average loss at step 48000 : 3.47261548793
+     Average loss at step 50000 : 3.45390708435
+     Nearest to been: become, be, had, was, were, hausdorff, prem, remained,
+     Nearest to time: way, year, period, stv, day, gleichschaltung, stage, outcome,
+     Nearest to over: through, golden, semigroup, about, brick, counternarcotics, theremin, mattingly,
+     Nearest to not: they, still, never, really, sometimes, it, kiwifruit, nearly,
+     Nearest to three: five, four, six, seven, two, eight, one, nine,
+     Nearest to if: when, before, where, because, connexion, though, so, whether,
+     Nearest to there: they, it, he, this, now, often, usually, still,
+     Nearest to between: with, from, fashioned, churchmen, panasonic, explores, within, racial,
+     Nearest to from: into, through, under, elphinstone, between, workshop, circumpolar, idiom,
+     Nearest to state: atmosphere, vorarlberg, esoteric, presidents, madhya, majority, moulin, bowmen,
+     Nearest to on: upon, in, catalans, tezuka, minotaurs, wakefulness, batavians, guglielmo,
+     Nearest to and: or, but, thirst, signifier, which, however, including, unattractive,
+     Nearest to eight: six, nine, seven, five, four, three, zero, two,
+     Nearest to they: we, there, he, you, it, she, these, not,
+     Nearest to more: less, most, quite, very, further, faster, toed, deicide,
+     Nearest to other: various, different, many, attackers, are, joachim, nihilo, reject,
+     Average loss at step 52000 : 3.43597227755
+     Average loss at step 54000 : 3.25126817495
+     Average loss at step 56000 : 3.35102432287
+     Average loss at step 58000 : 3.44654818082
+     Average loss at step 60000 : 3.4287913968
+     Nearest to been: become, be, was, prem, had, remained, hadad, stanislavsky,
+     Nearest to time: year, way, period, stv, barely, name, stage, restoring,
+     Nearest to over: about, through, golden, adaption, counternarcotics, up, mattingly, brick,
+     Nearest to not: still, never, nor, kiwifruit, they, nearly, therefore, rarely,
+     Nearest to three: two, five, four, six, seven, eight, one, nine,
+     Nearest to if: when, though, before, where, although, because, can, could,
+     Nearest to there: they, it, he, still, she, we, this, often,
+     Nearest to between: with, from, churchmen, among, ethical, within, vma, panasonic,
+     Nearest to from: through, into, under, during, between, in, suing, across,
+     Nearest to state: atmosphere, infringe, madhya, vorarlberg, government, bowmen, vargas, republic,
+     Nearest to on: upon, through, within, ridiculous, janis, in, under, over,
+     Nearest to and: or, while, including, but, of, like, whose, bannister,
+     Nearest to eight: nine, six, five, four, seven, zero, three, two,
+     Nearest to they: we, there, you, he, it, these, she, prisons,
+     Nearest to more: less, most, quite, further, toed, very, faster, rather,
+     Nearest to other: different, various, many, nihilo, these, amour, including, screenplays,
+     Average loss at step 62000 : 3.38358767056
+     Average loss at step 64000 : 3.41693099326
+     Average loss at step 66000 : 3.39588000977
+     Average loss at step 68000 : 3.35567189544
+     Average loss at step 70000 : 3.38878934443
+     Nearest to been: become, be, was, prem, remained, were, being, discounts,
+     Nearest to time: year, way, day, period, barely, ethos, stage, reason,
+     Nearest to over: about, through, fortunately, semigroup, theremin, off, loudest, up,
+     Nearest to not: still, nor, never, they, actually, nearly, unelected, therefore,
+     Nearest to three: five, two, four, six, seven, eight, nine, zero,
+     Nearest to if: when, though, before, where, because, then, after, since,
+     Nearest to there: they, it, he, often, she, we, usually, still,
+     Nearest to between: among, with, within, from, ethical, churchmen, racial, prentice,
+     Nearest to from: through, into, within, during, under, until, between, across,
+     Nearest to state: city, atmosphere, desks, surrounding, preservation, bohr, principal, republic,
+     Nearest to on: upon, tezuka, through, within, wakefulness, catalans, at, ingeborg,
+     Nearest to and: or, but, while, including, thirst, jerzy, massing, abadan,
+     Nearest to eight: seven, six, nine, five, four, three, two, zero,
+     Nearest to they: we, you, he, there, she, it, prisons, who,
+     Nearest to more: less, most, quite, very, faster, smaller, further, larger,
+     Nearest to other: various, different, some, screenplays, lab, many, including, debugging,
+     Average loss at step 72000 : 3.41103189731
+     Average loss at step 74000 : 3.44926435578
+     Average loss at step 76000 : 3.4423020488
+     Average loss at step 78000 : 3.41976813722
+     Average loss at step 80000 : 3.39511853886
+     Nearest to been: become, be, remained, was, grown, were, prem, already,
+     Nearest to time: year, way, period, reason, barely, distance, stage, day,
+     Nearest to over: about, fortunately, through, semigroup, further, mattingly, rawlings, golden,
+     Nearest to not: still, they, nor, never, we, kiwifruit, noaa, really,
+     Nearest to three: five, two, seven, four, eight, six, nine, zero,
+     Nearest to if: when, where, though, before, since, because, although, follows,
+     Nearest to there: they, it, he, we, she, still, typically, actually,
+     Nearest to between: with, among, within, in, racial, around, from, serapeum,
+     Nearest to from: into, through, in, within, under, using, during, towards,
+     Nearest to state: city, atmosphere, ferro, vorarlberg, surrounding, republic, madhya, national,
+     Nearest to on: upon, poll, in, from, tezuka, janis, through, within,
+     Nearest to and: or, but, including, while, s, which, thirst, although,
+     Nearest to eight: nine, seven, six, five, four, three, zero, two,
+     Nearest to they: we, you, there, he, she, it, these, not,
+     Nearest to more: less, most, smaller, very, faster, quite, rather, larger,
+     Nearest to other: various, different, joachim, including, theos, smaller, individual, screenplays,
+     Average loss at step 82000 : 3.40933967865
+     Average loss at step 84000 : 3.41618054378
+     Average loss at step 86000 : 3.31485116804
+     Average loss at step 88000 : 3.37068593091
+     Average loss at step 90000 : 3.2785516749
+     Nearest to been: become, be, was, prem, remained, grown, recently, already,
+     Nearest to time: year, way, period, day, barely, battle, buds, name,
+     Nearest to over: through, about, fortunately, off, theremin, semigroup, extraterrestrial, mattingly,
+     Nearest to not: nor, still, never, otherwise, generally, separately, gown, hydrate,
+     Nearest to three: four, five, six, two, eight, seven, nine, zero,
+     Nearest to if: when, where, before, though, because, since, then, while,
+     Nearest to there: they, it, he, we, she, still, typically, fiorello,
+     Nearest to between: with, among, within, from, churchmen, prentice, racial, panasonic,
+     Nearest to from: through, into, across, during, towards, until, at, within,
+     Nearest to state: bohr, city, atmosphere, ferro, bowmen, republic, retaliation, vorarlberg,
+     Nearest to on: upon, in, tezuka, at, during, within, via, catalans,
+     Nearest to and: or, including, but, while, like, thirst, with, schuman,
+     Nearest to eight: seven, nine, six, five, four, three, zero, two,
+     Nearest to they: we, there, he, you, she, it, prisons, these,
+     Nearest to more: less, most, very, faster, larger, quite, smaller, better,
+     Nearest to other: different, various, tamara, prosthetic, including, individual, failing, restaurants,
+     Average loss at step 92000 : 3.40355363208
+     Average loss at step 94000 : 3.35647508007
+     Average loss at step 96000 : 3.34374570692
+     Average loss at step 98000 : 3.4230104093
+     Average loss at step 100000 : 3.36909827
+     Nearest to been: become, be, grown, was, being, already, remained, prem,
+     Nearest to time: way, year, day, period, years, days, mothersbaugh, separators,
+     Nearest to over: through, about, semigroup, further, fortunately, off, into, theremin,
+     Nearest to not: never, nor, still, dieppe, really, unelected, actually, now,
+     Nearest to three: four, two, five, seven, six, eight, nine, zero,
+     Nearest to if: when, though, where, before, is, abe, then, follows,
+     Nearest to there: they, it, he, we, still, she, typically, often,
+     Nearest to between: within, with, among, churchmen, around, explores, from, reactance,
+     Nearest to from: into, through, within, across, in, between, using, workshop,
+     Nearest to state: atmosphere, bohr, national, ferro, germ, desks, city, unpaid,
+     Nearest to on: upon, in, within, tezuka, janis, batavians, about, macrocosm,
+     Nearest to and: or, but, purview, thirst, sukkot, epr, including, honesty,
+     Nearest to eight: seven, nine, six, four, five, three, zero, one,
+     Nearest to they: we, there, you, he, she, prisons, it, these,
+     Nearest to more: less, most, very, quite, faster, larger, rather, smaller,
+     Nearest to other: various, different, tamara, theos, some, cope, many, others,
+#+END_EXAMPLE
+
+
+#+BEGIN_SRC python
+  num_points = 400
+
+  tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=5000)
+  two_d_embeddings = tsne.fit_transform(final_embeddings[1:num_points+1, :])
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+  def plot(embeddings, labels):
+    assert embeddings.shape[0] >= len(labels), 'More labels than embeddings'
+    pylab.figure(figsize=(15,15))  # in inches
+    for i, label in enumerate(labels):
+      x, y = embeddings[i,:]
+      pylab.scatter(x, y)
+      pylab.annotate(label, xy=(x, y), xytext=(5, 2), textcoords='offset points',
+                     ha='right', va='bottom')
+    pylab.show()
+
+  words = [reverse_dictionary[i] for i in range(1, num_points+1)]
+#+END_SRC
+  
+#+BEGIN_SRC python
+  plot(two_d_embeddings, words)
+  pylab.savefig('images/python-matplot-fig.png')  
+#+END_SRC
+  
+#+BEGIN_SRC python :results file
+  'images/python-matplot-fig.png' # return filename to org-mode
+#+END_SRC
+
+[[output_14_0.png]]
+
+--------------
+
+
+
+*** Problem
+
+An alternative to skip-gram is another Word2Vec model called
+[[http://arxiv.org/abs/1301.3781][CBOW]] (Continuous Bag of Words). In
+the CBOW model, instead of predicting a context word from a word vector,
+you predict a word from the sum of all the word vectors in its context.
+Implement and evaluate a CBOW model trained on the text8 dataset.
+
+--------------
+
+
+** Assignment 6
+:PROPERTIES:
+:header-args: :session a6py :results output
+:END:
+*** starter code
+
+After training a skip-gram model in =5_word2vec.ipynb=, the goal of this
+notebook is to train a LSTM character model over
+[[http://mattmahoney.net/dc/textdata][Text8]] data.
+
+#+NAME: start1
+#+BEGIN_SRC python
+  # These are all the modules we'll be using later. Make sure you can import them
+  # before proceeding further.
+  from __future__ import print_function
+  import os
+  import numpy as np
+  import random
+  import string
+  import tensorflow as tf
+  import zipfile
+  from six.moves import range
+  from six.moves.urllib.request import urlretrieve
+#+END_SRC
+
+#+RESULTS: start1
+: Python 3.5.2+ (default, Sep 22 2016, 12:18:14) 
+: [GCC 6.2.0 20160927] on linux
+: Type "help", "copyright", "credits" or "license" for more information.
+: ... ... python.el: native completion setup loaded
+: >>> >>> >>> I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcublas.so locally
+: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcudnn.so locally
+: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcufft.so locally
+: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcuda.so.1 locally
+: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcurand.so locally
+
+#+RESULTS:
+: Python 3.5.2+ (default, Sep 22 2016, 12:18:14) 
+: [GCC 6.2.0 20160927] on linux
+: Type "help", "copyright", "credits" or "license" for more information.
+: ... python.el: native completion setup loaded
+: ... >>> >>> >>> I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcublas.so locally
+: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcudnn.so locally
+: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcufft.so locally
+: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcuda.so.1 locally
+: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcurand.so locally
+
+#+NAME: start2
+#+BEGIN_SRC python
+  url = 'http://mattmahoney.net/dc/'
+
+  def maybe_download(filename, expected_bytes):
+    """Download a file if not present, and make sure it's the right size."""
+    if not os.path.exists(filename):
+      filename, _ = urlretrieve(url + filename, filename)
+    statinfo = os.stat(filename)
+    if statinfo.st_size == expected_bytes:
+      print('Found and verified %s' % filename)
+    else:
+      print(statinfo.st_size)
+      raise Exception(
+        'Failed to verify ' + filename + '. Can you get to it with a browser?')
+    return filename
+
+  filename = maybe_download('text8.zip', 31344016)
+#+END_SRC
+
+#+RESULTS:
+: 
+: >>> ... ... ... ... ... ... ... ... ... ... ... ... >>> Found and verified text8.zip
+
+
+#+BEGIN_EXAMPLE
+  Found and verified text8.zip
+#+END_EXAMPLE
+
+#+NAME: start3
+#+BEGIN_SRC python
+  def read_data(filename):
+    f = zipfile.ZipFile(filename)
+    for name in f.namelist():
+      return tf.compat.as_str(f.read(name))
+    f.close()
+
+  text = read_data(filename)
+  print('Data size %d' % len(text))
+#+END_SRC
+
+#+RESULTS:
+: 
+: ... ... ... ... >>> >>> Data size 100000000
+#+NAME: start4
+#+BEGIN_SRC python
+  a = random.randint(0,len(text))
+  text[a:a+1000]
+#+END_SRC
+
+#+RESULTS:
+: 
+: 'l level production without sacrificing the quality of a hand crafted instrument unlike most string instruments or other wind instruments for these reasons the harmonica was a success almost from the very start of production and while the center of the harmonica business has shifted from germany the output of the various harmonica manufacturers is still very high indeed major companies are now found in germany hohner once the dominant manufacturer in the world producing some two zero million harmonicas alone in one nine two zero when german manufacturing totaled over five zero million harmonicas japan suzuki tombo yamaha china huang leo shi suzuki hohner and brasil hering ironically as the demand for higher quality instruments which respond to more demanding performance techniques has increased there has been a resurgence in the world of hand crafted harmonicas which cater to those wanting the absolute best without the compromises inherent in mass manufacturing europe and north america '
+
+#+BEGIN_EXAMPLE
+  Data size 100000000
+#+END_EXAMPLE
+
+Create a small validation set.
+#+NAME: start5
+#+BEGIN_SRC python
+  valid_size = 1000
+  valid_text = text[:valid_size]
+  train_text = text[valid_size:]
+  train_size = len(train_text)
+  print(train_size, train_text[:64])
+  print(valid_size, valid_text[:64])
+#+END_SRC
+
+#+RESULTS:
+: 
+: >>> >>> >>> 99999000 ons anarchists advocate social relations based upon voluntary as
+: 1000  anarchism originated as a term of abuse first used against earl
+
+#+BEGIN_EXAMPLE
+  99999000 ons anarchists advocate social relations based upon voluntary as
+  1000  anarchism originated as a term of abuse first used against earl
+#+END_EXAMPLE
+
+Utility functions to map characters to vocabulary IDs and back.
+#+NAME: start6
+#+BEGIN_SRC python
+  ord(string.ascii_lowercase[0])
+#+END_SRC
+
+#+RESULTS:
+: 97
+
+#+NAME: start7
+#+BEGIN_SRC python
+  vocabulary_size = len(string.ascii_lowercase) + 1 # [a-z] + ' '
+  first_letter = ord(string.ascii_lowercase[0])
+
+  def char2id(char):
+    if char in string.ascii_lowercase:
+      return ord(char) - first_letter + 1
+    elif char == ' ':
+      return 0
+    else:
+      print('Unexpected character: %s' % char)
+      return 0
+
+  def id2char(dictid):
+    if dictid > 0:
+      return chr(dictid + first_letter - 1)
+    else:
+      return ' '
+
+  print(char2id('a'), char2id('z'), char2id(' '), char2id('ï'))
+  print(id2char(1), id2char(26), id2char(0))
+#+END_SRC
+
+#+RESULTS:
+: 
+: >>> >>> ... ... ... ... ... ... ... ... >>> ... ... ... ... ... >>> Unexpected character: ï
+: 1 26 0 0
+: a z
+
+#+BEGIN_EXAMPLE
+  1 26 0 Unexpected character: ï
+  0
+  a z  
+#+END_EXAMPLE
+
+Function to generate a training batch for the LSTM model.
+
+#+NAME: start8
+#+BEGIN_SRC python :results output
+batch_size=64
+#+END_SRC
+
+#+NAME: start9
+#+BEGIN_SRC python
+  batch_size=64
+  num_unrollings=10
+  
+  class BatchGenerator(object):
+    def __init__(self, text, batch_size, num_unrollings):
+      self._text = text
+      self._text_size = len(text)
+      self._batch_size = batch_size
+      self._num_unrollings = num_unrollings
+      segment = self._text_size // batch_size
+      self._cursor = [ offset * segment for offset in range(batch_size)]
+      self._last_batch = self._next_batch()
+    def _next_batch(self):
+      """Generate a single batch from the current cursor position in the data."""
+      batch = np.zeros(shape=(self._batch_size, vocabulary_size), dtype=np.float)
+      for b in range(self._batch_size):
+        batch[b, char2id(self._text[self._cursor[b]])] = 1.0
+        self._cursor[b] = (self._cursor[b] + 1) % self._text_size
+      return batch
+    def next(self):
+      """Generate the next array of batches from the data. The array consists of
+      the last batch of the previous array, followed by num_unrollings new ones.
+      """
+      batches = [self._last_batch]
+      for step in range(self._num_unrollings):
+        batches.append(self._next_batch())
+      self._last_batch = batches[-1]
+      return batches
+
+  def characters(probabilities):
+    """Turn a 1-hot encoding or a probability distribution over the possible
+    characters back into its (most likely) character representation."""
+    return [id2char(c) for c in np.argmax(probabilities, 1)]
+
+  def batches2string(batches):
+    """Convert a sequence of batches back into their (most likely) string
+    representation."""
+    s = [''] * batches[0].shape[0]
+    for b in batches:
+      s = [''.join(x) for x in zip(s, characters(b))]
+    return s
+
+  train_batches = BatchGenerator(train_text, batch_size, num_unrollings)
+  valid_batches = BatchGenerator(valid_text, 1, 1)
+
+  print(batches2string(train_batches.next()))
+  print(batches2string(train_batches.next()))
+  print(batches2string(valid_batches.next()))
+  print(batches2string(valid_batches.next()))
+#+END_SRC
+
+#+RESULTS:
+: 
+: >>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... >>> ... ... ... ... >>> ... ... ... ... ... ... ... >>> >>> ['ons anarchi', 'when milita', 'lleria arch', ' abbeys and', 'married urr', 'hel and ric', 'y and litur', 'ay opened f', 'tion from t', 'migration t', 'new york ot', 'he boeing s', 'e listed wi', 'eber has pr', 'o be made t', 'yer who rec', 'ore signifi', 'a fierce cr', ' two six ei', 'aristotle s', 'ity can be ', ' and intrac', 'tion of the', 'dy to pass ', 'f certain d', 'at it will ', 'e convince ', 'ent told hi', 'ampaign and', 'rver side s', 'ious texts ', 'o capitaliz', 'a duplicate', 'gh ann es d', 'ine january', 'ross zero t', 'cal theorie', 'ast instanc', ' dimensiona', 'most holy m', 't s support', 'u is still ', 'e oscillati', 'o eight sub', 'of italy la', 's the tower', 'klahoma pre', 'erprise lin', 'ws becomes ', 'et in a naz', 'the fabian ', 'etchy to re', ' sharman ne', 'ised empero', 'ting in pol', 'd neo latin', 'th risky ri', 'encyclopedi', 'fense the a', 'duating fro', 'treet grid ', 'ations more', 'appeal of d', 'si have mad']
+: ['ists advoca', 'ary governm', 'hes nationa', 'd monasteri', 'raca prince', 'chard baer ', 'rgical lang', 'for passeng', 'the nationa', 'took place ', 'ther well k', 'seven six s', 'ith a gloss', 'robably bee', 'to recogniz', 'ceived the ', 'icant than ', 'ritic of th', 'ight in sig', 's uncaused ', ' lost as in', 'cellular ic', 'e size of t', ' him a stic', 'drugs confu', ' take to co', ' the priest', 'im to name ', 'd barred at', 'standard fo', ' such as es', 'ze on the g', 'e of the or', 'd hiver one', 'y eight mar', 'the lead ch', 'es classica', 'ce the non ', 'al analysis', 'mormons bel', 't or at lea', ' disagreed ', 'ing system ', 'btypes base', 'anguages th', 'r commissio', 'ess one nin', 'nux suse li', ' the first ', 'zi concentr', ' society ne', 'elatively s', 'etworks sha', 'or hirohito', 'litical ini', 'n most of t', 'iskerdoo ri', 'ic overview', 'air compone', 'om acnm acc', ' centerline', 'e than any ', 'devotional ', 'de such dev']
+: [' a']
+: ['an']
+
+#+BEGIN_EXAMPLE
+     ['ons anarchi', 'when milita', 'lleria arch', ' abbeys and', 'married urr', 'hel and ric', 'y and litur', 'ay opened f', 'tion from t', 'migration t', 'new york ot', 'he boeing s', 'e listed wi', 'eber has pr', 'o be made t', 'yer who rec', 'ore signifi', 'a fierce cr', ' two six ei', 'aristotle s', 'ity can be ', ' and intrac', 'tion of the', 'dy to pass ', 'f certain d', 'at it will ', 'e convince ', 'ent told hi', 'ampaign and', 'rver side s', 'ious texts ', 'o capitaliz', 'a duplicate', 'gh ann es d', 'ine january', 'ross zero t', 'cal theorie', 'ast instanc', ' dimensiona', 'most holy m', 't s support', 'u is still ', 'e oscillati', 'o eight sub', 'of italy la', 's the tower', 'klahoma pre', 'erprise lin', 'ws becomes ', 'et in a naz', 'the fabian ', 'etchy to re', ' sharman ne', 'ised empero', 'ting in pol', 'd neo latin', 'th risky ri', 'encyclopedi', 'fense the a', 'duating fro', 'treet grid ', 'ations more', 'appeal of d', 'si have mad']
+     ['ists advoca', 'ary governm', 'hes nationa', 'd monasteri', 'raca prince', 'chard baer ', 'rgical lang', 'for passeng', 'the nationa', 'took place ', 'ther well k', 'seven six s', 'ith a gloss', 'robably bee', 'to recogniz', 'ceived the ', 'icant than ', 'ritic of th', 'ight in sig', 's uncaused ', ' lost as in', 'cellular ic', 'e size of t', ' him a stic', 'drugs confu', ' take to co', ' the priest', 'im to name ', 'd barred at', 'standard fo', ' such as es', 'ze on the g', 'e of the or', 'd hiver one', 'y eight mar', 'the lead ch', 'es classica', 'ce the non ', 'al analysis', 'mormons bel', 't or at lea', ' disagreed ', 'ing system ', 'btypes base', 'anguages th', 'r commissio', 'ess one nin', 'nux suse li', ' the first ', 'zi concentr', ' society ne', 'elatively s', 'etworks sha', 'or hirohito', 'litical ini', 'n most of t', 'iskerdoo ri', 'ic overview', 'air compone', 'om acnm acc', ' centerline', 'e than any ', 'devotional ', 'de such dev']
+     [' a']
+     ['an']
+#+END_EXAMPLE
+
+#+NAME: start10
+#+BEGIN_SRC python
+  def logprob(predictions, labels):
+    """Log-probability of the true labels in a predicted batch."""
+    predictions[predictions < 1e-10] = 1e-10
+    return np.sum(np.multiply(labels, -np.log(predictions))) / labels.shape[0]
+
+  def sample_distribution(distribution):
+    """Sample one element from a distribution assumed to be an array of normalized
+    probabilities.
+    """
+    r = random.uniform(0, 1)
+    s = 0
+    for i in range(len(distribution)):
+      s += distribution[i]
+      if s >= r:
+        return i
+    return len(distribution) - 1
+
+  def sample(prediction):
+    """Turn a (column) prediction into 1-hot encoded samples."""
+    p = np.zeros(shape=[1, vocabulary_size], dtype=np.float)
+    p[0, sample_distribution(prediction[0])] = 1.0
+    return p
+
+  def random_distribution():
+    """Generate a random column of probabilities."""
+    b = np.random.uniform(0.0, 1.0, size=[1, vocabulary_size])
+    return b/np.sum(b, 1)[:,None]
+#+END_SRC
+
+#+RESULTS:
+
+Simple LSTM Model.
+#+NAME: start11
+#+BEGIN_SRC python
+  num_nodes = 64
+
+  graph = tf.Graph()
+  with graph.as_default():
+    # Parameters:
+    # Input gate: input, previous output, and bias.
+    ix = tf.Variable(tf.truncated_normal([vocabulary_size, num_nodes], -0.1, 0.1))
+    im = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
+    ib = tf.Variable(tf.zeros([1, num_nodes]))
+    # Forget gate: input, previous output, and bias.
+    fx = tf.Variable(tf.truncated_normal([vocabulary_size, num_nodes], -0.1, 0.1))
+    fm = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
+    fb = tf.Variable(tf.zeros([1, num_nodes]))
+    # Memory cell: input, state and bias.                             
+    cx = tf.Variable(tf.truncated_normal([vocabulary_size, num_nodes], -0.1, 0.1))
+    cm = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
+    cb = tf.Variable(tf.zeros([1, num_nodes]))
+    # Output gate: input, previous output, and bias.
+    ox = tf.Variable(tf.truncated_normal([vocabulary_size, num_nodes], -0.1, 0.1))
+    om = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
+    ob = tf.Variable(tf.zeros([1, num_nodes]))
+    # Variables saving state across unrollings.
+    saved_output = tf.Variable(tf.zeros([batch_size, num_nodes]), trainable=False)
+    saved_state = tf.Variable(tf.zeros([batch_size, num_nodes]), trainable=False)
+    # Classifier weights and biases.
+    w = tf.Variable(tf.truncated_normal([num_nodes, vocabulary_size], -0.1, 0.1))
+    b = tf.Variable(tf.zeros([vocabulary_size]))
+    # Definition of the cell computation.
+    def lstm_cell(i, o, state):
+      """Create a LSTM cell. See e.g.: http://arxiv.org/pdf/1402.1128v1.pdf
+      Note that in this formulation, we omit the various connections between the
+      previous state and the gates."""
+      input_gate = tf.sigmoid(tf.matmul(i, ix) + tf.matmul(o, im) + ib)
+      forget_gate = tf.sigmoid(tf.matmul(i, fx) + tf.matmul(o, fm) + fb)
+      update = tf.matmul(i, cx) + tf.matmul(o, cm) + cb
+      state = forget_gate * state + input_gate * tf.tanh(update)
+      output_gate = tf.sigmoid(tf.matmul(i, ox) + tf.matmul(o, om) + ob)
+      return output_gate * tf.tanh(state), state
+    # Input data.
+    train_data = list()
+    for _ in range(num_unrollings + 1):
+      train_data.append(
+        tf.placeholder(tf.float32, shape=[batch_size,vocabulary_size]))
+    train_inputs = train_data[:num_unrollings]
+    train_labels = train_data[1:]  # labels are inputs shifted by one time step.
+    # Unrolled LSTM loop.
+    outputs = list()
+    output = saved_output
+    state = saved_state
+    for i in train_inputs:
+      output, state = lstm_cell(i, output, state)
+      outputs.append(output)
+    # State saving across unrollings.
+    with tf.control_dependencies([saved_output.assign(output),
+                                  saved_state.assign(state)]):
+      # Classifier.
+      logits = tf.nn.xw_plus_b(tf.concat(0, outputs), w, b)
+      loss = tf.reduce_mean(
+        tf.nn.softmax_cross_entropy_with_logits(
+          logits, tf.concat(0, train_labels)))
+    # Optimizer.
+    global_step = tf.Variable(0)
+    learning_rate = tf.train.exponential_decay(
+      10.0, global_step, 5000, 0.1, staircase=True)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate)
+    gradients, v = zip(*optimizer.compute_gradients(loss))
+    gradients, _ = tf.clip_by_global_norm(gradients, 1.25)
+    optimizer = optimizer.apply_gradients(
+      zip(gradients, v), global_step=global_step)
+    # Predictions.
+    train_prediction = tf.nn.softmax(logits)
+    # Sampling and validation eval: batch 1, no unrolling.
+    sample_input = tf.placeholder(tf.float32, shape=[1, vocabulary_size])
+    saved_sample_output = tf.Variable(tf.zeros([1, num_nodes]))
+    saved_sample_state = tf.Variable(tf.zeros([1, num_nodes]))
+    reset_sample_state = tf.group(
+      saved_sample_output.assign(tf.zeros([1, num_nodes])),
+      saved_sample_state.assign(tf.zeros([1, num_nodes])))
+    sample_output, sample_state = lstm_cell(
+      sample_input, saved_sample_output, saved_sample_state)
+    with tf.control_dependencies([saved_sample_output.assign(sample_output),
+                                  saved_sample_state.assign(sample_state)]):
+      sample_prediction = tf.nn.softmax(tf.nn.xw_plus_b(sample_output, w, b))
+#+END_SRC
+
+#+RESULTS:
+
+#+NAME: start12
+#+BEGIN_SRC python
+  num_steps = 7001
+  summary_frequency = 100
+
+  with tf.Session(graph=graph) as session:
+    tf.initialize_all_variables().run()
+    print('Initialized')
+    mean_loss = 0
+    for step in range(num_steps):
+      batches = train_batches.next()
+      feed_dict = dict()
+      for i in range(num_unrollings + 1):
+        feed_dict[train_data[i]] = batches[i]
+      _, l, predictions, lr = session.run(
+        [optimizer, loss, train_prediction, learning_rate], feed_dict=feed_dict)
+      mean_loss += l
+      if step % summary_frequency == 0:
+        if step > 0:
+          mean_loss = mean_loss / summary_frequency
+        # The mean loss is an estimate of the loss over the last few batches.
+        print(
+          'Average loss at step %d: %f learning rate: %f' % (step, mean_loss, lr))
+        mean_loss = 0
+        labels = np.concatenate(list(batches)[1:])
+        print('Minibatch perplexity: %.2f' % float(
+          np.exp(logprob(predictions, labels))))
+        if step % (summary_frequency * 10) == 0:
+          # Generate some samples.
+          print('=' * 80)
+          for _ in range(5):
+            feed = sample(random_distribution())
+            sentence = characters(feed)[0]
+            reset_sample_state.run()
+            for _ in range(79):
+              prediction = sample_prediction.eval({sample_input: feed})
+              feed = sample(prediction)
+              sentence += characters(feed)[0]
+            print(sentence)
+          print('=' * 80)
+        # Measure validation set perplexity.
+        reset_sample_state.run()
+        valid_logprob = 0
+        for _ in range(valid_size):
+          b = valid_batches.next()
+          predictions = sample_prediction.eval({sample_input: b[0]})
+          valid_logprob = valid_logprob + logprob(predictions, b[1])
+        print('Validation set perplexity: %.2f' % float(np.exp(
+          valid_logprob / valid_size)))
+#+END_SRC
+
+#+BEGIN_EXAMPLE
+     Initialized
+     Average loss at step 0 : 3.29904174805 learning rate: 10.0
+     Minibatch perplexity: 27.09
+     ================================================================================
+     srk dwmrnuldtbbgg tapootidtu xsciu sgokeguw hi ieicjq lq piaxhazvc s fht wjcvdlh
+     lhrvallvbeqqquc dxd y siqvnle bzlyw nr rwhkalezo siie o deb e lpdg  storq u nx o
+     meieu nantiouie gdys qiuotblci loc hbiznauiccb cqzed acw l tsm adqxplku gn oaxet
+     unvaouc oxchywdsjntdh zpklaejvxitsokeerloemee htphisb th eaeqseibumh aeeyj j orw
+     ogmnictpycb whtup   otnilnesxaedtekiosqet  liwqarysmt  arj flioiibtqekycbrrgoysj
+     ================================================================================
+     Validation set perplexity: 19.99
+     Average loss at step 100 : 2.59553678274 learning rate: 10.0
+     Minibatch perplexity: 9.57
+     Validation set perplexity: 10.60
+     Average loss at step 200 : 2.24747137785 learning rate: 10.0
+     Minibatch perplexity: 7.68
+     Validation set perplexity: 8.84
+     Average loss at step 300 : 2.09438110709 learning rate: 10.0
+     Minibatch perplexity: 7.41
+     Validation set perplexity: 8.13
+     Average loss at step 400 : 1.99440989017 learning rate: 10.0
+     Minibatch perplexity: 6.46
+     Validation set perplexity: 7.58
+     Average loss at step 500 : 1.9320810616 learning rate: 10.0
+     Minibatch perplexity: 6.30
+     Validation set perplexity: 6.88
+     Average loss at step 600 : 1.90935629249 learning rate: 10.0
+     Minibatch perplexity: 7.21
+     Validation set perplexity: 6.91
+     Average loss at step 700 : 1.85583009005 learning rate: 10.0
+     Minibatch perplexity: 6.13
+     Validation set perplexity: 6.60
+     Average loss at step 800 : 1.82152368546 learning rate: 10.0
+     Minibatch perplexity: 6.01
+     Validation set perplexity: 6.37
+     Average loss at step 900 : 1.83169809818 learning rate: 10.0
+     Minibatch perplexity: 7.20
+     Validation set perplexity: 6.23
+     Average loss at step 1000 : 1.82217029214 learning rate: 10.0
+     Minibatch perplexity: 6.73
+     ================================================================================
+     le action b of the tert sy ofter selvorang previgned stischdy yocal chary the co
+     le relganis networks partucy cetinning wilnchan sics rumeding a fulch laks oftes
+     hian andoris ret the ecause bistory l pidect one eight five lack du that the ses
+     aiv dromery buskocy becomer worils resism disele retery exterrationn of hide in 
+     mer miter y sught esfectur of the upission vain is werms is vul ugher compted by
+     ================================================================================
+     Validation set perplexity: 6.07
+     Average loss at step 1100 : 1.77301145077 learning rate: 10.0
+     Minibatch perplexity: 6.03
+     Validation set perplexity: 5.89
+     Average loss at step 1200 : 1.75306463003 learning rate: 10.0
+     Minibatch perplexity: 6.50
+     Validation set perplexity: 5.61
+     Average loss at step 1300 : 1.72937195778 learning rate: 10.0
+     Minibatch perplexity: 5.00
+     Validation set perplexity: 5.60
+     Average loss at step 1400 : 1.74773373723 learning rate: 10.0
+     Minibatch perplexity: 6.48
+     Validation set perplexity: 5.66
+     Average loss at step 1500 : 1.7368799901 learning rate: 10.0
+     Minibatch perplexity: 5.22
+     Validation set perplexity: 5.44
+     Average loss at step 1600 : 1.74528762937 learning rate: 10.0
+     Minibatch perplexity: 5.85
+     Validation set perplexity: 5.33
+     Average loss at step 1700 : 1.70881183743 learning rate: 10.0
+     Minibatch perplexity: 5.33
+     Validation set perplexity: 5.56
+     Average loss at step 1800 : 1.67776108027 learning rate: 10.0
+     Minibatch perplexity: 5.33
+     Validation set perplexity: 5.29
+     Average loss at step 1900 : 1.64935536742 learning rate: 10.0
+     Minibatch perplexity: 5.29
+     Validation set perplexity: 5.15
+     Average loss at step 2000 : 1.69528644681 learning rate: 10.0
+     Minibatch perplexity: 5.13
+     ================================================================================
+     vers soqually have one five landwing to docial page kagan lower with ther batern
+     ctor son alfortmandd tethre k skin the known purated to prooust caraying the fit
+     je in beverb is the sournction bainedy wesce tu sture artualle lines digra forme
+     m rousively haldio ourso ond anvary was for the seven solies hild buil  s  to te
+     zall for is it is one nine eight eight one neval to the kime typer oene where he
+     ================================================================================
+     Validation set perplexity: 5.25
+     Average loss at step 2100 : 1.68808053017 learning rate: 10.0
+     Minibatch perplexity: 5.17
+     Validation set perplexity: 5.01
+     Average loss at step 2200 : 1.68322490931 learning rate: 10.0
+     Minibatch perplexity: 5.09
+     Validation set perplexity: 5.15
+     Average loss at step 2300 : 1.64465074301 learning rate: 10.0
+     Minibatch perplexity: 5.51
+     Validation set perplexity: 5.00
+     Average loss at step 2400 : 1.66408578038 learning rate: 10.0
+     Minibatch perplexity: 5.86
+     Validation set perplexity: 4.80
+     Average loss at step 2500 : 1.68515402555 learning rate: 10.0
+     Minibatch perplexity: 5.75
+     Validation set perplexity: 4.82
+     Average loss at step 2600 : 1.65405208349 learning rate: 10.0
+     Minibatch perplexity: 5.38
+     Validation set perplexity: 4.85
+     Average loss at step 2700 : 1.65706222177 learning rate: 10.0
+     Minibatch perplexity: 5.46
+     Validation set perplexity: 4.78
+     Average loss at step 2800 : 1.65204829812 learning rate: 10.0
+     Minibatch perplexity: 5.06
+     Validation set perplexity: 4.64
+     Average loss at step 2900 : 1.65107253551 learning rate: 10.0
+     Minibatch perplexity: 5.00
+     Validation set perplexity: 4.61
+     Average loss at step 3000 : 1.6495274055 learning rate: 10.0
+     Minibatch perplexity: 4.53
+     ================================================================================
+     ject covered in belo one six six to finsh that all di rozial sime it a the lapse
+     ble which the pullic bocades record r to sile dric two one four nine seven six f
+      originally ame the playa ishaps the stotchational in a p dstambly name which as
+     ore volum to bay riwer foreal in nuily operety can and auscham frooripm however 
+     kan traogey was lacous revision the mott coupofiteditey the trando insended frop
+     ================================================================================
+     Validation set perplexity: 4.76
+     Average loss at step 3100 : 1.63705502152 learning rate: 10.0
+     Minibatch perplexity: 5.50
+     Validation set perplexity: 4.76
+     Average loss at step 3200 : 1.64740695596 learning rate: 10.0
+     Minibatch perplexity: 4.84
+     Validation set perplexity: 4.67
+     Average loss at step 3300 : 1.64711504817 learning rate: 10.0
+     Minibatch perplexity: 5.39
+     Validation set perplexity: 4.57
+     Average loss at step 3400 : 1.67113256454 learning rate: 10.0
+     Minibatch perplexity: 5.56
+     Validation set perplexity: 4.71
+     Average loss at step 3500 : 1.65637169957 learning rate: 10.0
+     Minibatch perplexity: 5.03
+     Validation set perplexity: 4.80
+     Average loss at step 3600 : 1.66601825476 learning rate: 10.0
+     Minibatch perplexity: 4.63
+     Validation set perplexity: 4.52
+     Average loss at step 3700 : 1.65021387935 learning rate: 10.0
+     Minibatch perplexity: 5.50
+     Validation set perplexity: 4.56
+     Average loss at step 3800 : 1.64481814981 learning rate: 10.0
+     Minibatch perplexity: 4.60
+     Validation set perplexity: 4.54
+     Average loss at step 3900 : 1.642069453 learning rate: 10.0
+     Minibatch perplexity: 4.91
+     Validation set perplexity: 4.54
+     Average loss at step 4000 : 1.65179730773 learning rate: 10.0
+     Minibatch perplexity: 4.77
+     ================================================================================
+     k s rasbonish roctes the nignese at heacle was sito of beho anarchys and with ro
+     jusar two sue wletaus of chistical in causations d ow trancic bruthing ha laters
+     de and speacy pulted yoftret worksy zeatlating to eight d had to ie bue seven si
+     s fiction of the feelly constive suq flanch earlied curauking bjoventation agent
+     quen s playing it calana our seopity also atbellisionaly comexing the revideve i
+     ================================================================================
+     Validation set perplexity: 4.58
+     Average loss at step 4100 : 1.63794238806 learning rate: 10.0
+     Minibatch perplexity: 5.47
+     Validation set perplexity: 4.79
+     Average loss at step 4200 : 1.63822438836 learning rate: 10.0
+     Minibatch perplexity: 5.30
+     Validation set perplexity: 4.54
+     Average loss at step 4300 : 1.61844664574 learning rate: 10.0
+     Minibatch perplexity: 4.69
+     Validation set perplexity: 4.54
+     Average loss at step 4400 : 1.61255454302 learning rate: 10.0
+     Minibatch perplexity: 4.67
+     Validation set perplexity: 4.54
+     Average loss at step 4500 : 1.61543365479 learning rate: 10.0
+     Minibatch perplexity: 4.83
+     Validation set perplexity: 4.69
+     Average loss at step 4600 : 1.61607327104 learning rate: 10.0
+     Minibatch perplexity: 5.18
+     Validation set perplexity: 4.64
+     Average loss at step 4700 : 1.62757282495 learning rate: 10.0
+     Minibatch perplexity: 4.24
+     Validation set perplexity: 4.66
+     Average loss at step 4800 : 1.63222063541 learning rate: 10.0
+     Minibatch perplexity: 5.30
+     Validation set perplexity: 4.53
+     Average loss at step 4900 : 1.63678096652 learning rate: 10.0
+     Minibatch perplexity: 5.43
+     Validation set perplexity: 4.64
+     Average loss at step 5000 : 1.610340662 learning rate: 1.0
+     Minibatch perplexity: 5.10
+     ================================================================================
+     in b one onarbs revieds the kimiluge that fondhtic fnoto cre one nine zero zero 
+      of is it of marking panzia t had wap ironicaghni relly deah the omber b h menba
+     ong messified it his the likdings ara subpore the a fames distaled self this int
+     y advante authors the end languarle meit common tacing bevolitione and eight one
+     zes that materly difild inllaring the fusts not panition assertian causecist bas
+     ================================================================================
+     Validation set perplexity: 4.69
+     Average loss at step 5100 : 1.60593637228 learning rate: 1.0
+     Minibatch perplexity: 4.69
+     Validation set perplexity: 4.47
+     Average loss at step 5200 : 1.58993269444 learning rate: 1.0
+     Minibatch perplexity: 4.65
+     Validation set perplexity: 4.39
+     Average loss at step 5300 : 1.57930587292 learning rate: 1.0
+     Minibatch perplexity: 5.11
+     Validation set perplexity: 4.39
+     Average loss at step 5400 : 1.58022856832 learning rate: 1.0
+     Minibatch perplexity: 5.19
+     Validation set perplexity: 4.37
+     Average loss at step 5500 : 1.56654450059 learning rate: 1.0
+     Minibatch perplexity: 4.69
+     Validation set perplexity: 4.33
+     Average loss at step 5600 : 1.58013380885 learning rate: 1.0
+     Minibatch perplexity: 5.13
+     Validation set perplexity: 4.35
+     Average loss at step 5700 : 1.56974959254 learning rate: 1.0
+     Minibatch perplexity: 5.00
+     Validation set perplexity: 4.34
+     Average loss at step 5800 : 1.5839582932 learning rate: 1.0
+     Minibatch perplexity: 4.88
+     Validation set perplexity: 4.31
+     Average loss at step 5900 : 1.57129439116 learning rate: 1.0
+     Minibatch perplexity: 4.66
+     Validation set perplexity: 4.32
+     Average loss at step 6000 : 1.55144061089 learning rate: 1.0
+     Minibatch perplexity: 4.55
+     ================================================================================
+     utic clositical poopy stribe addi nixe one nine one zero zero eight zero b ha ex
+     zerns b one internequiption of the secordy way anti proble akoping have fictiona
+     phare united from has poporarly cities book ins sweden emperor a sass in origina
+     quulk destrebinist and zeilazar and on low and by in science over country weilti
+     x are holivia work missincis ons in the gages to starsle histon one icelanctrotu
+     ================================================================================
+     Validation set perplexity: 4.30
+     Average loss at step 6100 : 1.56450940847 learning rate: 1.0
+     Minibatch perplexity: 4.77
+     Validation set perplexity: 4.27
+     Average loss at step 6200 : 1.53433164835 learning rate: 1.0
+     Minibatch perplexity: 4.77
+     Validation set perplexity: 4.27
+     Average loss at step 6300 : 1.54773445129 learning rate: 1.0
+     Minibatch perplexity: 4.76
+     Validation set perplexity: 4.25
+     Average loss at step 6400 : 1.54021131516 learning rate: 1.0
+     Minibatch perplexity: 4.56
+     Validation set perplexity: 4.24
+     Average loss at step 6500 : 1.56153374553 learning rate: 1.0
+     Minibatch perplexity: 5.43
+     Validation set perplexity: 4.27
+     Average loss at step 6600 : 1.59556478739 learning rate: 1.0
+     Minibatch perplexity: 4.92
+     Validation set perplexity: 4.28
+     Average loss at step 6700 : 1.58076951623 learning rate: 1.0
+     Minibatch perplexity: 4.77
+     Validation set perplexity: 4.30
+     Average loss at step 6800 : 1.6070714438 learning rate: 1.0
+     Minibatch perplexity: 4.98
+     Validation set perplexity: 4.28
+     Average loss at step 6900 : 1.58413293839 learning rate: 1.0
+     Minibatch perplexity: 4.61
+     Validation set perplexity: 4.29
+     Average loss at step 7000 : 1.57905534983 learning rate: 1.0
+     Minibatch perplexity: 5.08
+     ================================================================================
+     jague are officiencinels ored by film voon higherise haik one nine on the iffirc
+     oshe provision that manned treatists on smalle bodariturmeristing the girto in s
+     kis would softwenn mustapultmine truativersakys bersyim by s of confound esc bub
+     ry of the using one four six blain ira mannom marencies g with fextificallise re
+      one son vit even an conderouss to person romer i a lebapter at obiding are iuse
+     ================================================================================
+     Validation set perplexity: 4.25
+#+END_EXAMPLE
+
+--------------
+
+#+BEGIN_SRC python :results output
+' '.join([":var s"+str(i)+" = start"+str(i) for i in range(1,13)])
+#+END_SRC
+
+#+RESULTS:
+: ':var s1 = start1 :var s2 = start2 :var s3 = start3 :var s4 = start4 :var s5 = start5 :var s6 = start6 :var s7 = start7 :var s8 = start8 :var s9 = start9 :var s10 = start10 :var s11 = start11 :var s12 = start12'
+
+#+NAME: starupblks
+#+BEGIN_SRC python :var s1 = start1 :var s2 = start2 :var s3 = start3 :var s4 = start4 :var s5 = start5 :var s6 = start6 :var s7 = start7 :var s8 = start8 :var s9 = start9 :var s10 = start10
+#+END_SRC
+
+#+BEGIN_SRC python :var s11 = start11 :var s12 = start12
+#+END_SRC
+
+#+RESULTS: starupblks
+
+
+#+BEGIN_SRC python
+num_steps
+#+END_SRC
+
+#+RESULTS:
+: ' is not defined
+
+
+*** Problem 1
+
+You might have noticed that the definition of the LSTM cell involves 4
+matrix multiplications with the input, and 4 matrix multiplications with
+the output. Simplify the expression by using a single matrix multiply
+for each, and variables that are 4 times larger.
+
+--------------
+#+BEGIN_SRC python
+  num_nodes = 64
+
+  graph = tf.Graph()
+  with graph.as_default():
+    # Concatanated input and output transition parameter matrices:
+    vx = tf.Variable(tf.truncated_normal([vocabulary_size, num_nodes*4], -0.1, 0.1))
+    vo = tf.Variable(tf.truncated_normal([num_nodes, num_nodes*4], -0.1, 0.1))
+    vb = tf.Variable(tf.zeros([1, num_nodes*4]))
+    # Variables saving state across unrollings.
+    saved_output = tf.Variable(tf.zeros([batch_size, num_nodes]), trainable=False)
+    saved_state = tf.Variable(tf.zeros([batch_size, num_nodes]), trainable=False)
+    # Classifier weights and biases.
+    w = tf.Variable(tf.truncated_normal([num_nodes, vocabulary_size], -0.1, 0.1))
+    b = tf.Variable(tf.zeros([vocabulary_size]))
+    # Definition of the cell computation.
+    def lstm_cell(i, o, state):
+      """Create a LSTM cell. See e.g.: http://arxiv.org/pdf/1402.1128v1.pdf
+      Note that in this formulation, we omit the various connections between the
+      previous state and the gates.
+      t_ are transfer """
+      tx = tf.matmul(i, vx)
+      to = tf.matmul(o, vo)      
+      t = tx+to+vb
+      input_gate = tf.sigmoid(t[:,0:num_nodes])
+      forget_gate = tf.sigmoid(t[:,num_nodes:2*num_nodes])
+      update = t[:,2*num_nodes:3*num_nodes]
+      state = forget_gate * state + input_gate * tf.tanh(update)
+      output_gate = tf.sigmoid(t[:,3*num_nodes:4*num_nodes])
+      return output_gate * tf.tanh(state), state
+    # Input data.
+    train_data = list()
+    for _ in range(num_unrollings + 1):
+      train_data.append(
+        tf.placeholder(tf.float32, shape=[batch_size,vocabulary_size]))
+    train_inputs = train_data[:num_unrollings]
+    train_labels = train_data[1:]  # labels are inputs shifted by one time step.
+    # Unrolled LSTM loop.
+    outputs = list()
+    output = saved_output
+    state = saved_state
+    for i in train_inputs:
+      output, state = lstm_cell(i, output, state)
+      outputs.append(output)
+    # State saving across unrollings.
+    with tf.control_dependencies([saved_output.assign(output),
+                                  saved_state.assign(state)]):
+      # Classifier.
+      logits = tf.nn.xw_plus_b(tf.concat(0, outputs), w, b)
+      loss = tf.reduce_mean(
+        tf.nn.softmax_cross_entropy_with_logits(
+          logits, tf.concat(0, train_labels)))
+    # Optimizer.
+    global_step = tf.Variable(0)
+    learning_rate = tf.train.exponential_decay(
+      10.0, global_step, 5000, 0.1, staircase=True)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate)
+    gradients, v = zip(*optimizer.compute_gradients(loss))
+    gradients, _ = tf.clip_by_global_norm(gradients, 1.25)
+    optimizer = optimizer.apply_gradients(
+      zip(gradients, v), global_step=global_step)
+    # Predictions.
+    train_prediction = tf.nn.softmax(logits)
+    # Sampling and validation eval: batch 1, no unrolling.
+    sample_input = tf.placeholder(tf.float32, shape=[1, vocabulary_size])
+    saved_sample_output = tf.Variable(tf.zeros([1, num_nodes]))
+    saved_sample_state = tf.Variable(tf.zeros([1, num_nodes]))
+    reset_sample_state = tf.group(
+      saved_sample_output.assign(tf.zeros([1, num_nodes])),
+      saved_sample_state.assign(tf.zeros([1, num_nodes])))
+    sample_output, sample_state = lstm_cell(
+      sample_input, saved_sample_output, saved_sample_state)
+    with tf.control_dependencies([saved_sample_output.assign(sample_output),
+                                  saved_sample_state.assign(sample_state)]):
+      sample_prediction = tf.nn.softmax(tf.nn.xw_plus_b(sample_output, w, b))
+#+END_SRC
+
+#+RESULTS:
+
+
+
+#+BEGIN_SRC python
+  num_steps = 100001
+  summary_frequency = 100
+
+  with tf.Session(graph=graph) as session:
+    tf.initialize_all_variables().run()
+    print('Initialized')
+    mean_loss = 0
+    for step in range(num_steps):
+      batches = train_batches.next()
+      feed_dict = dict()
+      for i in range(num_unrollings + 1):
+        feed_dict[train_data[i]] = batches[i]
+      _, l, predictions, lr = session.run(
+        [optimizer, loss, train_prediction, learning_rate], feed_dict=feed_dict)
+      mean_loss += l
+      if step % summary_frequency == 0:
+        if step > 0:
+          mean_loss = mean_loss / summary_frequency
+        # The mean loss is an estimate of the loss over the last few batches.
+        print(
+          'Average loss at step %d: %f learning rate: %f' % (step, mean_loss, lr))
+        mean_loss = 0
+        labels = np.concatenate(list(batches)[1:])
+        print('Minibatch perplexity: %.2f' % float(
+          np.exp(logprob(predictions, labels))))
+        if step % (summary_frequency * 10) == 0:
+          # Generate some samples.
+          print('=' * 80)
+          for _ in range(5):
+            feed = sample(random_distribution())
+            sentence = characters(feed)[0]
+            reset_sample_state.run()
+            for _ in range(79):
+              prediction = sample_prediction.eval({sample_input: feed})
+              feed = sample(prediction)
+              sentence += characters(feed)[0]
+            print(sentence)
+          print('=' * 80)
+        # Measure validation set perplexity.
+        reset_sample_state.run()
+        valid_logprob = 0
+        for _ in range(valid_size):
+          b = valid_batches.next()
+          predictions = sample_prediction.eval({sample_input: b[0]})
+          valid_logprob = valid_logprob + logprob(predictions, b[1])
+        print('Validation set perplexity: %.2f' % float(np.exp(
+          valid_logprob / valid_size)))
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+>>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... E tensorflow/stream_executor/cuda/cuda_driver.cc:504] failed call to cuInit: CUDA_ERROR_UNKNOWN
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:158] retrieving CUDA diagnostic information for host: iThinkPad
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:165] hostname: iThinkPad
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:189] libcuda reported version is: 367.57.0
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:363] driver version file contents: """NVRM version: NVIDIA UNIX x86_64 Kernel Module  367.57  Mon Oct  3 20:37:01 PDT 2016
+GCC version:  gcc version 5.4.0 20160609 (Ubuntu 5.4.0-6ubuntu1~16.04.4) 
+"""
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:193] kernel reported version is: 367.57.0
+I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:300] kernel version seems to match DSO: 367.57.0
+Initialized
+Average loss at step 0: 3.293891 learning rate: 10.000000
+Minibatch perplexity: 26.95
+================================================================================
+eyeceestjccqu t ppqpffapzox otsfrl  mkenzey pszsee excx f tcqdhdwdndlyeedli  ahi
+zdqeiszshe vzosmmooeyruh acpiuvcivybr xnacxa rnaxzatx uiasd l minxzxltmstqx obgh
+ma dxam wezdxgigqlmguntjleqeedyr eawcntm anznogwic yz xhapo ubdairbkd  vtb iouiw
+qgt oonnlokankyltdc r  uzmomdyzffsum goyqfdeuuxudn fmlpnqtn  quetkth emtbsmplsif
+ n  odpqrfg zcegfmzojihoaxnh mp tl oudjtvohajfdjwmmlhfh jkcnhxttvikysfxbi xhuvis
+================================================================================
+Validation set perplexity: 20.24
+Average loss at step 100: 2.597705 learning rate: 10.000000
+Minibatch perplexity: 10.99
+Validation set perplexity: 10.48
+Average loss at step 200: 2.256601 learning rate: 10.000000
+Minibatch perplexity: 8.77
+Validation set perplexity: 8.76
+Average loss at step 300: 2.106228 learning rate: 10.000000
+Minibatch perplexity: 7.61
+Validation set perplexity: 8.06
+Average loss at step 400: 2.006132 learning rate: 10.000000
+Minibatch perplexity: 7.54
+Validation set perplexity: 7.85
+Average loss at step 500: 1.938262 learning rate: 10.000000
+Minibatch perplexity: 6.54
+Validation set perplexity: 6.97
+Average loss at step 600: 1.912633 learning rate: 10.000000
+Minibatch perplexity: 6.29
+Validation set perplexity: 6.91
+Average loss at step 700: 1.860030 learning rate: 10.000000
+Minibatch perplexity: 6.37
+Validation set perplexity: 6.51
+Average loss at step 800: 1.817129 learning rate: 10.000000
+Minibatch perplexity: 5.87
+Validation set perplexity: 6.30
+Average loss at step 900: 1.835628 learning rate: 10.000000
+Minibatch perplexity: 7.18
+Validation set perplexity: 6.24
+Average loss at step 1000: 1.824857 learning rate: 10.000000
+Minibatch perplexity: 5.61
+================================================================================
+jation repultow tediedary geaturigg his is tree trame of anselucemmay contral dr
+quodey andip for jebein five one nine sever sevee zero nine awill recents fici a
+ey ecrece mudisu kble used and berkur of a feather they baschists fromder becnum
+gu engy of chnetced of consity un pripnies zero the knose is cleboral fine two n
+ces bettor wethah soute whind welv ffom nine omil whelly uncoil the count by ham
+================================================================================
+Validation set perplexity: 6.11
+Average loss at step 1100: 1.778330 learning rate: 10.000000
+Minibatch perplexity: 5.60
+Validation set perplexity: 5.90
+Average loss at step 1200: 1.751372 learning rate: 10.000000
+Minibatch perplexity: 5.14
+Validation set perplexity: 5.72
+Average loss at step 1300: 1.731926 learning rate: 10.000000
+Minibatch perplexity: 5.51
+Validation set perplexity: 5.74
+Average loss at step 1400: 1.746564 learning rate: 10.000000
+Minibatch perplexity: 5.99
+Validation set perplexity: 5.62
+Average loss at step 1500: 1.738494 learning rate: 10.000000
+Minibatch perplexity: 4.87
+Validation set perplexity: 5.60
+Average loss at step 1600: 1.744815 learning rate: 10.000000
+Minibatch perplexity: 5.53
+Validation set perplexity: 5.56
+Average loss at step 1700: 1.711178 learning rate: 10.000000
+Minibatch perplexity: 5.59
+Validation set perplexity: 5.52
+Average loss at step 1800: 1.674822 learning rate: 10.000000
+Minibatch perplexity: 5.37
+Validation set perplexity: 5.32
+Average loss at step 1900: 1.646892 learning rate: 10.000000
+Minibatch perplexity: 4.94
+Validation set perplexity: 5.32
+Average loss at step 2000: 1.695762 learning rate: 10.000000
+Minibatch perplexity: 5.63
+================================================================================
+ hepp recordes assotically well asoputes and the responchine vys dinnect and wol
+hards and bass kyological dimanity incomesing to adwe duby sllaybouse of p t to 
+zoney both timellowingo jon vicafbul if adficark c sclud vectudal prodical prode
+ysed res britted and lappo poogrust unit aboln geaths aresisting brond to there 
+es linsh at the chrivixing re arseens headons oviol of indiquensall moster and n
+================================================================================
+Validation set perplexity: 5.36
+Average loss at step 2100: 1.682861 learning rate: 10.000000
+Minibatch perplexity: 4.98
+Validation set perplexity: 5.17
+Average loss at step 2200: 1.684806 learning rate: 10.000000
+Minibatch perplexity: 6.31
+Validation set perplexity: 5.12
+Average loss at step 2300: 1.638204 learning rate: 10.000000
+Minibatch perplexity: 4.99
+Validation set perplexity: 4.87
+Average loss at step 2400: 1.655831 learning rate: 10.000000
+Minibatch perplexity: 4.97
+Validation set perplexity: 4.83
+Average loss at step 2500: 1.677037 learning rate: 10.000000
+Minibatch perplexity: 5.12
+Validation set perplexity: 4.80
+Average loss at step 2600: 1.652734 learning rate: 10.000000
+Minibatch perplexity: 5.71
+Validation set perplexity: 4.70
+Average loss at step 2700: 1.658727 learning rate: 10.000000
+Minibatch perplexity: 4.67
+Validation set perplexity: 4.77
+Average loss at step 2800: 1.654959 learning rate: 10.000000
+Minibatch perplexity: 5.74
+Validation set perplexity: 4.76
+Average loss at step 2900: 1.649255 learning rate: 10.000000
+Minibatch perplexity: 5.65
+Validation set perplexity: 4.72
+Average loss at step 3000: 1.653353 learning rate: 10.000000
+Minibatch perplexity: 4.98
+================================================================================
+to opeage and flymenish as a dacinela balu additions and official four including
+bold extancex phaces of which the relandn oftensly the well order trincra x late
+beried demdent botchelgor hole the yold jost two in foxchy and pengingly a doind
+hied which wheopledin ett and canedarotork fourd uan publikate abribials haws co
+ully ups a kue s pach example a theol were readist undia fornot wide it in the s
+================================================================================
+Validation set perplexity: 4.74
+Average loss at step 3100: 1.630684 learning rate: 10.000000
+Minibatch perplexity: 5.61
+Validation set perplexity: 4.66
+Average loss at step 3200: 1.645504 learning rate: 10.000000
+Minibatch perplexity: 5.63
+Validation set perplexity: 4.62
+Average loss at step 3300: 1.636324 learning rate: 10.000000
+Minibatch perplexity: 4.94
+Validation set perplexity: 4.58
+Average loss at step 3400: 1.670409 learning rate: 10.000000
+Minibatch perplexity: 5.44
+Validation set perplexity: 4.67
+Average loss at step 3500: 1.658415 learning rate: 10.000000
+Minibatch perplexity: 5.56
+Validation set perplexity: 4.76
+Average loss at step 3600: 1.665594 learning rate: 10.000000
+Minibatch perplexity: 4.40
+Validation set perplexity: 4.61
+Average loss at step 3700: 1.641715 learning rate: 10.000000
+Minibatch perplexity: 5.03
+Validation set perplexity: 4.60
+Average loss at step 3800: 1.642550 learning rate: 10.000000
+Minibatch perplexity: 5.61
+Validation set perplexity: 4.65
+Average loss at step 3900: 1.634643 learning rate: 10.000000
+Minibatch perplexity: 5.14
+Validation set perplexity: 4.56
+Average loss at step 4000: 1.651241 learning rate: 10.000000
+Minibatch perplexity: 4.78
+================================================================================
+ple american had these prexising quected in does flunk to the hib consproducted 
+s of in with law ma genor remossion time the mesping six and hob minisam in the 
+x lawon cerial is integes contents is any tipple here generigenthy le the viel u
+forms yarks of jeduing flok wondoc of each sold informuntari we been rither calb
+lia the largeol been and the flews perhamular squas of phocacy ninely stade and 
+================================================================================
+Validation set perplexity: 4.61
+Average loss at step 4100: 1.631771 learning rate: 10.000000
+Minibatch perplexity: 5.44
+Validation set perplexity: 4.69
+Average loss at step 4200: 1.635594 learning rate: 10.000000
+Minibatch perplexity: 5.15
+Validation set perplexity: 4.54
+Average loss at step 4300: 1.613565 learning rate: 10.000000
+Minibatch perplexity: 5.14
+Validation set perplexity: 4.52
+Average loss at step 4400: 1.609465 learning rate: 10.000000
+Minibatch perplexity: 4.87
+Validation set perplexity: 4.41
+Average loss at step 4500: 1.612396 learning rate: 10.000000
+Minibatch perplexity: 5.05
+Validation set perplexity: 4.63
+Average loss at step 4600: 1.612258 learning rate: 10.000000
+Minibatch perplexity: 5.07
+Validation set perplexity: 4.60
+Average loss at step 4700: 1.627545 learning rate: 10.000000
+Minibatch perplexity: 5.23
+Validation set perplexity: 4.49
+Average loss at step 4800: 1.632523 learning rate: 10.000000
+Minibatch perplexity: 4.48
+Validation set perplexity: 4.53
+Average loss at step 4900: 1.632156 learning rate: 10.000000
+Minibatch perplexity: 5.20
+Validation set perplexity: 4.69
+Average loss at step 5000: 1.608898 learning rate: 1.000000
+Minibatch perplexity: 4.38
+================================================================================
+unt ottom selair s ly peace three developes panding linkse slow two mather on th
+ introduced primines and woll take two zero zero zero zero zero zero zero zero s
+uss one zero eight nine five six six his mamove intropumeib appearail arcied int
+y depremike practic dit juderish macker in pare solcowett sounte severb seven a 
+ka by the was engution for the poirs officist extantly of the ullar head ancont 
+================================================================================
+Validation set perplexity: 4.67
+Average loss at step 5100: 1.603166 learning rate: 1.000000
+Minibatch perplexity: 4.83
+Validation set perplexity: 4.49
+Average loss at step 5200: 1.589664 learning rate: 1.000000
+Minibatch perplexity: 4.62
+Validation set perplexity: 4.44
+Average loss at step 5300: 1.578290 learning rate: 1.000000
+Minibatch perplexity: 4.72
+Validation set perplexity: 4.42
+Average loss at step 5400: 1.580778 learning rate: 1.000000
+Minibatch perplexity: 5.07
+Validation set perplexity: 4.42
+Average loss at step 5500: 1.568532 learning rate: 1.000000
+Minibatch perplexity: 5.07
+Validation set perplexity: 4.41
+Average loss at step 5600: 1.578202 learning rate: 1.000000
+Minibatch perplexity: 4.84
+Validation set perplexity: 4.36
+Average loss at step 5700: 1.569101 learning rate: 1.000000
+Minibatch perplexity: 4.56
+Validation set perplexity: 4.37
+Average loss at step 5800: 1.580017 learning rate: 1.000000
+Minibatch perplexity: 4.79
+Validation set perplexity: 4.36
+Average loss at step 5900: 1.573204 learning rate: 1.000000
+Minibatch perplexity: 5.16
+Validation set perplexity: 4.33
+Average loss at step 6000: 1.548112 learning rate: 1.000000
+Minibatch perplexity: 5.03
+================================================================================
+n in the eftablish also spy drines in recale of which ywark the cale in physchan
+ttion descinally a mill befomenish begomers can on grompler revidine of they ass
+y is issusbiones corn of entiny least alough kuans oitsive one before cleater to
+x los the honzonezoms jow the s is of that to u v spirch constanked embertation 
+k an however their stara juphake proven actyral a this mogratificated from the s
+================================================================================
+Validation set perplexity: 4.33
+Average loss at step 6100: 1.566685 learning rate: 1.000000
+Minibatch perplexity: 5.11
+Validation set perplexity: 4.30
+Average loss at step 6200: 1.536117 learning rate: 1.000000
+Minibatch perplexity: 4.94
+Validation set perplexity: 4.30
+Average loss at step 6300: 1.546283 learning rate: 1.000000
+Minibatch perplexity: 5.03
+Validation set perplexity: 4.29
+Average loss at step 6400: 1.539890 learning rate: 1.000000
+Minibatch perplexity: 4.39
+Validation set perplexity: 4.30
+Average loss at step 6500: 1.560552 learning rate: 1.000000
+Minibatch perplexity: 4.53
+Validation set perplexity: 4.30
+Average loss at step 6600: 1.599117 learning rate: 1.000000
+Minibatch perplexity: 4.87
+Validation set perplexity: 4.27
+Average loss at step 6700: 1.580694 learning rate: 1.000000
+Minibatch perplexity: 5.26
+Validation set perplexity: 4.29
+Average loss at step 6800: 1.607488 learning rate: 1.000000
+Minibatch perplexity: 4.76
+Validation set perplexity: 4.29
+Average loss at step 6900: 1.582167 learning rate: 1.000000
+Minibatch perplexity: 4.74
+Validation set perplexity: 4.32
+Average loss at step 7000: 1.577565 learning rate: 1.000000
+Minibatch perplexity: 4.98
+================================================================================
+phen can restrents thange ardsing can hilso frumm among these cathon of eavillen
+x are products of adqued one nine eight seven five zero sig midouts coloctuages 
+ines sussatation comentrally meer throught in x eguenc otboment it councilageds 
+ strang to ressiction of syd one eight severao seven and by the freed interno ra
+ur frendituria sticks and boind ca was shrail such al against henry whime rights
+================================================================================
+Validation set perplexity: 4.29
+#+end_example
+
+--------------
+
+
+
+*** Problem 2
+
+We want to train a LSTM over bigrams, that is pairs of consecutive
+characters like 'ab' instead of single characters like 'a'. Since the
+number of possible bigrams is large, feeding them directly to the LSTM
+using 1-hot encodings will lead to a very sparse representation that is
+very wasteful computationally.
+
+a- Introduce an embedding lookup on the inputs, and feed the embeddings
+to the LSTM cell instead of the inputs themselves.
+
+b- Write a bigram-based LSTM, modeled on the character LSTM above.
+
+c- Introduce Dropout. For best practices on how to use Dropout in LSTMs,
+refer to this [[http://arxiv.org/abs/1409.2329][article]].
+
+--------------
+
+**** c
+
+Simple with dropout.
+#+BEGIN_SRC python
+  num_nodes = 64
+  graph = tf.Graph()
+  with graph.as_default():
+    # Parameters:
+    # Input gate: input, previous output, and bias.
+    ix = tf.Variable(tf.truncated_normal([vocabulary_size, num_nodes], -0.1, 0.1))
+    im = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
+    ib = tf.Variable(tf.zeros([1, num_nodes]))
+    # Forget gate: input, previous output, and bias.
+    fx = tf.Variable(tf.truncated_normal([vocabulary_size, num_nodes], -0.1, 0.1))
+    fm = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
+    fb = tf.Variable(tf.zeros([1, num_nodes]))
+    # Memory cell: input, state and bias.                             
+    cx = tf.Variable(tf.truncated_normal([vocabulary_size, num_nodes], -0.1, 0.1))
+    cm = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
+    cb = tf.Variable(tf.zeros([1, num_nodes]))
+    # Output gate: input, previous output, and bias.
+    ox = tf.Variable(tf.truncated_normal([vocabulary_size, num_nodes], -0.1, 0.1))
+    om = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
+    ob = tf.Variable(tf.zeros([1, num_nodes]))
+    # Variables saving state across unrollings.
+    saved_output = tf.Variable(tf.zeros([batch_size, num_nodes]), trainable=False)
+    saved_state = tf.Variable(tf.zeros([batch_size, num_nodes]), trainable=False)
+    # Classifier weights and biases.
+    w = tf.Variable(tf.truncated_normal([num_nodes, vocabulary_size], -0.1, 0.1))
+    b = tf.Variable(tf.zeros([vocabulary_size]))
+    # Definition of the cell computation.
+    def lstm_cell(i, o, state):
+      """Create a LSTM cell. See e.g.: http://arxiv.org/pdf/1402.1128v1.pdf
+      Note that in this formulation, we omit the various connections between the
+      previous state and the gates."""
+      input_gate = tf.sigmoid(tf.matmul(i, ix) + tf.matmul(o, im) + ib)
+      forget_gate = tf.sigmoid(tf.matmul(i, fx) + tf.matmul(o, fm) + fb)
+      update = tf.matmul(i, cx) + tf.matmul(o, cm) + cb
+      state = forget_gate * state + input_gate * tf.tanh(update)
+      output_gate = tf.sigmoid(tf.matmul(i, ox) + tf.matmul(o, om) + ob)
+      return output_gate * tf.tanh(state), state
+    # Input data.
+    train_data = list()
+    for _ in range(num_unrollings + 1):
+      train_data.append(
+        tf.placeholder(tf.float32, shape=[batch_size,vocabulary_size]))
+    train_inputs = train_data[:num_unrollings]
+    train_labels = train_data[1:]  # labels are inputs shifted by one time step.
+    # Unrolled LSTM loop.
+    outputs = list()
+    output = saved_output
+    state = saved_state
+    for i in train_inputs:
+      output, state = lstm_cell(i, output, state)
+      output = tf.nn.dropout(output, .8)
+      outputs.append(output)
+    # State saving across unrollings.
+    with tf.control_dependencies([saved_output.assign(output),
+                                  saved_state.assign(state)]):
+      # Classifier.
+      logits = tf.nn.xw_plus_b(tf.concat(0, outputs), w, b)
+      loss = tf.reduce_mean(
+        tf.nn.softmax_cross_entropy_with_logits(
+          logits, tf.concat(0, train_labels)))
+    # Optimizer.
+    global_step = tf.Variable(0)
+    learning_rate = tf.train.exponential_decay(
+      10.0, global_step, 5000, 0.1, staircase=True)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate)
+    gradients, v = zip(*optimizer.compute_gradients(loss))
+    gradients, _ = tf.clip_by_global_norm(gradients, 1.25)
+    optimizer = optimizer.apply_gradients(
+      zip(gradients, v), global_step=global_step)
+    # Predictions.
+    train_prediction = tf.nn.softmax(logits)
+    # Sampling and validation eval: batch 1, no unrolling.
+    sample_input = tf.placeholder(tf.float32, shape=[1, vocabulary_size])
+    saved_sample_output = tf.Variable(tf.zeros([1, num_nodes]))
+    saved_sample_state = tf.Variable(tf.zeros([1, num_nodes]))
+    reset_sample_state = tf.group(
+      saved_sample_output.assign(tf.zeros([1, num_nodes])),
+      saved_sample_state.assign(tf.zeros([1, num_nodes])))
+    sample_output, sample_state = lstm_cell(
+      sample_input, saved_sample_output, saved_sample_state)
+    with tf.control_dependencies([saved_sample_output.assign(sample_output),
+                                  saved_sample_state.assign(sample_state)]):
+      sample_prediction = tf.nn.softmax(tf.nn.xw_plus_b(sample_output, w, b))
+#+END_SRC
+
+#+RESULTS:
+
+
+
+#+BEGIN_SRC python
+  num_steps = 7001
+  summary_frequency = 100
+  # pkeep = .8
+  with tf.Session(graph=graph) as session:
+    tf.initialize_all_variables().run()
+    print('Initialized')
+    mean_loss = 0
+    for step in range(num_steps):
+      batches = train_batches.next()
+      feed_dict = dict()
+      # feed_dict["keep_prob"] = pkeep
+      for i in range(num_unrollings + 1):
+        feed_dict[train_data[i]] = batches[i]
+      _, l, predictions, lr = session.run(
+        [optimizer, loss, train_prediction, learning_rate], feed_dict=feed_dict)
+      mean_loss += l
+      if step % summary_frequency == 0:
+        if step > 0:
+          mean_loss = mean_loss / summary_frequency
+        # The mean loss is an estimate of the loss over the last few batches.
+        print(
+          'Average loss at step %d: %f learning rate: %f' % (step, mean_loss, lr))
+        mean_loss = 0
+        labels = np.concatenate(list(batches)[1:])
+        print('Minibatch perplexity: %.2f' % float(
+          np.exp(logprob(predictions, labels))))
+        if step % (summary_frequency * 10) == 0:
+          # Generate some samples.
+          print('=' * 80)
+          for _ in range(5):
+            feed = sample(random_distribution())
+            sentence = characters(feed)[0]
+            reset_sample_state.run()
+            for _ in range(79):
+              prediction = sample_prediction.eval({sample_input: feed# , 
+                                                   # keep_prob: 1.
+              })
+              feed = sample(prediction)
+              sentence += characters(feed)[0]
+            print(sentence)
+          print('=' * 80)
+        # Measure validation set perplexity.
+        reset_sample_state.run()
+        valid_logprob = 0
+        for _ in range(valid_size):
+          b = valid_batches.next()
+          predictions = sample_prediction.eval({sample_input: b[0]# , 
+                                                # keep_prob: 1.
+          })
+          valid_logprob = valid_logprob + logprob(predictions, b[1])
+        print('Validation set perplexity: %.2f' % float(np.exp(
+          valid_logprob / valid_size)))
+#+END_SRC
+
+
+
+*** Problem 3
+
+(difficult!)
+
+Write a sequence-to-sequence LSTM which mirrors all the words in a
+sentence. For example, if your input is:
+
+#+BEGIN_EXAMPLE
+     the quick brown fox
+#+END_EXAMPLE
+
+the model should attempt to output:
+
+#+BEGIN_EXAMPLE
+     eht kciuq nworb xof
+#+END_EXAMPLE
+
+Refer to the lecture on how to put together a sequence-to-sequence
+model, as well as [[http://arxiv.org/abs/1409.3215][this article]] for
+best practices.
+
+--------------
