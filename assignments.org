@@ -6,11 +6,2252 @@
 
 * Deep Learning
 
+** Assignment 1
+:PROPERTIES:
+:CUSTOM_ID: assignment-1
+:header-args: :session a1py
+:END:
+
+The objective of this assignment is to learn about simple data curation practices, and familiarize you with some of the data we'll be reusing later.
+This notebook uses the [[http://yaroslavvb.blogspot.com/2011/09/notmnist-dataset.html][notMNIST]] dataset to be used with python experiments. This dataset is designed to look like the classic [[http://yann.lecun.com/exdb/mnist/][MNIST]] dataset, while looking a little more like real data: it's a harder task, and the data is a lot less 'clean' than MNIST.
+
+#+NAME: imps1
+#+BEGIN_SRC python
+  # These are all the modules we'll be using later. Make sure you can import them
+  # before proceeding further.
+  from __future__ import print_function
+  import matplotlib.pyplot as plt
+  import numpy as np
+  import os
+  import sys
+  import tarfile
+  from IPython.display import display, Image
+  from scipy import ndimage
+  from sklearn.linear_model import LogisticRegression
+  from six.moves.urllib.request import urlretrieve
+  from six.moves import cPickle as pickle
+#+END_SRC
+
+#+RESULTS:
+
+First, we'll download the dataset to our local machine. The dataconsists of characters rendered in a variety of fonts on a 28x28 image.
+The labels are limited to 'A' through 'J' (10 classes). The training set has about 500k and the testset 19000 labelled examples. Given thesesizes, it should be possible to train models quickly on any machine.
+
+#+BEGIN_SRC python
+  url = 'http://commondatastorage.googleapis.com/books1000/'
+  last_percent_reported = None
+
+  def download_progress_hook(count, blockSize, totalSize):
+    """A hook to report the progress of a download. This is mostly intended for users with
+    slow internet connections. Reports every 1% change in download progress.
+    """
+    global last_percent_reported
+    percent = int(count * blockSize * 100 / totalSize)
+
+    if last_percent_reported != percent:
+      if percent % 5 == 0:
+        sys.stdout.write("%s%%" % percent)
+        sys.stdout.flush()
+      else:
+        sys.stdout.write(".")
+        sys.stdout.flush()
+
+      last_percent_reported = percent
+
+  def maybe_download(filename, expected_bytes, force=False):
+    """Download a file if not present, and make sure it's the right size."""
+    if force or not os.path.exists(filename):
+      print('Attempting to download:', filename) 
+      filename, _ = urlretrieve(url + filename, filename, reporthook=download_progress_hook)
+      print('\nDownload Complete!')
+    statinfo = os.stat(filename)
+    if statinfo.st_size == expected_bytes:
+      print('Found and verified', filename)
+    else:
+      raise Exception(
+        'Failed to verify ' + filename + '. Can you get to it with a browser?')
+    return filename
+
+  train_filename = maybe_download('notMNIST_large.tar.gz', 247336696)
+  test_filename = maybe_download('notMNIST_small.tar.gz', 8458043)
+#+END_SRC
+
+#+RESULTS:
+
+
+Extract the dataset from the compressed .tar.gz file. This should give you a set of directories, labelled A through J.
+
+#+BEGIN_SRC python
+  num_classes = 10
+  np.random.seed(133)
+
+  def maybe_extract(filename, force=False):
+    root = os.path.splitext(os.path.splitext(filename)[0])[0]  # remove .tar.gz
+    if os.path.isdir(root) and not force:
+      # You may override by setting force=True.
+      print('%s already present - Skipping extraction of %s.' % (root, filename))
+    else:
+      print('Extracting data for %s. This may take a while. Please wait.' % root)
+      tar = tarfile.open(filename)
+      sys.stdout.flush()
+      tar.extractall(data_root)
+      tar.close()
+    data_folders = [
+      os.path.join(root, d) for d in sorted(os.listdir(root))
+      if os.path.isdir(os.path.join(root, d))]
+    if len(data_folders) != num_classes:
+      raise Exception(
+        'Expected %d folders, one per class. Found %d instead.' % (
+          num_classes, len(data_folders)))
+    print(data_folders)
+    return data_folders
+  
+  train_folders = maybe_extract(train_filename)
+  test_folders = maybe_extract(test_filename)
+#+END_SRC
+
+#+RESULTS:
+
+#+NAME: imps2
+#+BEGIN_SRC python
+  # These are all the modules we'll be using later. Make sure you can import them
+  # before proceeding further.
+  from __future__ import print_function
+  import matplotlib.pyplot as plt
+  import numpy as np
+  import os
+  import sys
+  import tarfile
+  from IPython.display import display, Image
+  from scipy import ndimage
+  from sklearn.linear_model import LogisticRegression
+  from six.moves.urllib.request import urlretrieve
+  from six.moves import cPickle as pickle
+
+  # Config the matplotlib backend as plotting inline in IPython
+#+END_SRC
+
+#+RESULTS:
+
+*** Problem 1
+:PROPERTIES:
+    :CUSTOM_ID: problem-1
+    :END:
+
+ Let's take a peek at some of the data to make sure it looks sensible.
+ Each exemplar should be an image of a character A through J rendered in a different font. Display a sample of the images that we just downloaded. Hint: you can use the package IPython.display.
+
+[[file:notMNIST_large/A/a29ydW5pc2hpLnR0Zg==.png]]
+
+ Now let's load the data in a more manageable format. Since, depending on your computer setup you might not be able to fit it all in memory, we'll load each class into a separate dataset, store them on disk and curate them independently. Later we'll merge them into a single dataset of manageable size.
+ We'll convert the entire dataset into a 3D array (image index, x, y) of floating point values, normalized to have approximately zero mean and standard deviation ~0.5 to make training easier down the road.
+ A few images might not be readable, we'll just skip them.
+
+#+NAME: shapes
+#+BEGIN_SRC python
+   image_size = 28  # Pixel width and height.
+   pixel_depth = 255.0  # Number of levels per pixel.
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+  def load_letter(folder, min_num_images, standardize=True, dtype = float):
+    """Load the data for a single letter label."""
+    image_files = os.listdir(folder)
+    dataset = np.ndarray(shape=(len(image_files), image_size, image_size), dtype=dtype)
+    print(folder)
+    num_images = 0
+    for image in image_files:
+      image_file = os.path.join(folder, image)
+      try:
+        if standardize:
+          image_data = (ndimage.imread(image_file).astype(dtype) - 
+                        pixel_depth / 2) / pixel_depth
+        else:
+          image_data = ndimage.imread(image_file).astype(dtype)
+        if image_data.shape != (image_size, image_size):
+          raise Exception('Unexpected image shape: %s' % str(image_data.shape))
+        dataset[num_images, :, :] = image_data
+        num_images = num_images + 1
+      except IOError as e:
+        print('Could not read:', image_file, ':', e, '- it\'s ok, skipping.')
+        pass
+    dataset = dataset[0:num_images, :, :]
+    if num_images < min_num_images:
+      raise Exception('Many fewer images than expected: %d < %d' %
+                      (num_images, min_num_images))
+    print('Full dataset tensor:', dataset.shape)
+    print('Mean:', np.mean(dataset))
+    print('Standard deviation:', np.std(dataset))
+    return dataset
+
+  def maybe_pickle(data_folders, min_num_images_per_class, force=False, instance_name='', standardize = True, dtype = np.float32):
+    dataset_names = []
+    for folder in data_folders:
+      set_filename = folder + instance_name + '.pickle'
+      dataset_names.append(set_filename)
+      if os.path.exists(set_filename) and not force:
+        # You may override by setting force=True.
+        print('%s already present - Skipping pickling.' % set_filename)
+      else:
+        print('Pickling %s.' % set_filename)
+        dataset = load_letter(folder, min_num_images_per_class, standardize, dtype)
+        try:
+          with open(set_filename, 'wb') as f:
+            pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
+        except Exception as e:
+          print('Unable to save data to', set_filename, ':', e)
+    return dataset_names
+#+END_SRC
+
+#+RESULTS:
+: None
+
+#+BEGIN_SRC python
+  # train_datasets = maybe_pickle(train_folders, 45000)
+  # test_datasets = maybe_pickle(test_folders, 1800)
+#+END_SRC
+
+#+RESULTS:
+: None
+
+
+#+BEGIN_SRC python
+  # train_datasets = ["./notMNIST_large/"+nm for nm in sorted(filter(lambda n: n[-6:] == "pickle",os.listdir("./notMNIST_large")))]
+  # test_datasets = ["./notMNIST_small/"+nm for nm in sorted(filter(lambda n: n[-6:] == "pickle",os.listdir("./notMNIST_small")))]
+#+END_SRC
+
+ #+RESULTS:
+
+To avoid standardizing and use uint8 encoding:
+#+BEGIN_SRC python
+  train_datasets = maybe_pickle(train_folders, 45000, instance_name='int8', standardize=False,
+                                dtype=np.uint8)
+  test_datasets = maybe_pickle(test_folders, 1800, instance_name='int8', standardize=False,
+                               dtype=np.uint8)
+#+END_SRC
+
+#+RESULTS:
+: None
+
+#+BEGIN_SRC python
+  train_datasets = ["./notMNIST_large/"+nm for nm in sorted(filter(lambda n: n[-10:] == "int8.pickle",os.listdir("./notMNIST_large")))]
+  test_datasets = ["./notMNIST_small/"+nm for nm in sorted(filter(lambda n: n[-10:] == "int8.pickle",os.listdir("./notMNIST_small")))]
+#+END_SRC
+
+ #+RESULTS:
+
+
+*** Problem 2
+:PROPERTIES:
+:CUSTOM_ID: problem-2
+:END:
+#+BEGIN_SRC python
+  try:
+      os.stat('imgs')
+  except:
+      os.mkdir('imgs')       
+#+END_SRC
+
+#+RESULTS:
+: os.stat_result(st_mode=16893, st_ino=5324802, st_dev=47, st_nlink=2, st_uid=1000, st_gid=1000, st_size=4096, st_atime=1496539788, st_mtime=1496539655, st_ctime=1496539655)
+
+#+BEGIN_SRC python :results file
+  letter_ix = np.random.randint(len(train_datasets))
+  print(letter_ix)
+  pickle_file = train_datasets[letter_ix]
+  with open(pickle_file, 'rb') as f:
+      letter_set = pickle.load(f)  # unpickle
+      sample_idx = np.random.randint(len(letter_set))  # pick a random image index
+      sample_image = letter_set[sample_idx, :, :]  # extract a 2D slice
+      plt.figure()
+      plt.imshow(sample_image)  # display it
+      plt.savefig('imgs/sample.png')
+
+  'imgs/sample.png'
+#+END_SRC
+
+#+RESULTS:
+[[file:imgs/sample.png]]
+
+
+*** Problem 3
+    :PROPERTIES:
+    :CUSTOM_ID: problem-3
+    :END:
+
+ Another check: we expect the data to be balanced across classes. Verify
+ that.
+
+ #+BEGIN_SRC python
+   for nm in (filter(lambda n: n[-6:] == "pickle",os.listdir("./notMNIST_large"))):
+       f = open("./notMNIST_large/"+nm, 'rb')
+       letter_set = pickle.load(f)
+       print(letter_set.shape[0])
+ #+END_SRC
+
+ #+RESULTS:
+
+ Merge and prune the training data as needed. Depending on your computer
+ setup, you might not be able to fit it all in memory, and you can tune
+ =train_size= as needed. The labels will be stored into a separate array
+ of integers 0 through 9.
+
+ Also create a validation dataset for hyperparameter tuning.
+
+ #+BEGIN_SRC python
+   def make_arrays(nb_rows, img_size):
+     if nb_rows:
+       dataset = np.ndarray((nb_rows, img_size, img_size), dtype=np.float32)
+       labels = np.ndarray(nb_rows, dtype=np.int32)
+     else:
+       dataset, labels = None, None
+     return dataset, labels
+
+   def merge_datasets(pickle_files, train_size, valid_size=0):
+     num_classes = len(pickle_files)
+     valid_dataset, valid_labels = make_arrays(valid_size, image_size)
+     train_dataset, train_labels = make_arrays(train_size, image_size)
+     vsize_per_class = valid_size // num_classes
+     tsize_per_class = train_size // num_classes
+     start_v, start_t = 0, 0
+     end_v, end_t = vsize_per_class, tsize_per_class
+     end_l = vsize_per_class+tsize_per_class
+     for label, pickle_file in enumerate(pickle_files):       
+       try:
+         with open(pickle_file, 'rb') as f:
+           letter_set = pickle.load(f)
+           # let's shuffle the letters to have random validation and training set
+           np.random.shuffle(letter_set)
+           if valid_dataset is not None:
+             valid_letter = letter_set[:vsize_per_class, :, :]
+             valid_dataset[start_v:end_v, :, :] = valid_letter
+             valid_labels[start_v:end_v] = label
+             start_v += vsize_per_class
+             end_v += vsize_per_class
+           train_letter = letter_set[vsize_per_class:end_l, :, :]
+           train_dataset[start_t:end_t, :, :] = train_letter
+           train_labels[start_t:end_t] = label
+           start_t += tsize_per_class
+           end_t += tsize_per_class
+       except Exception as e:
+         print('Unable to process data from', pickle_file, ':', e)
+         raise
+     return valid_dataset, valid_labels, train_dataset, train_labels
+#+END_SRC
+
+#+BEGIN_SRC python
+   train_size = 200000
+   valid_size = 10000
+   test_size = 10000
+   valid_dataset, valid_labels, train_dataset, train_labels = merge_datasets(train_datasets,
+                                                                             train_size, 
+                                                                             valid_size)
+#+END_SRC
+
+#+BEGIN_SRC python
+   _, _, test_dataset, test_labels = merge_datasets(test_datasets, test_size)
+#+END_SRC
+
+#+RESULTS:
+: None
+
+#+BEGIN_SRC python
+   print('Training:', train_dataset.shape, train_labels.shape)
+   print('Validation:', valid_dataset.shape, valid_labels.shape)
+   print('Testing:', test_dataset.shape, test_labels.shape)
+ #+END_SRC
+
+ #+RESULTS:
+ : None
+
+ Next, we'll randomize the data. It's important to have the labels well
+ shuffled for the training and test distributions to match.
+
+ #+BEGIN_SRC python
+   def randomize(dataset, labels):
+     permutation = np.random.permutation(labels.shape[0])
+     shuffled_dataset = dataset[permutation,:,:]
+     shuffled_labels = labels[permutation]
+     return shuffled_dataset, shuffled_labels
+#+END_SRC
+
+#+RESULTS:
+: None
+
+#+BEGIN_SRC python
+   train_dataset, train_labels = randomize(train_dataset, train_labels)
+   test_dataset, test_labels = randomize(test_dataset, test_labels)
+   valid_dataset, valid_labels = randomize(valid_dataset, valid_labels)
+ #+END_SRC
+
+ #+RESULTS:
+ : None
+
+
+*** Problem 4
+:PROPERTIES:
+:CUSTOM_ID: problem-4
+:END:
+
+Convince yourself that the data is still good after shuffling!
+
+#+BEGIN_SRC python :results output
+  sample_idx = np.random.randint(len(train_dataset))  # pick a random image index
+  sample_image = train_dataset[sample_idx, :, :]  # extract a 2D slice
+  plt.figure()
+  plt.imshow(sample_image)  # display it
+  plt.savefig('./imgs/sample2.png')
+
+  train_labels[sample_idx]
+#+END_SRC
+
+#+RESULTS:
+: 
+: >>> <matplotlib.figure.Figure object at 0x7f585fd7ef98>
+: <matplotlib.image.AxesImage object at 0x7f585fcf2198>
+: 3
+
+[[./imgs/sample2.png]]     
+
+ Finally, let's save the data for later reuse:
+
+#+BEGIN_SRC python
+  pickle_file = 'notMNIST.pickle'
+
+  try:
+    f = open(pickle_file, 'wb')
+    save = {
+      'train_dataset': train_dataset,
+      'train_labels': train_labels,
+      'valid_dataset': valid_dataset,
+      'valid_labels': valid_labels,
+      'test_dataset': test_dataset,
+      'test_labels': test_labels,
+      }
+    pickle.dump(save, f, pickle.HIGHEST_PROTOCOL)
+    f.close()
+  except Exception as e:
+    print('Unable to save data to', pickle_file, ':', e)
+    raise
+#+END_SRC
+
+#+RESULTS:
+: None
+
+#+BEGIN_SRC python
+  statinfo = os.stat(pickle_file)
+  print('Compressed pickle size:', statinfo.st_size)
+#+END_SRC
+
+ #+RESULTS:
+ : None
+
+#+NAME: load_int8_pkl
+#+BEGIN_SRC python 
+  pickle_file = 'notMNISTint8.pickle'
+  f = open(pickle_file, 'rb')
+  pkl = pickle.load(f)
+  test_labels = pkl["test_labels"]
+  valid_labels = pkl["valid_labels"]
+  valid_dataset = pkl["valid_dataset"]
+  train_labels = pkl["train_labels"]
+  test_dataset = pkl["test_dataset"]
+  train_dataset = pkl["train_dataset"]
+  f.close()
+  image_size = 28  # Pixel width and height.
+  pixel_depth = 255.0  # Number of levels per pixel.
+#+END_SRC
+
+ #+RESULTS:
+
+
+
+*** Problem 5
+:PROPERTIES:
+:CUSTOM_ID: problem-5
+:END:
+
+By construction, this dataset might contain a lot of overlapping samples, including training data that's also contained in the validation and test set! Overlap between training and test can skew the results if you expect to use your model in an environment where there is never an overlap, but are actually ok if you expect to see training samples recur when you use it. Measure how much overlap there is between training, validation and test samples.
+
+Optional questions:
+
+- What about near duplicates between datasets? (images that are almost identical)
+
+- Create a sanitized validation and test set, and compare your accuracy on those in subsequent assignments.
+
+#+NAME: radius
+#+BEGIN_SRC python
+  radius = 2**4
+#+END_SRC
+
+#+RESULTS: radius
+
+***** broadcast + expand l2
+
+****** get_edges
+
+******* numpy
+
+#+BEGIN_SRC python :var pre1=imps1 pre2=imps2 pre3=load_int8_pkl pre4=shapes pre5=radius
+  from math import ceil
+#+END_SRC
+
+#+RESULTS:
+
+test
+#+BEGIN_SRC python
+A = test_dataset.reshape([test_dataset.shape[0], -1])
+r = (A*A).sum(axis=1)
+r = r.reshape([-1,1])
+D = r-2*np.matmul(A,A.T)+r.T
+E = np.where(D<radius**2)
+E = (np.vstack(E).T)[[E[0]<E[1]]]
+#+END_SRC
+
+#+RESULTS:
+: 256
+
+#+BEGIN_SRC python
+  ix=np.random.randint(E.shape[0])
+  np.sum(np.square(test_dataset[E[ix,1],:,:]-test_dataset[E[ix,0],:,:]))
+#+END_SRC
+
+#+RESULTS:
+: 0.0
+
+#+BEGIN_SRC python
+  def get_edges(data):
+    N = data.shape[0]
+    data = data.reshape([N,-1])
+    T = 2**15 # slice length
+    def slice_edges(ix1,ix2):
+      A=data[ix1*T:(ix1+1)*T,:]
+      B=data[ix2*T:(ix2+1)*T,:]
+      r_A = (A*A).sum(axis=1).reshape([-1,1])
+      r_B = (B*B).sum(axis=1).reshape([-1,1])
+      D = r_A-2*np.matmul(A,B.T)+r_B.T
+      E = np.where(D<radius**2)
+      return (np.vstack(E).T)[E[0]+ix1*T<E[1]+ix2*T,:]+np.array([[ix1,ix2]])*T
+    E_all = np.empty(shape=(0,2), dtype=np.int32)
+    for i in range(ceil(N/T)):
+      for j in range(i,ceil(N/T)):
+        E_new = slice_edges(i,j)
+        E_all = np.vstack([E_all, E_new])
+        print("finished iteration i:{}, j:{}. Found {} edges.".format(i,j,len(E_new)))
+    return E_all
+#+END_SRC
+
+
+******* IN-PROGRESS tflow
+
+#+BEGIN_SRC python :var pre1=imps1 pre2=imps2 pre3=load_int8_pkl pre4=shapes pre5=radius
+  import tensorflow as tf
+  from math import ceil
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+  import pdb
+  tf.reset_default_graph()  
+  def get_edges(dataset):
+    g = tf.Graph()
+    N = dataset.shape[0]
+    T = 2**16 # slice length
+    with g.as_default():`
+      data = tf.constant(dataset.reshape([N, -1]), dtype=tf.int32)
+      slice_ix1 = tf.placeholder(dtype = tf.int32, shape=())
+      slice_ix2 = tf.placeholder(dtype = tf.int32, shape=())
+      A=data[slice_ix1*T:(slice_ix1+1)*T,:]
+      B=data[slice_ix2*T:(slice_ix2+1)*T,:]
+      r_A = tf.reduce_sum(A*A, 1)
+      r_B = tf.reduce_sum(B*B, 1)
+      # turn r into column vector
+      r_A = tf.reshape(r_A, [-1, 1])
+      r_B = tf.reshape(r_B, [-1, 1])
+      D = r_A - 2*tf.matmul(A, tf.transpose(B)) + tf.transpose(r_B)
+      E = tf.where(tf.less_equal(D,radius**2))
+    sess = tf.Session(graph=g)
+    all_edges = np.empty(shape=(0,2))
+    for i in range(ceil(N/T)):
+      for j in range(i,ceil(N/T)):
+        edges = sess.run(E, feed_dict = {slice_ix1:i, slice_ix2:j})
+        pdb.set_trace()
+        all_edges = np.vstack([all_edges,
+                               edges[edges[:,0]+i*T<edges[:,1]+j*T,:]+np.array([[i,j]])*T])
+        print("finished iteration i:{}, j:{}. Found {} edges.".format(i,j,len(edges)))
+    return all_edges
+#+END_SRC
+
+#+RESULTS:
+: 1.06335e+07
+
+
+****** post process
+
+#+BEGIN_SRC python
+  train_edges = get_edges(train_dataset)
+  test_edges = get_edges(test_dataset)
+  valid_edges = get_edges(valid_dataset)
+#+END_SRC
+
+#+RESULTS:
+
+test
+#+BEGIN_SRC python
+  E = np.int32(train_edges)
+  data = train_dataset
+  ix=np.random.randint(E.shape[0])
+  np.sum(np.square(data[E[ix,1],:,:]-data[E[ix,0],:,:]))
+#+END_SRC
+
+#+RESULTS:
+: 0.0
+
+
+#+BEGIN_SRC python
+  pickle_file = 'edges_r_2p4.pickle'
+  try:
+    f = open(pickle_file, 'wb')
+    save = {
+      'train_edges':train_edges,
+      'test_edges':test_edges,
+      'valid_edges':valid_edges
+    }
+    pickle.dump(save, f, pickle.HIGHEST_PROTOCOL)
+    f.close()
+  except Exception as e:
+    print('Unable to save data to', pickle_file, ':', e)
+    raise  
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+  pickle_file = 'edges_r_2p4.pickle'
+  f = open(pickle_file, 'rb')
+  pkl = pickle.load(f)
+  train_edges = pkl["train_edges"]
+  test_edges = pkl["test_edges"]
+  valid_edges = pkl["valid_edges"]
+  f.close()
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+  from scipy.sparse import csc_matrix
+  train_A = csc_matrix((np.ones(len(train_edges)),
+                        (train_edges[:,0], train_edges[:,1])), 
+                       shape=(len(train_dataset),len(train_dataset)))
+  test_A = csc_matrix((np.ones(len(test_edges)),
+                       (test_edges[:,0], test_edges[:,1])), 
+                      shape=(len(test_dataset),len(test_dataset)))
+  valid_A = csc_matrix((np.ones(len(valid_edges)),
+                        (valid_edges[:,0], valid_edges[:,1])), 
+                       shape=(len(valid_dataset),len(valid_dataset)))
+#+END_SRC
+
+#+RESULTS:
+
+test
+#+BEGIN_SRC python
+A = train_A
+data = train_dataset
+coo_A = A.tocoo()
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+ix = np.random.randint(A.nnz)
+np.sum(np.square(data[coo_A.row[ix]]-data[coo_A.col[ix]]))
+#+END_SRC
+
+#+RESULTS:
+: 0.0
+
+
+#+BEGIN_SRC python
+  from scipy.sparse.csgraph import connected_components
+  import pandas as pd 
+
+  def get_groups(A):
+    n_comp, index_labels = connected_components(A, directed=False, return_labels=True)
+    comp_labels, comp_first, comp_counts = np.unique(index_labels, return_index=True, 
+                                                     return_inverse=False, 
+                                                     return_counts=True)
+    comp_labels = comp_labels[comp_counts>1]  # non-trivial components
+    index_labels = np.vstack([np.arange(len(index_labels)), index_labels]).T
+    # filter out trivial:
+    index_labels = index_labels[np.in1d(index_labels[:,1], comp_labels),:]
+    return pd.Series(index_labels[:,0]).groupby(index_labels[:,1]), comp_first
+#+END_SRC
+
+#+RESULTS:
+
+tests
+#+BEGIN_SRC python
+  group_obj, group_firsts = get_groups(train_A)
+  data = train_dataset
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+  group_counts = group_obj.count()
+  gkey = np.random.choice(group_counts.index, p=group_counts.values/sum(group_counts.values))
+  print(gkey)
+  ixs = np.random.choice(group_obj.get_group(gkey),2,replace=False)
+  np.sum(np.square(data[ixs[0]]-data[ixs[1]]))
+#+END_SRC
+
+#+RESULTS:
+: 0.0
+
+#+name: plt-save
+#+begin_src python :exports results :results verbatim
+files = []
+path='imgs/compare'
+for i in range(len(ixs)):
+    plt.figure(i)
+    plt.imshow(data[ixs[i]])
+    files.append('{0}_{1}.png'.format(path, i))
+    plt.savefig(files[-1], bbox_inches='tight')
+
+"\n".join(["[[file:{0}]]".format(f) for f in files])
+#+end_src
+
+#+RESULTS: plt-save
+[[file:imgs/compare_0.png]]
+[[file:imgs/compare_1.png]]
+
+#+BEGIN_SRC python
+  pickle_file = 'groups_firsts_r_2p4.pickle'
+  try:
+    f = open(pickle_file, 'wb')
+    save = {
+      'train_groups_firsts':get_groups(train_A),
+      'test_groups_firsts':get_groups(test_A),
+      'valid_groups_firsts':get_groups(valid_A)
+    }
+    pickle.dump(save, f, pickle.HIGHEST_PROTOCOL)
+    f.close()
+  except Exception as e:
+    print('Unable to save data to', pickle_file, ':', e)
+    raise  
+#+END_SRC
+
+#+RESULTS:
+
+
+***** IN-PROGRESS digitize and cluster
+
+#+BEGIN_SRC python
+train_dataset = train_dataset.reshape([train_dataset.shape[0],-1])
+train_dist = sklearn.metrics.pairwise.pairwise_distances(train_dataset, train_dataset, n_jobs = 8)
+valid_dataset = valid_dataset.reshape([valid_dataset.shape[0],-1])
+test_dataset = test_dataset.reshape([test_dataset.shape[0],-1])
+#+END_SRC
+
+#+RESULTS:
+| 10 | 28 | 28 |
+
+_warning_: consumes lots of memory and should probably be done in sql.
+#+BEGIN_SRC python
+  from math import ceil
+  import pandas as pd  # for groupby
+  bins = np.arange(ceil((pixel_depth+1)/radius))*radius
+  train_bins = pd.RangeIndex(train_dataset.shape[0]).groupby(
+    pd.Series(map(tuple, np.digitize(train_dataset.reshape([train_dataset.shape[0],-1]), 
+                                     bins, right=False)-1)))
+  test_bins = pd.RangeIndex(test_dataset.shape[0]).groupby(
+    pd.Series(map(tuple, np.digitize(test_dataset.reshape([test_dataset.shape[0],-1]), 
+                                     bins, right=False)-1)))
+  valid_bins = pd.RangeIndex(valid_dataset.shape[0]).groupby(
+    pd.Series(map(tuple, np.digitize(valid_dataset.reshape([valid_dataset.shape[0],-1]), 
+                                     bins, right=False)-1)))
+#+END_SRC
+
+#+RESULTS:
+
+Based on Fixed-Radius Near Neighbor on the Line by Bucketing, for example as described [[www.cs.wustl.edu/~pless/546/lectures/Lecture2.pdf][here]].
+#+BEGIN_SRC python
+  from scipy.sparse import csc_matrix
+  import pdb
+  def get_adjmx(dataset, bins):
+    A = csc_matrix((dataset.shape[0], dataset.shape[0]), dtype=bool)
+    keys = bins.keys()
+    def find_neighbors(bin_orig, vec_length, delta):
+      if len(delta) == vec_length and np.sum(np.abs(delta)) != 0:      
+        if tuple(bin_orig+delta) in keys:
+          bin_new = bins[bin_orig+delta]
+          for e_0 in bin_orig:
+            for e_1 in bin_new:
+              A[min(e_0,e_1),max(e_0,e_1)] = np.sum(np.abs(dataset[e_0,:]-dataset[e_1,:]))<=radius
+      elif len(delta) < vec_length:
+        for d in [0,-1,1]:
+          find_neighbors(bin_orig, vec_length, np.concatenate([delta,[d]]))
+    i = 0      
+    for b in keys:
+      if i % 1 == 0:
+        print("on key #"+str(i))
+      find_neighbors(b, len(b), [])
+      i+=1
+    return A
+
+  A_train = get_adjmx(train_dataset, train_bins)
+  A_valid = get_adjmx(valid_dataset, valid_bins)
+  A_test = get_adjmx(test_dataset, test_bins)
+#+END_SRC
+
+... This takes too long. Probably has a bug.
+
+
+#+BEGIN_SRC julia :session a1jl
+using PyCall
+@pyimport pickle
+pickle_file = "notMNISTint8.pickle"
+fid = open(pickle_file,"r")
+data = pickle.load(fid)
+close(fid)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC julia
+convert(Array{UInt8,3},data["test_dataset"])
+#+END_SRC
+
+
+*** Problem 6
+:PROPERTIES:
+:CUSTOM_ID: problem-6
+:END:
+
+Let's get an idea of what an off-the-shelf classifier can give you on
+this data. It's always good to check that there is something to learn,
+and that it's a problem that is not so trivial that a canned solution
+solves it.
+
+Train a simple model on this data using 50, 100, 1000 and 5000 training
+samples. Hint: you can use the LogisticRegression model from
+sklearn.linear\_model.
+
+Optional question: train an off-the-shelf model on all the data!
+
+#+BEGIN_SRC python
+    import pickle
+    pickle_file = 'eql_lsts.pickle'
+    eql_lsts = np.load(pickle_file)
+    apx_eql_lst = eql_lsts["apx_lst"]
+#+END_SRC
+
+#+BEGIN_SRC python
+    pkl = np.load('notMNIST.pickle',mmap_mode='r')
+    test_labels = pkl["test_labels"]
+    valid_labels = pkl["valid_labels"]
+    valid_dataset = pkl["valid_dataset"]
+    train_labels = pkl["train_labels"]
+    test_dataset = pkl["test_dataset"]
+    train_dataset = pkl["train_dataset"]
+#+END_SRC
+
+#+BEGIN_SRC python
+    import itertools
+    import random
+    import sklearn.linear_model
+    bad_train_ix = map(lambda x: x[0], apx_eql_lst)
+    good_train_ix = list(filter(lambda i: i not in bad_train_ix, 
+                                range(train_dataset.shape[0])))
+#+END_SRC
+
+#+BEGIN_SRC python
+    def reservoir_sampling(iterable, r=1):
+        "Random selection from itertools.permutations(iterable, r)"
+        it = iter(iterable)
+        R = [next(it) for i in range(r)]
+        for i, item in enumerate(it, start=r+1):
+          j = random.randrange(i)
+          if j<r:
+            R[j] = item
+        return R
+#+END_SRC
+
+#+BEGIN_SRC python
+    sample_size = 20000
+    sample_train_ix = reservoir_sampling(good_train_ix, sample_size)
+    logreg = sklearn.linear_model.LogisticRegression()
+#+END_SRC
+
+#+BEGIN_SRC python
+    m = train_dataset.shape[1]*train_dataset.shape[2]
+    X = train_dataset[sample_train_ix].reshape(sample_size,m)
+    y = train_labels[sample_train_ix]
+    M = logreg.fit(X,y)
+#+END_SRC
+
+#+BEGIN_SRC python
+    X_hat = test_dataset.reshape(test_dataset.shape[0],m)
+    y_hat = test_labels
+    L = M.score(X_hat, y_hat)
+    print(L)
+#+END_SRC
+
+#+BEGIN_EXAMPLE
+    0.7081
+#+END_EXAMPLE
+
+
+** Assignment 2
+   :PROPERTIES:
+   :CUSTOM_ID: assignment-2
+   :END:
+
+ Previously in =1_notmnist.ipynb=, we created a pickle with formatted
+ datasets for training, development and testing on the
+ [[http://yaroslavvb.blogspot.com/2011/09/notmnist-dataset.html][notMNIST
+ dataset]].
+
+ The goal of this assignment is to progressively train deeper and more
+ accurate models using TensorFlow.
+
+ #+BEGIN_SRC python
+     # These are all the modules we'll be using later. Make sure you can import them
+     # before proceeding further.
+     from __future__ import print_function
+     import numpy as np
+     import tensorflow as tf
+     from six.moves import cPickle as pickle
+     from six.moves import range
+ #+END_SRC
+
+ First reload the data we generated in =1_notmnist.ipynb=.
+
+ #+BEGIN_SRC python
+     pickle_file = 'notMNIST.pickle'
+
+     with open(pickle_file, 'rb') as f:
+       save = pickle.load(f)
+       train_dataset = save['train_dataset']
+       train_labels = save['train_labels']
+       valid_dataset = save['valid_dataset']
+       valid_labels = save['valid_labels']
+       test_dataset = save['test_dataset']
+       test_labels = save['test_labels']
+       del save  # hint to help gc free up memory
+       print('Training set', train_dataset.shape, train_labels.shape)
+       print('Validation set', valid_dataset.shape, valid_labels.shape)
+       print('Test set', test_dataset.shape, test_labels.shape)
+ #+END_SRC
+
+ #+BEGIN_EXAMPLE
+     Training set (200000, 28, 28) (200000,)
+     Validation set (10000, 28, 28) (10000,)
+     Test set (10000, 28, 28) (10000,)
+ #+END_EXAMPLE
+
+ Reformat into a shape that's more adapted to the models we're going to
+ train:
+
+ -  data as a flat matrix,
+ -  labels as float 1-hot encodings.
+
+ #+BEGIN_SRC python
+     image_size = 28
+     num_labels = 10
+
+     def reformat(dataset, labels):
+       dataset = dataset.reshape((-1, image_size * image_size)).astype(np.float32)
+       # Map 0 to [1.0, 0.0, 0.0 ...], 1 to [0.0, 1.0, 0.0 ...]
+       labels = (np.arange(num_labels) == labels[:,None]).astype(np.float32)
+       return dataset, labels
+     train_dataset, train_labels = reformat(train_dataset, train_labels)
+     valid_dataset, valid_labels = reformat(valid_dataset, valid_labels)
+     test_dataset, test_labels = reformat(test_dataset, test_labels)
+     print('Training set', train_dataset.shape, train_labels.shape)
+     print('Validation set', valid_dataset.shape, valid_labels.shape)
+     print('Test set', test_dataset.shape, test_labels.shape)
+ #+END_SRC
+
+ #+BEGIN_EXAMPLE
+     Training set (200000, 784) (200000, 10)
+     Validation set (10000, 784) (10000, 10)
+     Test set (10000, 784) (10000, 10)
+ #+END_EXAMPLE
+
+ We're first going to train a multinomial logistic regression using
+ simple gradient descent.
+
+ TensorFlow works like this:
+
+ -  First you describe the computation that you want to see performed:
+    what the inputs, the variables, and the operations look like. These
+    get created as nodes over a computation graph. This description is
+    all contained within the block below:
+
+    with graph.as\_default():\\
+    ...
+
+ -  Then you can run the operations on this graph as many times as you
+    want by calling =session.run()=, providing it outputs to fetch from
+    the graph that get returned. This runtime operation is all contained
+    in the block below:
+
+    with tf.Session(graph=graph) as session:\\
+    ...
+
+ Let's load all the data into TensorFlow and build the computation graph
+ corresponding to our training:
+
+ #+BEGIN_SRC python
+     # With gradient descent training, even this much data is prohibitive.
+     # Subset the training data for faster turnaround.
+     train_subset = 10000
+
+     graph = tf.Graph()
+     with graph.as_default():
+
+       # Input data.
+       # Load the training, validation and test data into constants that are
+       # attached to the graph.
+       tf_train_dataset = tf.constant(train_dataset[:train_subset, :])
+       tf_train_labels = tf.constant(train_labels[:train_subset])
+       tf_valid_dataset = tf.constant(valid_dataset)
+       tf_test_dataset = tf.constant(test_dataset)
+      
+       # Variables.
+       # These are the parameters that we are going to be training. The weight
+       # matrix will be initialized using random values following a (truncated)
+       # normal distribution. The biases get initialized to zero.
+       weights = tf.Variable(
+         tf.truncated_normal([image_size * image_size, num_labels]))
+       biases = tf.Variable(tf.zeros([num_labels]))
+      
+       # Training computation.
+       # We multiply the inputs with the weight matrix, and add biases. We compute
+       # the softmax and cross-entropy (it's one operation in TensorFlow, because
+       # it's very common, and it can be optimized). We take the average of this
+       # cross-entropy across all training examples: that's our loss.
+       logits = tf.matmul(tf_train_dataset, weights) + biases
+       loss = tf.reduce_mean(
+         tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
+      
+       # Optimizer.
+       # We are going to find the minimum of this loss using gradient descent.
+       optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
+      
+       # Predictions for the training, validation, and test data.
+       # These are not part of training, but merely here so that we can report
+       # accuracy figures as we train.
+       train_prediction = tf.nn.softmax(logits)
+       valid_prediction = tf.nn.softmax(
+         tf.matmul(tf_valid_dataset, weights) + biases)
+       test_prediction = tf.nn.softmax(tf.matmul(tf_test_dataset, weights) + biases)
+ #+END_SRC
+
+ Let's run this computation and iterate:
+
+ #+BEGIN_SRC python
+     num_steps = 801
+     def accuracy(predictions, labels):
+       return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
+               / predictions.shape[0])
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     with tf.Session(graph=graph) as session:
+       # This is a one-time operation which ensures the parameters get initialized as
+       # we described in the graph: random weights for the matrix, zeros for the
+       # biases. 
+       tf.initialize_all_variables().run()
+       print('Initialized')
+       for step in range(num_steps):
+         # Run the computations. We tell .run() that we want to run the optimizer,
+         # and get the loss value and the training predictions returned as numpy
+         # arrays.
+         _, l, predictions = session.run([optimizer, loss, train_prediction])
+         if (step % 100 == 0):
+           print('Loss at step %d: %f' % (step, l))
+           print('Training accuracy: %.1f%%' % accuracy(
+             predictions, train_labels[:train_subset, :]))
+           # Calling .eval() on valid_prediction is basically like calling run(), but
+           # just to get that one numpy array. Note that it recomputes all its graph
+           # dependencies.
+           print('Validation accuracy: %.1f%%' % accuracy(
+             valid_prediction.eval(), valid_labels))
+       print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(), test_labels))
+ #+END_SRC
+
+ #+BEGIN_EXAMPLE
+     Initialized
+     Loss at step 0: 22.018156
+     Training accuracy: 6.6%
+     Validation accuracy: 8.6%
+     Loss at step 100: 2.022280
+     Training accuracy: 75.2%
+     Validation accuracy: 73.7%
+     Loss at step 200: 1.623059
+     Training accuracy: 78.1%
+     Validation accuracy: 75.7%
+     Loss at step 300: 1.408173
+     Training accuracy: 79.2%
+     Validation accuracy: 76.5%
+     Loss at step 400: 1.262911
+     Training accuracy: 80.0%
+     Validation accuracy: 76.6%
+     Loss at step 500: 1.154954
+     Training accuracy: 80.7%
+     Validation accuracy: 76.8%
+     Loss at step 600: 1.070023
+     Training accuracy: 81.2%
+     Validation accuracy: 77.0%
+     Loss at step 700: 1.000842
+     Training accuracy: 81.7%
+     Validation accuracy: 77.1%
+     Loss at step 800: 0.943042
+     Training accuracy: 82.2%
+     Validation accuracy: 77.2%
+     Test accuracy: 67.9%
+ #+END_EXAMPLE
+
+ Let's now switch to stochastic gradient descent training instead, which
+ is much faster.
+
+ The graph will be similar, except that instead of holding all the
+ training data into a constant node, we create a =Placeholder= node which
+ will be fed actual data at every call of =session.run()=.
+
+ #+BEGIN_SRC python
+     batch_size = 128
+     graph = tf.Graph()
+     with graph.as_default():
+
+       # Input data. For the training data, we use a placeholder that will be fed
+       # at run time with a training minibatch.
+       tf_train_dataset = tf.placeholder(tf.float32,
+                                         shape=(batch_size, image_size * image_size))
+       tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+       tf_valid_dataset = tf.constant(valid_dataset)
+       tf_test_dataset = tf.constant(test_dataset)
+      
+       # Variables.
+       weights = tf.Variable(
+         tf.truncated_normal([image_size * image_size, num_labels]))
+       biases = tf.Variable(tf.zeros([num_labels]))
+      
+       # Training computation.
+       logits = tf.matmul(tf_train_dataset, weights) + biases
+       loss = tf.reduce_mean(
+         tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
+      
+       # Optimizer.
+       optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
+      
+       # Predictions for the training, validation, and test data.
+       train_prediction = tf.nn.softmax(logits)
+       valid_prediction = tf.nn.softmax(
+         tf.matmul(tf_valid_dataset, weights) + biases)
+       test_prediction = tf.nn.softmax(tf.matmul(tf_test_dataset, weights) + biases)
+ #+END_SRC
+
+ Let's run it:
+
+ #+BEGIN_SRC python
+     num_steps = 3001
+
+     with tf.Session(graph=graph) as session:
+       tf.initialize_all_variables().run()
+       print("Initialized")
+       for step in range(num_steps):
+         # Pick an offset within the training data, which has been randomized.
+         # Note: we could use better randomization across epochs.
+         offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
+         # Generate a minibatch.
+         batch_data = train_dataset[offset:(offset + batch_size), :]
+         batch_labels = train_labels[offset:(offset + batch_size), :]
+         # Prepare a dictionary telling the session where to feed the minibatch.
+         # The key of the dictionary is the placeholder node of the graph to be fed,
+         # and the value is the numpy array to feed to it.
+         feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
+         _, l, predictions = session.run(
+           [optimizer, loss, train_prediction], feed_dict=feed_dict)
+         if (step % 500 == 0):
+           print("Minibatch loss at step %d: %f" % (step, l))
+           print("Minibatch accuracy: %.1f%%" % accuracy(predictions, batch_labels))
+           print("Validation accuracy: %.1f%%" % accuracy(
+             valid_prediction.eval(), valid_labels))
+       print("Test accuracy: %.1f%%" % accuracy(test_prediction.eval(), test_labels))
+ #+END_SRC
+
+ #+BEGIN_EXAMPLE
+     Initialized
+     Minibatch loss at step 0: 16.320572
+     Minibatch accuracy: 13.3%
+     Validation accuracy: 14.4%
+     Minibatch loss at step 500: 1.573464
+     Minibatch accuracy: 73.4%
+     Validation accuracy: 78.2%
+     Minibatch loss at step 1000: 0.979085
+     Minibatch accuracy: 81.2%
+     Validation accuracy: 79.5%
+     Minibatch loss at step 1500: 0.816317
+     Minibatch accuracy: 81.2%
+     Validation accuracy: 79.8%
+     Minibatch loss at step 2000: 1.051737
+     Minibatch accuracy: 79.7%
+     Validation accuracy: 79.6%
+     Minibatch loss at step 2500: 0.977313
+     Minibatch accuracy: 76.6%
+     Validation accuracy: 80.3%
+     Minibatch loss at step 3000: 0.891709
+     Minibatch accuracy: 76.6%
+     Validation accuracy: 80.3%
+     Test accuracy: 69.5%
+ #+END_EXAMPLE
+
+
+
+*** Problem
+    :PROPERTIES:
+    :CUSTOM_ID: problem
+    :END:
+
+ Turn the logistic regression example with SGD into a 1-hidden layer
+ neural network with rectified linear units
+ [[https://www.tensorflow.org/versions/r0.7/api_docs/python/nn.html#relu][nn.relu()]]
+ and 1024 hidden nodes. This model should improve your validation / test
+ accuracy.
+
+
+
+ #+BEGIN_SRC python
+     batch_size = 128
+     num_hidden = 1024
+     graph = tf.Graph()
+     with graph.as_default():
+
+       # Input data. For the training data, we use a placeholder that will be fed
+       # at run time with a training minibatch.
+       tf_train_dataset = tf.placeholder(tf.float32,
+                                         shape=(batch_size, image_size * image_size))
+       tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+       tf_valid_dataset = tf.constant(valid_dataset)
+       tf_test_dataset = tf.constant(test_dataset)
+      
+       # Variables.
+       weights0 = tf.Variable(
+         tf.truncated_normal([image_size * image_size, num_hidden]))
+       biases0 = tf.Variable(tf.zeros([num_hidden]))
+       weights1 = tf.Variable(tf.truncated_normal([num_hidden, num_labels]))
+       biases1 = tf.Variable(tf.truncated_normal([num_labels]))
+
+       # hidden
+       hidden_dataset = tf.nn.relu(tf.matmul(tf_train_dataset, weights0) + biases0)
+
+       # Training computation.
+       logits = tf.matmul(hidden_dataset, weights1) + biases1
+       loss = tf.reduce_mean(
+         tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
+      
+       # Optimizer.
+       optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
+      
+       # Predictions for the training, validation, and test data.
+       train_prediction = tf.nn.softmax(logits)
+
+       valid_hidden = tf.nn.relu(tf.matmul(tf_valid_dataset, weights0) + biases0)
+       valid_prediction = tf.nn.softmax(
+         tf.matmul(valid_hidden, weights1) + biases1)
+       test_hidden = tf.nn.relu(tf.matmul(tf_test_dataset, weights0) + biases0)
+       test_prediction = tf.nn.softmax(tf.matmul(test_hidden, weights1) + biases1)
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     num_steps = 3001
+     with tf.Session(graph=graph) as session:
+       tf.initialize_all_variables().run()
+       print("Initialized")
+       for step in range(num_steps):
+         # Pick an offset within the training data, which has been randomized.
+         # Note: we could use better randomization across epochs.
+         offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
+         # Generate a minibatch.
+         batch_data = train_dataset[offset:(offset + batch_size), :]
+         batch_labels = train_labels[offset:(offset + batch_size), :]
+         # Prepare a dictionary telling the session where to feed the minibatch.
+         # The key of the dictionary is the placeholder node of the graph to be fed,
+         # and the value is the numpy array to feed to it.
+         feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
+         _, l, predictions = session.run(
+           [optimizer, loss, train_prediction], feed_dict=feed_dict)
+         if (step % 500 == 0):
+           print("Minibatch loss at step %d: %f" % (step, l))
+           print("Minibatch accuracy: %.1f%%" % accuracy(predictions, batch_labels))
+           print("Validation accuracy: %.1f%%" % accuracy(
+             valid_prediction.eval(), valid_labels))
+       print("Test accuracy: %.1f%%" % accuracy(test_prediction.eval(), test_labels))
+ #+END_SRC
+
+ #+BEGIN_EXAMPLE
+     Initialized
+     Minibatch loss at step 0: 413.522797
+     Minibatch accuracy: 9.4%
+     Validation accuracy: 37.4%
+     Minibatch loss at step 500: 17.026733
+     Minibatch accuracy: 79.7%
+     Validation accuracy: 82.2%
+     Minibatch loss at step 1000: 3.879690
+     Minibatch accuracy: 82.0%
+     Validation accuracy: 83.4%
+     Minibatch loss at step 1500: 7.037672
+     Minibatch accuracy: 85.2%
+     Validation accuracy: 82.5%
+     Minibatch loss at step 2000: 2.705339
+     Minibatch accuracy: 84.4%
+     Validation accuracy: 83.2%
+     Minibatch loss at step 2500: 3.578274
+     Minibatch accuracy: 75.8%
+     Validation accuracy: 84.1%
+     Minibatch loss at step 3000: 5.462776
+     Minibatch accuracy: 77.3%
+     Validation accuracy: 83.7%
+     Test accuracy: 71.8%
+ #+END_EXAMPLE
+
+
+
+*** Problem 2 (IK homemade)
+    :PROPERTIES:
+    :CUSTOM_ID: problem-2-ik-homemade
+    :END:
+
+*** redo previous, proper SGD (randomize order)
+    :PROPERTIES:
+    :CUSTOM_ID: redo-previous-proper-sgd-randomize-order
+    :END:
+
+ #+BEGIN_SRC python
+     import numpy as np
+     pickle_file = 'eql_lsts.pickle'
+     eql_lsts = np.load(pickle_file)
+     apx_eql_lst = eql_lsts["apx_lst"]
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     import itertools
+     bad_train_ix = map(lambda x: x[0], apx_eql_lst)
+     good_train_ix = list(filter(lambda i: i not in bad_train_ix, 
+                                 range(train_dataset.shape[0])))
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     import copy
+     import random
+     num_steps = 6001
+     # ix list for actual SGD
+     def fisher_yates_sampling(iterable):
+       "l - random selection from permutations(iterable)"
+       l = copy.deepcopy(iterable)
+       n = len(l)
+       for i in range(n-1):
+         j = random.randrange(n-i)
+         t = l[i]
+         l[i] = l[i+j]
+         l[i+j] = l[i]
+       return l
+     rand_train_ix = fisher_yates_sampling(good_train_ix)
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     batch_size = 128
+     num_hidden = 1024
+     graph = tf.Graph()
+     with graph.as_default():
+
+       # Input data. For the training data, we use a placeholder that will be fed
+       # at run time with a training minibatch.
+       tf_train_dataset = tf.placeholder(tf.float32,
+                                         shape=(batch_size, image_size * image_size))
+       tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+       tf_valid_dataset = tf.constant(valid_dataset)
+       tf_test_dataset = tf.constant(test_dataset)
+      
+       # Variables.
+       weights0 = tf.Variable(
+         tf.truncated_normal([image_size * image_size, num_hidden]))
+       biases0 = tf.Variable(tf.zeros([num_hidden]))
+       weights1 = tf.Variable(tf.truncated_normal([num_hidden, num_labels]))
+       biases1 = tf.Variable(tf.truncated_normal([num_labels]))
+
+       # hidden
+       hidden_dataset = tf.nn.relu(tf.matmul(tf_train_dataset, weights0) + biases0)
+
+       # Training computation.
+       logits = tf.matmul(hidden_dataset, weights1) + biases1
+       loss = tf.reduce_mean(
+         tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
+      
+       # Optimizer.
+       optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
+      
+       # Predictions for the training, validation, and test data.
+       train_prediction = tf.nn.softmax(logits)
+
+       valid_hidden = tf.nn.relu(tf.matmul(tf_valid_dataset, weights0) + biases0)
+       valid_prediction = tf.nn.softmax(
+         tf.matmul(valid_hidden, weights1) + biases1)
+       test_hidden = tf.nn.relu(tf.matmul(tf_test_dataset, weights0) + biases0)
+       test_prediction = tf.nn.softmax(tf.matmul(test_hidden, weights1) + biases1)
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     def accuracy(predictions, labels):
+       return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
+               / predictions.shape[0])
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     offset = 0
+     with tf.Session(graph=graph) as session:
+       tf.initialize_all_variables().run()
+       print("Initialized")
+       for step in range(num_steps):
+         # Pick an offset within the training data, which has been randomized.
+         # Note: we could use better randomization across epochs.
+         last_offset = offset
+         offset = (step * batch_size) % (len(rand_train_ix) - batch_size)
+         if offset < last_offset:
+           rand_train_ix = fisher_yates_sampling(good_train_ix)
+         # Generate a minibatch.
+         batch_data = train_dataset[rand_train_ix[offset:(offset + batch_size)], :]
+         batch_labels = train_labels[rand_train_ix[offset:(offset + batch_size)], :]
+         # Prepare a dictionary telling the session where to feed the minibatch.
+         # The key of the dictionary is the placeholder node of the graph to be fed,
+         # and the value is the numpy array to feed to it.
+         feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
+         _, l, predictions = session.run(
+           [optimizer, loss, train_prediction], feed_dict=feed_dict)
+         if (step % 500 == 0):
+           print("Minibatch loss at step %d: %f" % (step, l))
+           print("Minibatch accuracy: %.1f%%" % accuracy(predictions, batch_labels))
+           print("Validation accuracy: %.1f%%" % accuracy(
+             valid_prediction.eval(), valid_labels))
+       print("Test accuracy: %.1f%%" % accuracy(test_prediction.eval(), test_labels))
+ #+END_SRC
+
+ #+BEGIN_EXAMPLE
+     Minibatch loss at step 3000: 1.604837
+     Minibatch accuracy: 91.4%
+     Validation accuracy: 84.7%
+     Test accuracy: 72.5%
+     Minibatch loss at step 2500: 3.163114
+     Minibatch accuracy: 91.4%
+     Validation accuracy: 83.7%
+     Minibatch loss at step 2000: 7.948224
+     Minibatch accuracy: 81.2%
+     Validation accuracy: 83.3%
+     Minibatch loss at step 1500: 2.736376
+     Minibatch accuracy: 89.8%
+     Validation accuracy: 82.7%
+     Minibatch loss at step 1000: 11.304239
+     Minibatch accuracy: 84.4%
+     Validation accuracy: 82.5%
+     Minibatch loss at step 500: 17.010756
+     Minibatch accuracy: 85.9%
+     Validation accuracy: 82.1%
+     Initialized
+     Minibatch loss at step 0: 339.549652
+     Minibatch accuracy: 7.8%
+     Validation accuracy: 26.5%
+ #+END_EXAMPLE
+
+
+
+** Assignment 3
+   :PROPERTIES:
+   :CUSTOM_ID: assignment-3
+   :END:
+
+ Previously in =2_fullyconnected.ipynb=, you trained a logistic
+ regression and a neural network model.
+
+ The goal of this assignment is to explore regularization techniques.
+
+ #+BEGIN_SRC python
+     # These are all the modules we'll be using later. Make sure you can import them
+     # before proceeding further.
+     from __future__ import print_function
+     import numpy as np
+     import tensorflow as tf
+     from six.moves import cPickle as pickle
+ #+END_SRC
+
+ First reload the data we generated in /notmist.ipynb/.
+
+ #+BEGIN_SRC python
+     pickle_file = 'notMNIST.pickle'
+
+     with open(pickle_file, 'rb') as f:
+       save = pickle.load(f)
+       train_dataset = save['train_dataset']
+       train_labels = save['train_labels']
+       valid_dataset = save['valid_dataset']
+       valid_labels = save['valid_labels']
+       test_dataset = save['test_dataset']
+       test_labels = save['test_labels']
+       del save  # hint to help gc free up memory
+       print('Training set', train_dataset.shape, train_labels.shape)
+       print('Validation set', valid_dataset.shape, valid_labels.shape)
+       print('Test set', test_dataset.shape, test_labels.shape)
+ #+END_SRC
+
+ #+BEGIN_EXAMPLE
+     Training set (200000, 28, 28) (200000,)
+     Validation set (10000, 28, 28) (10000,)
+     Test set (10000, 28, 28) (10000,)
+ #+END_EXAMPLE
+
+ Reformat into a shape that's more adapted to the models we're going to
+ train:
+
+ -  data as a flat matrix,
+ -  labels as float 1-hot encodings.
+
+ #+BEGIN_SRC python
+     image_size = 28
+     num_labels = 10
+
+     def reformat(dataset, labels):
+       dataset = dataset.reshape((-1, image_size * image_size)).astype(np.float32)
+       # Map 1 to [0.0, 1.0, 0.0 ...], 2 to [0.0, 0.0, 1.0 ...]
+       labels = (np.arange(num_labels) == labels[:,None]).astype(np.float32)
+       return dataset, labels
+     train_dataset, train_labels = reformat(train_dataset, train_labels)
+     valid_dataset, valid_labels = reformat(valid_dataset, valid_labels)
+     test_dataset, test_labels = reformat(test_dataset, test_labels)
+     print('Training set', train_dataset.shape, train_labels.shape)
+     print('Validation set', valid_dataset.shape, valid_labels.shape)
+     print('Test set', test_dataset.shape, test_labels.shape)
+ #+END_SRC
+
+ #+BEGIN_EXAMPLE
+     Training set (200000, 784) (200000, 10)
+     Validation set (10000, 784) (10000, 10)
+     Test set (10000, 784) (10000, 10)
+ #+END_EXAMPLE
+
+ #+BEGIN_SRC python
+     def accuracy(predictions, labels):
+       return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
+               / predictions.shape[0])
+ #+END_SRC
+
+
+
+*** Problem 1
+    :PROPERTIES:
+    :CUSTOM_ID: problem-1
+    :END:
+
+ Introduce and tune L2 regularization for both logistic and neural
+ network models. Remember that L2 amounts to adding a penalty on the norm
+ of the weights to the loss. In TensorFlow, you can compute the L2 loss
+ for a tensor =t= using =nn.l2_loss(t)=. The right amount of
+ regularization should improve your validation / test accuracy.
+
+
+
+ #+BEGIN_SRC python
+     import numpy as np
+     pickle_file = 'eql_lsts.pickle'
+     eql_lsts = np.load(pickle_file)
+     apx_eql_lst = eql_lsts["apx_lst"]
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     import itertools
+     bad_train_ix = map(lambda x: x[0], apx_eql_lst)
+     good_train_ix = list(filter(lambda i: i not in bad_train_ix, 
+                                 range(train_dataset.shape[0])))
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     import copy
+     import random
+     num_steps = 2001
+     # ix list for actual SGD
+     def random_permutation(iterable):
+       return np.random.permutation(len(iterable))
+       # # fisher/yates:
+       # "l - random selection from permutations(iterable)"
+       # l = copy.deepcopy(iterable)
+       # n = len(l)
+       # for i in range(n-1):
+       #   j = random.randrange(n-i)
+       #   t = l[i]
+       #   l[i] = l[i+j]
+       #   l[i+j] = l[i]
+       # return l
+     rand_train_ix = random_permutation(good_train_ix)
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     batch_size = 128
+     num_hidden = 1024*16
+     beta = .01
+     keep_prob = 0.5
+     graph = tf.Graph()
+     with graph.as_default():
+
+       # Input data. For the training data, we use a placeholder that will be fed
+       # at run time with a training minibatch.
+       tf_train_dataset = tf.placeholder(tf.float32,
+                                         shape=(batch_size, image_size * image_size))
+       tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+       tf_valid_dataset = tf.constant(valid_dataset)
+       tf_test_dataset = tf.constant(test_dataset)
+      
+       # Variables.
+       weights0 = tf.Variable(
+         tf.truncated_normal([image_size * image_size, num_hidden]))
+       biases0 = tf.Variable(tf.zeros([num_hidden]))
+       weights1 = tf.Variable(tf.truncated_normal([num_hidden, num_labels]))
+       biases1 = tf.Variable(tf.truncated_normal([num_labels]))
+
+       # hidden
+       hidden_dataset = tf.nn.relu(tf.matmul(tf_train_dataset, weights0) + biases0)
+
+
+       # Training computation.
+       logits = tf.matmul(hidden_dataset, weights1) + biases1
+       loss = (tf.reduce_mean(
+         tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))+
+               beta*(tf.nn.l2_loss(weights0)+tf.nn.l2_loss(biases0)+
+                     tf.nn.l2_loss(weights1)+tf.nn.l2_loss(biases1)))
+      
+       # Optimizer.
+       optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
+      
+       # Predictions for the training, validation, and test data.
+       train_prediction = tf.nn.softmax(logits)
+
+       valid_hidden = tf.nn.relu(tf.matmul(tf_valid_dataset, weights0) + biases0)
+       valid_prediction = tf.nn.softmax(
+         tf.matmul(valid_hidden, weights1) + biases1)
+       test_hidden = tf.nn.relu(tf.matmul(tf_test_dataset, weights0) + biases0)
+       test_prediction = tf.nn.softmax(tf.matmul(test_hidden, weights1) + biases1)
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     def accuracy(predictions, labels):
+       return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
+               / predictions.shape[0])
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     offset = 0
+     with tf.Session(graph=graph) as session:
+       tf.initialize_all_variables().run()
+       print("Initialized")
+       for step in range(num_steps):
+         # Pick an offset within the training data, which has been randomized.
+         # Note: we could use better randomization across epochs.
+         last_offset = offset
+         offset = (step * batch_size) % (len(rand_train_ix) - batch_size)
+         if offset < last_offset:
+           rand_train_ix = random_permutation(good_train_ix)
+         # Generate a minibatch.
+         batch_data = train_dataset[rand_train_ix[offset:(offset + batch_size)], :]
+         batch_labels = train_labels[rand_train_ix[offset:(offset + batch_size)], :]
+         # Prepare a dictionary telling the session where to feed the minibatch.
+         # The key of the dictionary is the placeholder node of the graph to be fed,
+         # and the value is the numpy array to feed to it.
+         feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
+         _, l, predictions = session.run(
+           [optimizer, loss, train_prediction], feed_dict=feed_dict)
+         if (step % 500 == 0):
+           print("Minibatch loss at step %d: %f" % (step, l))
+           print("Minibatch accuracy: %.1f%%" % accuracy(predictions, batch_labels))
+           print("Validation accuracy: %.1f%%" % accuracy(
+             valid_prediction.eval(), valid_labels))
+       print("Test accuracy: %.1f%%" % accuracy(test_prediction.eval(), test_labels))
+ #+END_SRC
+
+ #+BEGIN_EXAMPLE
+     Initialized
+     Minibatch loss at step 0: 7347.640625
+     Minibatch accuracy: 5.5%
+     Validation accuracy: 37.0%
+     Minibatch loss at step 500: 0.876382
+     Minibatch accuracy: 96.1%
+     Validation accuracy: 78.7%
+     Minibatch loss at step 1000: 0.620260
+     Minibatch accuracy: 92.2%
+     Validation accuracy: 78.6%
+     Minibatch loss at step 1500: 0.658640
+     Minibatch accuracy: 88.3%
+     Validation accuracy: 78.3%
+     Minibatch loss at step 2000: 0.555534
+     Minibatch accuracy: 93.8%
+     Validation accuracy: 76.1%
+     Test accuracy: 66.2%
+ #+END_EXAMPLE
+
+
+
+*** Problem 2
+    :PROPERTIES:
+    :CUSTOM_ID: problem-2
+    :END:
+
+ Let's demonstrate an extreme case of overfitting. Restrict your training
+ data to just a few batches. What happens?
+
+
+
+ #+BEGIN_SRC python
+     import numpy as np
+     pickle_file = 'eql_lsts.pickle'
+     eql_lsts = np.load(pickle_file)
+     apx_eql_lst = eql_lsts["apx_lst"]
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     import itertools
+     bad_train_ix = map(lambda x: x[0], apx_eql_lst)
+     good_train_ix = list(filter(lambda i: i not in bad_train_ix, 
+                                 range(train_dataset.shape[0])))
+     num_train = 800
+     good_train_ix = good_train_ix[:num_train]
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     import copy
+     import random
+     num_steps = 2001
+     # ix list for actual SGD
+     def random_permutation(iterable):
+       return np.random.permutation(len(iterable))
+       # # fisher/yates:
+       # "l - random selection from permutations(iterable)"
+       # l = copy.deepcopy(iterable)
+       # n = len(l)
+       # for i in range(n-1):
+       #   j = random.randrange(n-i)
+       #   t = l[i]
+       #   l[i] = l[i+j]
+       #   l[i+j] = l[i]
+       # return l
+     rand_train_ix = fisher_yates_sampling(good_train_ix)
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     batch_size = 128
+     num_hidden = 1024
+     beta = .01
+     graph = tf.Graph()
+     with graph.as_default():
+
+       # Input data. For the training data, we use a placeholder that will be fed
+       # at run time with a training minibatch.
+       tf_train_dataset = tf.placeholder(tf.float32,
+                                         shape=(batch_size, image_size * image_size))
+       tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+       tf_valid_dataset = tf.constant(valid_dataset)
+       tf_test_dataset = tf.constant(test_dataset)
+      
+       # Variables.
+       weights0 = tf.Variable(
+         tf.truncated_normal([image_size * image_size, num_hidden]))
+       biases0 = tf.Variable(tf.zeros([num_hidden]))
+       weights1 = tf.Variable(tf.truncated_normal([num_hidden, num_labels]))
+       biases1 = tf.Variable(tf.truncated_normal([num_labels]))
+
+       # hidden
+       hidden_dataset = tf.nn.relu(tf.matmul(tf_train_dataset, weights0) + biases0)
+
+       # Training computation.
+       logits = tf.matmul(hidden_dataset, weights1) + biases1
+       loss = (tf.reduce_mean(
+         tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))+
+               beta*(tf.nn.l2_loss(weights0)+tf.nn.l2_loss(biases0)+
+                     tf.nn.l2_loss(weights1)+tf.nn.l2_loss(biases1)))
+      
+       # Optimizer.
+       optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
+      
+       # Predictions for the training, validation, and test data.
+       train_prediction = tf.nn.softmax(logits)
+
+       valid_hidden = tf.nn.relu(tf.matmul(tf_valid_dataset, weights0) + biases0)
+       valid_prediction = tf.nn.softmax(
+         tf.matmul(valid_hidden, weights1) + biases1)
+       test_hidden = tf.nn.relu(tf.matmul(tf_test_dataset, weights0) + biases0)
+       test_prediction = tf.nn.softmax(tf.matmul(test_hidden, weights1) + biases1)
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     def accuracy(predictions, labels):
+       return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
+               / predictions.shape[0])
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     offset = 0
+     with tf.Session(graph=graph) as session:
+       tf.initialize_all_variables().run()
+       print("Initialized")
+       for step in range(num_steps):
+         # Pick an offset within the training data, which has been randomized.
+         # Note: we could use better randomization across epochs.
+         last_offset = offset
+         offset = (step * batch_size) % (len(rand_train_ix) - batch_size)
+         if offset < last_offset:
+           rand_train_ix = fisher_yates_sampling(good_train_ix)
+         # Generate a minibatch.
+         batch_data = train_dataset[rand_train_ix[offset:(offset + batch_size)], :]
+         batch_labels = train_labels[rand_train_ix[offset:(offset + batch_size)], :]
+         # Prepare a dictionary telling the session where to feed the minibatch.
+         # The key of the dictionary is the placeholder node of the graph to be fed,
+         # and the value is the numpy array to feed to it.
+         feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
+         _, l, predictions = session.run(
+           [optimizer, loss, train_prediction], feed_dict=feed_dict)
+         if (step % 500 == 0):
+           print("Minibatch loss at step %d: %f" % (step, l))
+           print("Minibatch accuracy: %.1f%%" % accuracy(predictions, batch_labels))
+           print("Validation accuracy: %.1f%%" % accuracy(
+             valid_prediction.eval(), valid_labels))
+       print("Test accuracy: %.1f%%" % accuracy(test_prediction.eval(), test_labels))
+ #+END_SRC
+
+ #+BEGIN_EXAMPLE
+     Test accuracy: 68.6%
+     Validation accuracy: 79.3%
+     Minibatch loss at step 2000: 0.490076
+     Minibatch accuracy: 96.9%
+     Validation accuracy: 80.4%
+     Minibatch loss at step 1500: 0.414823
+     Minibatch accuracy: 99.2%
+     Validation accuracy: 81.4%
+     Minibatch loss at step 1000: 0.400443
+     Minibatch accuracy: 100.0%
+     Validation accuracy: 81.8%
+     Minibatch loss at step 500: 0.780712
+     Minibatch accuracy: 97.7%
+     Validation accuracy: 30.3%
+     Initialized
+     Minibatch loss at step 0: 6528.056152
+     Minibatch accuracy: 13.3%
+ #+END_EXAMPLE
+
+
+
+*** Problem 3
+    :PROPERTIES:
+    :CUSTOM_ID: problem-3
+    :END:
+
+ Introduce Dropout on the hidden layer of the neural network. Remember:
+ Dropout should only be introduced during training, not evaluation,
+ otherwise your evaluation results would be stochastic as well.
+ TensorFlow provides =nn.dropout()= for that, but you have to make sure
+ it's only inserted during training.
+
+ What happens to our extreme overfitting case?
+
+
+
+ #+BEGIN_SRC python
+     import numpy as np
+     pickle_file = 'eql_lsts.pickle'
+     eql_lsts = np.load(pickle_file)
+     apx_eql_lst = eql_lsts["apx_lst"]
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     import itertools
+     bad_train_ix = list(map(lambda x: x[0], apx_eql_lst))
+     good_train_ix = list(filter(lambda i: i not in bad_train_ix, 
+                                 range(train_dataset.shape[0])))
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     train_fraction = .01
+     num_train = round(train_fraction*len(good_train_ix))
+     actual_train_ix = good_train_ix[:num_train]
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     import copy
+     import random
+     num_steps = 1001
+     # ix list for actual SGD
+     def random_permutation(iterable):
+       return np.random.permutation(len(iterable))
+       # # fisher/yates:
+       # "l - random selection from permutations(iterable)"
+       # l = copy.deepcopy(iterable)
+       # n = len(l)
+       # for i in range(n-1):
+       #   j = random.randrange(n-i)
+       #   t = l[i]
+       #   l[i] = l[i+j]
+       #   l[i+j] = l[i]
+       # return l
+     rand_train_ix = random_permutation(actual_train_ix)
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     batch_size = 128
+     keep_prob = .5                  # 0<keep_prob<=1
+     num_hidden = 1024*4
+     beta = .01
+     graph = tf.Graph()
+     with graph.as_default():
+
+       # Input data. For the training data, we use a placeholder that will be fed
+       # at run time with a training minibatch.
+       tf_train_dataset = tf.placeholder(tf.float32,
+                                         shape=(batch_size, image_size * image_size))
+       tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+       tf_valid_dataset = tf.constant(valid_dataset)
+       tf_test_dataset = tf.constant(test_dataset)
+      
+       # Variables.
+       weights0 = tf.Variable(
+         tf.truncated_normal([image_size * image_size, num_hidden]))
+       biases0 = tf.Variable(tf.zeros([num_hidden]))
+       weights1 = tf.Variable(tf.truncated_normal([num_hidden, num_labels]))
+       biases1 = tf.Variable(tf.truncated_normal([num_labels]))
+
+       # hidden
+       hidden_dataset = tf.nn.relu(tf.matmul(tf_train_dataset, weights0) + biases0)
+       hidden_drop = tf.nn.dropout(hidden_dataset,keep_prob)*(1/keep_prob)
+
+       # Training computation.
+       logits = tf.matmul(hidden_drop, weights1) + biases1
+       loss = (tf.reduce_mean(
+         tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))+
+               beta*(tf.nn.l2_loss(weights0)+tf.nn.l2_loss(biases0)+
+                     tf.nn.l2_loss(weights1)+tf.nn.l2_loss(biases1)))
+      
+       # Optimizer.
+       optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
+      
+       # Predictions for the training, validation, and test data.
+       train_prediction = tf.nn.softmax(logits)
+
+       valid_hidden = tf.nn.relu(tf.matmul(tf_valid_dataset, weights0) + biases0)
+       valid_prediction = tf.nn.softmax(
+         tf.matmul(valid_hidden, weights1) + biases1)
+       test_hidden = tf.nn.relu(tf.matmul(tf_test_dataset, weights0) + biases0)
+       test_prediction = tf.nn.softmax(tf.matmul(test_hidden, weights1) + biases1)
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     def accuracy(predictions, labels):
+       return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
+               / predictions.shape[0])
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     offset = 0
+     with tf.Session(graph=graph) as session:
+       tf.initialize_all_variables().run()
+       print("Initialized")
+       for step in range(num_steps):
+         # Pick an offset within the training data, which has been randomized.
+         # Note: we could use better randomization across epochs.
+         last_offset = offset
+         offset = (step * batch_size) % (len(rand_train_ix) - batch_size)
+         if offset < last_offset:
+           rand_train_ix = random_permutation(actual_train_ix)
+         # Generate a minibatch.
+         batch_data = train_dataset[rand_train_ix[offset:(offset + batch_size)], :]
+         batch_labels = train_labels[rand_train_ix[offset:(offset + batch_size)], :]
+         # Prepare a dictionary telling the session where to feed the minibatch.
+         # The key of the dictionary is the placeholder node of the graph to be fed,
+         # and the value is the numpy array to feed to it.
+         feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
+         _, l, predictions = session.run(
+           [optimizer, loss, train_prediction], feed_dict=feed_dict)
+         if (step % 500 == 0):
+           print("Minibatch loss at step %d: %f" % (step, l))
+           print("Minibatch accuracy: %.1f%%" % accuracy(predictions, batch_labels))
+           print("Validation accuracy: %.1f%%" % accuracy(
+             valid_prediction.eval(), valid_labels))
+       print("Test accuracy: %.1f%%" % accuracy(test_prediction.eval(), test_labels))
+ #+END_SRC
+
+ #+BEGIN_EXAMPLE
+     Test accuracy: 69.6%
+     Minibatch loss at step 2000: 0.485670
+     Minibatch accuracy: 94.5%
+     Validation accuracy: 80.7%
+     Minibatch loss at step 1500: 0.527620
+     Minibatch accuracy: 96.9%
+     Validation accuracy: 82.2%
+     Minibatch loss at step 1000: 1.110798
+     Minibatch accuracy: 95.3%
+     Validation accuracy: 83.2%
+     Minibatch loss at step 500: 98.461121
+     Minibatch accuracy: 99.2%
+     Validation accuracy: 82.6%
+     Validation accuracy: 35.0%
+     Initialized
+     Minibatch loss at step 0: 14592.014648
+     Minibatch accuracy: 12.5%
+ #+END_EXAMPLE
+
+
+
+*** Problem 4
+    :PROPERTIES:
+    :CUSTOM_ID: problem-4
+    :END:
+
+ Try to get the best performance you can using a multi-layer model! The
+ best reported test accuracy using a deep network is
+ [[http://yaroslavvb.blogspot.com/2011/09/notmnist-dataset.html?showComment=1391023266211#c8758720086795711595][97.1%]].
+
+ One avenue you can explore is to add multiple layers.
+
+ Another one is to use learning rate decay:
+
+ #+BEGIN_EXAMPLE
+     global_step = tf.Variable(0)  # count the number of steps taken.
+     learning_rate = tf.train.exponential_decay(0.5, global_step, ...)
+     optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss, global_step=global_step)
+ #+END_EXAMPLE
+
+
+
+ #+BEGIN_SRC python
+     import numpy as np
+     pickle_file = 'eql_lsts.pickle'
+     eql_lsts = np.load(pickle_file)
+     apx_eql_lst = eql_lsts["apx_lst"]
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     import itertools
+     bad_train_ix = list(map(lambda x: x[0], apx_eql_lst))
+     good_train_ix = list(filter(lambda i: i not in bad_train_ix, 
+                                 range(train_dataset.shape[0])))
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     train_fraction = 1
+     num_train = round(train_fraction*len(good_train_ix))
+     actual_train_ix = good_train_ix[:num_train]
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     import copy
+     import random
+     # ix list for actual SGD
+     def random_permutation(iterable):
+       return np.random.permutation(len(iterable))
+       # # fisher/yates:
+       # "l - random selection from permutations(iterable)"
+       # l = copy.deepcopy(iterable)
+       # n = len(l)
+       # for i in range(n-1):
+       #   j = random.randrange(n-i)
+       #   t = l[i]
+       #   l[i] = l[i+j]
+       #   l[i+j] = l[i]
+       # return l
+     rand_train_ix = random_permutation(actual_train_ix)
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     parameters = {
+       'num_steps':6501,
+       'batch_size':128,
+       'keep_prob':.8,                  # 0<keep_prob<=1
+       'learning_rate':[
+         0.001,          # Base learning rate.
+         128,           # Current index into the dataset (multiply by batch size).
+         num_train,     # Decay steps.
+         0.8           # Decay rate.
+         ],
+       'beta':.01,   # regularization parameter
+       'num_hidden':[2^10,2^10],
+       'layer_fcn':[tf.nn.relu,tf.nn.relu] ,
+       'num_hidden_layers':2,
+       'momentum':.9,
+       'opt_fcn':tf.train.MomentumOptimizer # AdamOptimizer,MomentumOptimizer,GradientDescentOptimizer
+     }
+     assert parameters['num_hidden_layers'] == len(parameters['layer_fcn']) == len(parameters['num_hidden'])
+     graph = tf.Graph()
+     with graph.as_default():
+       batch = tf.Variable(0)
+       learning_rate = tf.train.exponential_decay(
+         parameters['learning_rate'][0],
+         parameters['learning_rate'][1]*batch,
+         *parameters['learning_rate'][2:],
+         staircase=True)
+       # Input data. For the training data, we use a placeholder that will be fed
+       # at run time with a training minibatch.
+       tf_train_dataset = tf.placeholder(tf.float32,
+                                         shape=(parameters['batch_size'], image_size * image_size))
+       tf_train_labels = tf.placeholder(tf.float32, shape=(parameters['batch_size'], num_labels))
+       tf_valid_dataset = tf.constant(valid_dataset)
+       tf_test_dataset = tf.constant(test_dataset)
+      
+       # Variables
+       weights = [tf.Variable(
+         tf.truncated_normal([image_size * image_size, parameters['num_hidden'][0]]))]
+       biases = [tf.Variable(tf.zeros([parameters['num_hidden'][0]]))]
+       hidden_dataset = tf.nn.dropout(
+         parameters['layer_fcn'][0](tf.add(tf.matmul(tf_train_dataset, weights[0]), biases[0])), 
+         parameters['keep_prob'])*(1/parameters['keep_prob'])
+
+       for l in range(1,parameters['num_hidden_layers']):
+         weights += [tf.Variable(tf.truncated_normal([parameters['num_hidden'][l-1], parameters['num_hidden'][l]]))]
+         biases += [tf.Variable(tf.zeros([parameters['num_hidden'][l]]))]
+         hidden_dataset = tf.nn.dropout(
+           parameters['layer_fcn'][l](tf.add(tf.matmul(hidden_dataset, weights[l]), biases[l])),
+           parameters['keep_prob'])*(1/parameters['keep_prob'])
+
+
+       weights += [tf.Variable(tf.truncated_normal([parameters['num_hidden'][-1], num_labels]))]
+       biases += [tf.Variable(tf.zeros([num_labels]))]
+     
+       # Training computation.
+       logits = tf.matmul(hidden_dataset, weights[-1]) + biases[-1]
+       loss = tf.reduce_mean(
+         tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
+       for i in range(parameters['num_hidden_layers']+1):
+         loss += parameters['beta']*(tf.nn.l2_loss(weights[i])+tf.nn.l2_loss(biases[i]))
+
+       # Optimizer
+       # optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
+       optimizer = parameters['opt_fcn'](
+         learning_rate,
+         parameters['momentum']).minimize(loss, global_step=batch)
+       # optimizer = parameters['opt_fcn'](
+       #   learning_rate=parameters['learning_rate'], 
+       #   global_step=parameters['global_step']).minimize(loss)
+       # Predictions for the training, validation, and test data.
+       train_prediction = tf.nn.softmax(logits)
+
+       valid_hidden = parameters['layer_fcn'][0](tf.matmul(tf_valid_dataset, weights[0]) + 
+                                   biases[0])
+       test_hidden = parameters['layer_fcn'][0](tf.matmul(tf_test_dataset, weights[0]) + 
+                                  biases[0])
+       for l in range(1,parameters['num_hidden_layers']):
+         valid_hidden = parameters['layer_fcn'][l](tf.matmul(valid_hidden, weights[l]) +
+                                     biases[l])
+         test_hidden = parameters['layer_fcn'][l](tf.matmul(test_hidden, weights[l]) + 
+                                    biases[l])
+
+       valid_prediction = tf.nn.softmax(tf.matmul(valid_hidden, weights[-1]) + 
+                                        biases[-1])
+       test_prediction = tf.nn.softmax(tf.matmul(test_hidden, weights[-1]) + 
+                                       biases[-1])
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     def accuracy(predictions, labels):
+       return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
+               / predictions.shape[0])
+ #+END_SRC
+
+ #+BEGIN_SRC python
+     offset = 0
+     test_accuracy = 0
+     with tf.Session(graph=graph) as session:
+       tf.initialize_all_variables().run()
+       print("Initialized")
+       for step in range(parameters['num_steps']):
+         # Pick an offset within the training data, which has been randomized.
+         # Note: we could use better randomization across epochs.
+         last_offset = offset
+         offset = (step * parameters['batch_size']) % (len(rand_train_ix) - parameters['batch_size'])
+         if offset < last_offset:
+           rand_train_ix = random_permutation(actual_train_ix)
+         # Generate a minibatch.
+         batch_data = train_dataset[rand_train_ix[offset:(offset + parameters['batch_size'])], :]
+         batch_labels = train_labels[rand_train_ix[offset:(offset + parameters['batch_size'])], :]
+         # Prepare a dictionary telling the session where to feed the minibatch.
+         # The key of the dictionary is the placeholder node of the graph to be fed,
+         # and the value is the numpy array to feed to it.
+         feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
+         _, l, predictions = session.run(
+           [optimizer, loss, train_prediction], feed_dict=feed_dict)
+         if (step % 500 == 0):
+           print("Minibatch loss at step %d: %f" % (step, l))
+           print("Minibatch accuracy: %.1f%%" % accuracy(predictions, batch_labels))
+           print("Validation accuracy: %.1f%%" % accuracy(
+             valid_prediction.eval(), valid_labels))
+       test_accuracy = accuracy(test_prediction.eval(), test_labels)
+       print("Test accuracy: %.1f%%" % test_accuracy)
+ #+END_SRC
+
+ #+BEGIN_EXAMPLE
+     Test accuracy: 25.1%
+     Minibatch loss at step 6500: 11.521459
+     Minibatch accuracy: 28.9%
+     Validation accuracy: 28.7%
+     Minibatch loss at step 6000: 12.083858
+     Minibatch accuracy: 21.9%
+     Validation accuracy: 27.6%
+     Minibatch loss at step 5500: 12.607504
+     Minibatch accuracy: 21.1%
+     Validation accuracy: 26.5%
+     Minibatch loss at step 5000: 13.112435
+     Minibatch accuracy: 28.1%
+     Validation accuracy: 25.1%
+     Minibatch loss at step 4500: 13.792360
+     Minibatch accuracy: 22.7%
+     Validation accuracy: 23.3%
+     Minibatch loss at step 4000: 14.609591
+     Minibatch accuracy: 18.8%
+     Validation accuracy: 22.4%
+     Minibatch loss at step 3500: 15.401945
+     Minibatch accuracy: 18.8%
+     Validation accuracy: 21.5%
+     Minibatch loss at step 3000: 16.365429
+     Minibatch accuracy: 21.1%
+     Validation accuracy: 20.2%
+     Minibatch loss at step 2500: 17.581362
+     Minibatch accuracy: 17.2%
+     Validation accuracy: 19.9%
+     Minibatch loss at step 2000: 18.865662
+     Minibatch accuracy: 14.8%
+     Validation accuracy: 18.9%
+     Minibatch loss at step 1500: 20.277245
+     Minibatch accuracy: 19.5%
+     Validation accuracy: 18.5%
+     Minibatch loss at step 1000: 22.221041
+     Minibatch accuracy: 25.0%
+     Validation accuracy: 17.8%
+     Minibatch loss at step 500: 24.418331
+     Minibatch accuracy: 11.7%
+     Validation accuracy: 17.3%
+     Initialized
+     Minibatch loss at step 0: 65.115540
+     Minibatch accuracy: 11.7%
+     Validation accuracy: 8.8%
+ #+END_EXAMPLE
+
+ #+BEGIN_SRC python
+     with open("results.txt", "a") as myfile:
+       myfile.write(str(parameters))
+       myfile.write("\n"+str(test_accuracy))
+ #+END_SRC
+
+
 ** Assignment 4
 :PROPERTIES:
 :header-args: :session a4py
 :END:
-
 
 *** Starter code
 
