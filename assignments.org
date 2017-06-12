@@ -1,5 +1,5 @@
--*- eval: (auto-revert-mode 1); -*-
 #+TITLE: UD730 assignments
+-*- eval: (auto-revert-mode 1); -*-
 #+TODO: TODO IN-PROGRESS WAITING DONE
 #+STARTUP: indent
 #+OPTIONS: author:nil
@@ -746,6 +746,57 @@ for i in range(len(ixs)):
 
 #+RESULTS:
 
+load
+#+BEGIN_SRC python
+  from six.moves import cPickle as pickle
+  pickle_file = 'groups_firsts_r_2p4.pickle'
+  with open(pickle_file, 'rb') as f:
+    save = pickle.load(f)
+    train_groups_firsts = save['train_groups_firsts']
+    test_groups_firsts = save['test_groups_firsts']
+    valid_groups_firsts = save['valid_groups_firsts']
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :results file
+  import numpy as np
+  import matplotlib.pyplot as plt
+  import os
+  imgfile = 'imgs/copyhists.png'
+  try:
+    os.remove(filename)
+  except OSError:
+    pass  
+  plt.figure(1)
+  for i, grp in enumerate(zip(['train', 'test', 'valid'],
+                              [train_groups_firsts, test_groups_firsts, valid_groups_firsts])):
+    plt.subplot(3, 1, i+1)
+    plt.hist(grp[1][0].count(), 50, range = (1, 10), log = True)
+
+  plt.savefig(imgfile, bbox_inches='tight')
+  
+  imgfile
+#+END_SRC
+
+#+RESULTS:
+[[file:imgs/copyhists.png]]
+Lots of small groups of similar images at radius 2^4
+
+#+BEGIN_SRC python :results output
+  for a, b in zip(['train', 'test', 'valid'], [train_groups_firsts, test_groups_firsts, valid_groups_firsts]):
+    print(a+': {}'.format(np.sort((b[0].count()))[-10:]))
+
+#+END_SRC
+
+#+RESULTS:
+: 
+: ... train: [  16   17   22   24   25   29   33   46   70 2085]
+: test: [  2   2   2   2   2   2   2   2   2 142]
+: valid: [  2   2   2   2   2   2   2   2   3 110]
+
+1 very large group
+
 
 ***** IN-PROGRESS digitize and cluster
 
@@ -906,19 +957,20 @@ Optional question: train an off-the-shelf model on all the data!
 
 
 ** Assignment 2
-   :PROPERTIES:
-   :CUSTOM_ID: assignment-2
-   :END:
+:PROPERTIES:
+:CUSTOM_ID: assignment-2
+:header-args: :session a2py
+:END:
 
- Previously in =1_notmnist.ipynb=, we created a pickle with formatted
- datasets for training, development and testing on the
- [[http://yaroslavvb.blogspot.com/2011/09/notmnist-dataset.html][notMNIST
- dataset]].
+Previously in =1_notmnist.ipynb=, we created a pickle with formatted
+datasets for training, development and testing on the
+[[http://yaroslavvb.blogspot.com/2011/09/notmnist-dataset.html][notMNIST
+dataset]].
 
- The goal of this assignment is to progressively train deeper and more
- accurate models using TensorFlow.
+The goal of this assignment is to progressively train deeper and more
+accurate models using TensorFlow.
 
- #+BEGIN_SRC python
+#+BEGIN_SRC python
      # These are all the modules we'll be using later. Make sure you can import them
      # before proceeding further.
      from __future__ import print_function
@@ -926,11 +978,13 @@ Optional question: train an off-the-shelf model on all the data!
      import tensorflow as tf
      from six.moves import cPickle as pickle
      from six.moves import range
- #+END_SRC
+#+END_SRC
 
- First reload the data we generated in =1_notmnist.ipynb=.
+#+RESULTS:
 
- #+BEGIN_SRC python
+First reload the data we generated in =1_notmnist.ipynb=.
+
+#+BEGIN_SRC python
      pickle_file = 'notMNIST.pickle'
 
      with open(pickle_file, 'rb') as f:
@@ -945,68 +999,68 @@ Optional question: train an off-the-shelf model on all the data!
        print('Training set', train_dataset.shape, train_labels.shape)
        print('Validation set', valid_dataset.shape, valid_labels.shape)
        print('Test set', test_dataset.shape, test_labels.shape)
- #+END_SRC
+#+END_SRC
 
- #+BEGIN_EXAMPLE
-     Training set (200000, 28, 28) (200000,)
-     Validation set (10000, 28, 28) (10000,)
-     Test set (10000, 28, 28) (10000,)
- #+END_EXAMPLE
+#+BEGIN_EXAMPLE
+  Training set (200000, 28, 28) (200000,)
+  Validation set (10000, 28, 28) (10000,)
+  Test set (10000, 28, 28) (10000,)
+#+END_EXAMPLE
 
- Reformat into a shape that's more adapted to the models we're going to
- train:
+Reformat into a shape that's more adapted to the models we're going to
+train:
 
- -  data as a flat matrix,
- -  labels as float 1-hot encodings.
+-  data as a flat matrix,
+-  labels as float 1-hot encodings.
 
- #+BEGIN_SRC python
-     image_size = 28
-     num_labels = 10
+#+BEGIN_SRC python
+  image_size = 28
+  num_labels = 10
 
-     def reformat(dataset, labels):
-       dataset = dataset.reshape((-1, image_size * image_size)).astype(np.float32)
-       # Map 0 to [1.0, 0.0, 0.0 ...], 1 to [0.0, 1.0, 0.0 ...]
-       labels = (np.arange(num_labels) == labels[:,None]).astype(np.float32)
-       return dataset, labels
-     train_dataset, train_labels = reformat(train_dataset, train_labels)
-     valid_dataset, valid_labels = reformat(valid_dataset, valid_labels)
-     test_dataset, test_labels = reformat(test_dataset, test_labels)
-     print('Training set', train_dataset.shape, train_labels.shape)
-     print('Validation set', valid_dataset.shape, valid_labels.shape)
-     print('Test set', test_dataset.shape, test_labels.shape)
- #+END_SRC
+  def reformat(dataset, labels):
+    dataset = dataset.reshape((-1, image_size * image_size)).astype(np.float32)
+    # Map 0 to [1.0, 0.0, 0.0 ...], 1 to [0.0, 1.0, 0.0 ...]
+    labels = (np.arange(num_labels) == labels[:,None]).astype(np.float32)
+    return dataset, labels
+  train_dataset, train_labels = reformat(train_dataset, train_labels)
+  valid_dataset, valid_labels = reformat(valid_dataset, valid_labels)
+  test_dataset, test_labels = reformat(test_dataset, test_labels)
+  print('Training set', train_dataset.shape, train_labels.shape)
+  print('Validation set', valid_dataset.shape, valid_labels.shape)
+  print('Test set', test_dataset.shape, test_labels.shape)
+#+END_SRC
 
- #+BEGIN_EXAMPLE
+#+BEGIN_EXAMPLE
      Training set (200000, 784) (200000, 10)
      Validation set (10000, 784) (10000, 10)
      Test set (10000, 784) (10000, 10)
- #+END_EXAMPLE
+#+END_EXAMPLE
 
- We're first going to train a multinomial logistic regression using
- simple gradient descent.
+We're first going to train a multinomial logistic regression using
+simple gradient descent.
 
- TensorFlow works like this:
+TensorFlow works like this:
 
- -  First you describe the computation that you want to see performed:
-    what the inputs, the variables, and the operations look like. These
-    get created as nodes over a computation graph. This description is
-    all contained within the block below:
+-  First you describe the computation that you want to see performed:
+what the inputs, the variables, and the operations look like. These
+get created as nodes over a computation graph. This description is
+all contained within the block below:
 
-    with graph.as\_default():\\
-    ...
+with graph.as\_default():\\
+...
 
- -  Then you can run the operations on this graph as many times as you
-    want by calling =session.run()=, providing it outputs to fetch from
-    the graph that get returned. This runtime operation is all contained
-    in the block below:
+-  Then you can run the operations on this graph as many times as you
+want by calling =session.run()=, providing it outputs to fetch from
+the graph that get returned. This runtime operation is all contained
+in the block below:
 
-    with tf.Session(graph=graph) as session:\\
-    ...
+with tf.Session(graph=graph) as session:\\
+...
 
- Let's load all the data into TensorFlow and build the computation graph
- corresponding to our training:
+Let's load all the data into TensorFlow and build the computation graph
+corresponding to our training:
 
- #+BEGIN_SRC python
+#+BEGIN_SRC python
      # With gradient descent training, even this much data is prohibitive.
      # Subset the training data for faster turnaround.
      train_subset = 10000
@@ -1050,143 +1104,143 @@ Optional question: train an off-the-shelf model on all the data!
        valid_prediction = tf.nn.softmax(
          tf.matmul(tf_valid_dataset, weights) + biases)
        test_prediction = tf.nn.softmax(tf.matmul(tf_test_dataset, weights) + biases)
- #+END_SRC
+#+END_SRC
 
- Let's run this computation and iterate:
+Let's run this computation and iterate:
 
- #+BEGIN_SRC python
+#+BEGIN_SRC python
      num_steps = 801
      def accuracy(predictions, labels):
        return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
                / predictions.shape[0])
- #+END_SRC
+#+END_SRC
 
- #+BEGIN_SRC python
-     with tf.Session(graph=graph) as session:
-       # This is a one-time operation which ensures the parameters get initialized as
-       # we described in the graph: random weights for the matrix, zeros for the
-       # biases. 
-       tf.initialize_all_variables().run()
-       print('Initialized')
-       for step in range(num_steps):
-         # Run the computations. We tell .run() that we want to run the optimizer,
-         # and get the loss value and the training predictions returned as numpy
-         # arrays.
-         _, l, predictions = session.run([optimizer, loss, train_prediction])
-         if (step % 100 == 0):
-           print('Loss at step %d: %f' % (step, l))
-           print('Training accuracy: %.1f%%' % accuracy(
-             predictions, train_labels[:train_subset, :]))
-           # Calling .eval() on valid_prediction is basically like calling run(), but
-           # just to get that one numpy array. Note that it recomputes all its graph
-           # dependencies.
-           print('Validation accuracy: %.1f%%' % accuracy(
-             valid_prediction.eval(), valid_labels))
-       print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(), test_labels))
- #+END_SRC
+#+BEGIN_SRC python
+  with tf.Session(graph=graph) as session:
+    # This is a one-time operation which ensures the parameters get initialized as
+    # we described in the graph: random weights for the matrix, zeros for the
+    # biases. 
+    tf.initialize_all_variables().run()
+    print('Initialized')
+    for step in range(num_steps):
+      # Run the computations. We tell .run() that we want to run the optimizer,
+      # and get the loss value and the training predictions returned as numpy
+      # arrays.
+      _, l, predictions = session.run([optimizer, loss, train_prediction])
+      if (step % 100 == 0):
+        print('Loss at step %d: %f' % (step, l))
+        print('Training accuracy: %.1f%%' % accuracy(
+          predictions, train_labels[:train_subset, :]))
+        # Calling .eval() on valid_prediction is basically like calling run(), but
+        # just to get that one numpy array. Note that it recomputes all its graph
+        # dependencies.
+        print('Validation accuracy: %.1f%%' % accuracy(
+          valid_prediction.eval(), valid_labels))
+    print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(), test_labels))
+#+END_SRC
 
- #+BEGIN_EXAMPLE
-     Initialized
-     Loss at step 0: 22.018156
-     Training accuracy: 6.6%
-     Validation accuracy: 8.6%
-     Loss at step 100: 2.022280
-     Training accuracy: 75.2%
-     Validation accuracy: 73.7%
-     Loss at step 200: 1.623059
-     Training accuracy: 78.1%
-     Validation accuracy: 75.7%
-     Loss at step 300: 1.408173
-     Training accuracy: 79.2%
-     Validation accuracy: 76.5%
-     Loss at step 400: 1.262911
-     Training accuracy: 80.0%
-     Validation accuracy: 76.6%
-     Loss at step 500: 1.154954
-     Training accuracy: 80.7%
-     Validation accuracy: 76.8%
-     Loss at step 600: 1.070023
-     Training accuracy: 81.2%
-     Validation accuracy: 77.0%
-     Loss at step 700: 1.000842
-     Training accuracy: 81.7%
-     Validation accuracy: 77.1%
-     Loss at step 800: 0.943042
-     Training accuracy: 82.2%
-     Validation accuracy: 77.2%
-     Test accuracy: 67.9%
- #+END_EXAMPLE
+#+BEGIN_EXAMPLE
+  Initialized
+  Loss at step 0: 22.018156
+  Training accuracy: 6.6%
+  Validation accuracy: 8.6%
+  Loss at step 100: 2.022280
+  Training accuracy: 75.2%
+  Validation accuracy: 73.7%
+  Loss at step 200: 1.623059
+  Training accuracy: 78.1%
+  Validation accuracy: 75.7%
+  Loss at step 300: 1.408173
+  Training accuracy: 79.2%
+  Validation accuracy: 76.5%
+  Loss at step 400: 1.262911
+  Training accuracy: 80.0%
+  Validation accuracy: 76.6%
+  Loss at step 500: 1.154954
+  Training accuracy: 80.7%
+  Validation accuracy: 76.8%
+  Loss at step 600: 1.070023
+  Training accuracy: 81.2%
+  Validation accuracy: 77.0%
+  Loss at step 700: 1.000842
+  Training accuracy: 81.7%
+  Validation accuracy: 77.1%
+  Loss at step 800: 0.943042
+  Training accuracy: 82.2%
+  Validation accuracy: 77.2%
+  Test accuracy: 67.9%
+#+END_EXAMPLE
 
- Let's now switch to stochastic gradient descent training instead, which
- is much faster.
+Let's now switch to stochastic gradient descent training instead, which
+is much faster.
 
- The graph will be similar, except that instead of holding all the
- training data into a constant node, we create a =Placeholder= node which
- will be fed actual data at every call of =session.run()=.
+The graph will be similar, except that instead of holding all the
+training data into a constant node, we create a =Placeholder= node which
+will be fed actual data at every call of =session.run()=.
 
- #+BEGIN_SRC python
-     batch_size = 128
-     graph = tf.Graph()
-     with graph.as_default():
+#+BEGIN_SRC python
+  batch_size = 128
+  graph = tf.Graph()
+  with graph.as_default():
 
-       # Input data. For the training data, we use a placeholder that will be fed
-       # at run time with a training minibatch.
-       tf_train_dataset = tf.placeholder(tf.float32,
-                                         shape=(batch_size, image_size * image_size))
-       tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
-       tf_valid_dataset = tf.constant(valid_dataset)
-       tf_test_dataset = tf.constant(test_dataset)
-      
-       # Variables.
-       weights = tf.Variable(
-         tf.truncated_normal([image_size * image_size, num_labels]))
-       biases = tf.Variable(tf.zeros([num_labels]))
-      
-       # Training computation.
-       logits = tf.matmul(tf_train_dataset, weights) + biases
-       loss = tf.reduce_mean(
-         tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
-      
-       # Optimizer.
-       optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
-      
-       # Predictions for the training, validation, and test data.
-       train_prediction = tf.nn.softmax(logits)
-       valid_prediction = tf.nn.softmax(
-         tf.matmul(tf_valid_dataset, weights) + biases)
-       test_prediction = tf.nn.softmax(tf.matmul(tf_test_dataset, weights) + biases)
- #+END_SRC
+    # Input data. For the training data, we use a placeholder that will be fed
+    # at run time with a training minibatch.
+    tf_train_dataset = tf.placeholder(tf.float32,
+                                      shape=(batch_size, image_size * image_size))
+    tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+    tf_valid_dataset = tf.constant(valid_dataset)
+    tf_test_dataset = tf.constant(test_dataset)
 
- Let's run it:
+    # Variables.
+    weights = tf.Variable(
+      tf.truncated_normal([image_size * image_size, num_labels]))
+    biases = tf.Variable(tf.zeros([num_labels]))
 
- #+BEGIN_SRC python
-     num_steps = 3001
+    # Training computation.
+    logits = tf.matmul(tf_train_dataset, weights) + biases
+    loss = tf.reduce_mean(
+      tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
 
-     with tf.Session(graph=graph) as session:
-       tf.initialize_all_variables().run()
-       print("Initialized")
-       for step in range(num_steps):
-         # Pick an offset within the training data, which has been randomized.
-         # Note: we could use better randomization across epochs.
-         offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
-         # Generate a minibatch.
-         batch_data = train_dataset[offset:(offset + batch_size), :]
-         batch_labels = train_labels[offset:(offset + batch_size), :]
-         # Prepare a dictionary telling the session where to feed the minibatch.
-         # The key of the dictionary is the placeholder node of the graph to be fed,
-         # and the value is the numpy array to feed to it.
-         feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
-         _, l, predictions = session.run(
-           [optimizer, loss, train_prediction], feed_dict=feed_dict)
-         if (step % 500 == 0):
-           print("Minibatch loss at step %d: %f" % (step, l))
-           print("Minibatch accuracy: %.1f%%" % accuracy(predictions, batch_labels))
-           print("Validation accuracy: %.1f%%" % accuracy(
-             valid_prediction.eval(), valid_labels))
-       print("Test accuracy: %.1f%%" % accuracy(test_prediction.eval(), test_labels))
- #+END_SRC
+    # Optimizer.
+    optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
 
- #+BEGIN_EXAMPLE
+    # Predictions for the training, validation, and test data.
+    train_prediction = tf.nn.softmax(logits)
+    valid_prediction = tf.nn.softmax(
+      tf.matmul(tf_valid_dataset, weights) + biases)
+    test_prediction = tf.nn.softmax(tf.matmul(tf_test_dataset, weights) + biases)
+#+END_SRC
+
+Let's run it:
+
+#+BEGIN_SRC python
+  num_steps = 3001
+
+  with tf.Session(graph=graph) as session:
+    tf.initialize_all_variables().run()
+    print("Initialized")
+    for step in range(num_steps):
+      # Pick an offset within the training data, which has been randomized.
+      # Note: we could use better randomization across epochs.
+      offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
+      # Generate a minibatch.
+      batch_data = train_dataset[offset:(offset + batch_size), :]
+      batch_labels = train_labels[offset:(offset + batch_size), :]
+      # Prepare a dictionary telling the session where to feed the minibatch.
+      # The key of the dictionary is the placeholder node of the graph to be fed,
+      # and the value is the numpy array to feed to it.
+      feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
+      _, l, predictions = session.run(
+        [optimizer, loss, train_prediction], feed_dict=feed_dict)
+      if (step % 500 == 0):
+        print("Minibatch loss at step %d: %f" % (step, l))
+        print("Minibatch accuracy: %.1f%%" % accuracy(predictions, batch_labels))
+        print("Validation accuracy: %.1f%%" % accuracy(
+          valid_prediction.eval(), valid_labels))
+    print("Test accuracy: %.1f%%" % accuracy(test_prediction.eval(), test_labels))
+#+END_SRC
+
+#+BEGIN_EXAMPLE
      Initialized
      Minibatch loss at step 0: 16.320572
      Minibatch accuracy: 13.3%
@@ -1210,24 +1264,24 @@ Optional question: train an off-the-shelf model on all the data!
      Minibatch accuracy: 76.6%
      Validation accuracy: 80.3%
      Test accuracy: 69.5%
- #+END_EXAMPLE
+#+END_EXAMPLE
 
 
 
-*** Problem
-    :PROPERTIES:
-    :CUSTOM_ID: problem
-    :END:
+*** Problem 1
+:PROPERTIES:
+:CUSTOM_ID: problem
+:END:
 
- Turn the logistic regression example with SGD into a 1-hidden layer
- neural network with rectified linear units
- [[https://www.tensorflow.org/versions/r0.7/api_docs/python/nn.html#relu][nn.relu()]]
- and 1024 hidden nodes. This model should improve your validation / test
- accuracy.
+Turn the logistic regression example with SGD into a 1-hidden layer
+neural network with rectified linear units
+[[https://www.tensorflow.org/versions/r0.7/api_docs/python/nn.html#relu][nn.relu()]]
+and 1024 hidden nodes. This model should improve your validation / test
+accuracy.
 
 
 
- #+BEGIN_SRC python
+#+BEGIN_SRC python
      batch_size = 128
      num_hidden = 1024
      graph = tf.Graph()
@@ -1322,18 +1376,12 @@ Optional question: train an off-the-shelf model on all the data!
  #+END_EXAMPLE
 
 
+*** Problem 2
+:PROPERTIES:
+:CUSTOM_ID: redo-previous-proper-sgd-randomize-order
+:END:
 
-*** Problem 2 (IK homemade)
-    :PROPERTIES:
-    :CUSTOM_ID: problem-2-ik-homemade
-    :END:
-
-*** redo previous, proper SGD (randomize order)
-    :PROPERTIES:
-    :CUSTOM_ID: redo-previous-proper-sgd-randomize-order
-    :END:
-
- #+BEGIN_SRC python
+#+BEGIN_SRC python
      import numpy as np
      pickle_file = 'eql_lsts.pickle'
      eql_lsts = np.load(pickle_file)
@@ -1471,9 +1519,10 @@ Optional question: train an off-the-shelf model on all the data!
 
 
 ** Assignment 3
-   :PROPERTIES:
-   :CUSTOM_ID: assignment-3
-   :END:
+:PROPERTIES:
+:CUSTOM_ID: assignment-3
+:header-args: :session a3py
+:END:
 
  Previously in =2_fullyconnected.ipynb=, you trained a logistic
  regression and a neural network model.
@@ -1489,29 +1538,31 @@ Optional question: train an off-the-shelf model on all the data!
      from six.moves import cPickle as pickle
  #+END_SRC
 
+ #+RESULTS:
+
  First reload the data we generated in /notmist.ipynb/.
 
  #+BEGIN_SRC python
-     pickle_file = 'notMNIST.pickle'
+   pickle_file = 'notMNIST.pickle'
 
-     with open(pickle_file, 'rb') as f:
-       save = pickle.load(f)
-       train_dataset = save['train_dataset']
-       train_labels = save['train_labels']
-       valid_dataset = save['valid_dataset']
-       valid_labels = save['valid_labels']
-       test_dataset = save['test_dataset']
-       test_labels = save['test_labels']
-       del save  # hint to help gc free up memory
-       print('Training set', train_dataset.shape, train_labels.shape)
-       print('Validation set', valid_dataset.shape, valid_labels.shape)
-       print('Test set', test_dataset.shape, test_labels.shape)
+   with open(pickle_file, 'rb') as f:
+     save = pickle.load(f)
+     train_dataset = save['train_dataset']
+     train_labels = save['train_labels']
+     valid_dataset = save['valid_dataset']
+     valid_labels = save['valid_labels']
+     test_dataset = save['test_dataset']
+     test_labels = save['test_labels']
+     del save  # hint to help gc free up memory
+     print('Training set', train_dataset.shape, train_labels.shape)
+     print('Validation set', valid_dataset.shape, valid_labels.shape)
+     print('Test set', test_dataset.shape, test_labels.shape)
  #+END_SRC
 
  #+BEGIN_EXAMPLE
-     Training set (200000, 28, 28) (200000,)
-     Validation set (10000, 28, 28) (10000,)
-     Test set (10000, 28, 28) (10000,)
+   Training set (200000, 28, 28) (200000,)
+       Validation set (10000, 28, 28) (10000,)
+       Test set (10000, 28, 28) (10000,)
  #+END_EXAMPLE
 
  Reformat into a shape that's more adapted to the models we're going to
@@ -1521,21 +1572,28 @@ Optional question: train an off-the-shelf model on all the data!
  -  labels as float 1-hot encodings.
 
  #+BEGIN_SRC python
-     image_size = 28
-     num_labels = 10
+   image_size = 28
+   num_labels = 10
 
-     def reformat(dataset, labels):
-       dataset = dataset.reshape((-1, image_size * image_size)).astype(np.float32)
-       # Map 1 to [0.0, 1.0, 0.0 ...], 2 to [0.0, 0.0, 1.0 ...]
-       labels = (np.arange(num_labels) == labels[:,None]).astype(np.float32)
-       return dataset, labels
-     train_dataset, train_labels = reformat(train_dataset, train_labels)
-     valid_dataset, valid_labels = reformat(valid_dataset, valid_labels)
-     test_dataset, test_labels = reformat(test_dataset, test_labels)
-     print('Training set', train_dataset.shape, train_labels.shape)
-     print('Validation set', valid_dataset.shape, valid_labels.shape)
-     print('Test set', test_dataset.shape, test_labels.shape)
+   def reformat(dataset, labels):
+     dataset = dataset.reshape((-1, image_size * image_size)).astype(np.float32)
+     # Map 1 to [0.0, 1.0, 0.0 ...], 2 to [0.0, 0.0, 1.0 ...]
+     labels = (np.arange(num_labels) == labels[:,None]).astype(np.float32)
+     return dataset, labels
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+   train_dataset, train_labels = reformat(train_dataset, train_labels)
+   valid_dataset, valid_labels = reformat(valid_dataset, valid_labels)
+   test_dataset, test_labels = reformat(test_dataset, test_labels)
+   print('Training set', train_dataset.shape, train_labels.shape)
+   print('Validation set', valid_dataset.shape, valid_labels.shape)
+   print('Test set', test_dataset.shape, test_labels.shape)
  #+END_SRC
+
+ #+RESULTS:
 
  #+BEGIN_EXAMPLE
      Training set (200000, 784) (200000, 10)
@@ -1548,6 +1606,8 @@ Optional question: train an off-the-shelf model on all the data!
        return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
                / predictions.shape[0])
  #+END_SRC
+
+ #+RESULTS:
 
 
 
@@ -1629,8 +1689,7 @@ Optional question: train an off-the-shelf model on all the data!
        logits = tf.matmul(hidden_dataset, weights1) + biases1
        loss = (tf.reduce_mean(
          tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))+
-               beta*(tf.nn.l2_loss(weights0)+tf.nn.l2_loss(biases0)+
-                     tf.nn.l2_loss(weights1)+tf.nn.l2_loss(biases1)))
+               beta*(tf.nn.l2_loss(weights0)+tf.nn.l2_loss(weights1)))
       
        # Optimizer.
        optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
@@ -1777,8 +1836,7 @@ Optional question: train an off-the-shelf model on all the data!
        logits = tf.matmul(hidden_dataset, weights1) + biases1
        loss = (tf.reduce_mean(
          tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))+
-               beta*(tf.nn.l2_loss(weights0)+tf.nn.l2_loss(biases0)+
-                     tf.nn.l2_loss(weights1)+tf.nn.l2_loss(biases1)))
+               beta*(tf.nn.l2_loss(weights0)+tf.nn.l2_loss(weights1)))
       
        # Optimizer.
        optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
@@ -1936,8 +1994,7 @@ Optional question: train an off-the-shelf model on all the data!
        logits = tf.matmul(hidden_drop, weights1) + biases1
        loss = (tf.reduce_mean(
          tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))+
-               beta*(tf.nn.l2_loss(weights0)+tf.nn.l2_loss(biases0)+
-                     tf.nn.l2_loss(weights1)+tf.nn.l2_loss(biases1)))
+               beta*(tf.nn.l2_loss(weights0)+tf.nn.l2_loss(weights1)))
       
        # Optimizer.
        optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
@@ -2128,7 +2185,7 @@ Optional question: train an off-the-shelf model on all the data!
        loss = tf.reduce_mean(
          tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
        for i in range(parameters['num_hidden_layers']+1):
-         loss += parameters['beta']*(tf.nn.l2_loss(weights[i])+tf.nn.l2_loss(biases[i]))
+         loss += parameters['beta']*tf.nn.l2_loss(weights[i])
 
        # Optimizer
        # optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
@@ -2674,10 +2731,10 @@ regularizers
     logits = model(tf_train_dataset,.6)
     loss = tf.reduce_mean(
       tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
-    regularizers = (tf.nn.l2_loss(layer1_weights) + tf.nn.l2_loss(layer1_biases) + 
-                    tf.nn.l2_loss(layer2_weights) + tf.nn.l2_loss(layer2_biases) + 
-                    tf.nn.l2_loss(layer3_weights) + tf.nn.l2_loss(layer3_biases) + 
-                    tf.nn.l2_loss(layer4_weights) + tf.nn.l2_loss(layer4_biases))
+    regularizers = (tf.nn.l2_loss(layer1_weights)+ 
+                    tf.nn.l2_loss(layer2_weights)+ 
+                    tf.nn.l2_loss(layer3_weights)+ 
+                    tf.nn.l2_loss(layer4_weights))
     loss += beta*regularizers
     # Optimizer.
     optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
