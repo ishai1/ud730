@@ -2319,7 +2319,7 @@ characters.
 
 The goal of this assignment is make the neural network convolutional.
 
-#+BEGIN_SRC python :session a4aspyc
+#+BEGIN_SRC python :session a4aspy
   # These are all the modules we'll be using later. Make sure you can import them
   # before proceeding further.
   from __future__ import print_function
@@ -2359,14 +2359,6 @@ The goal of this assignment is make the neural network convolutional.
 : Validation set (10000, 28, 28) (10000,)
 : Test set (10000, 28, 28) (10000,)
 
-
-
-
-#+BEGIN_EXAMPLE
-     Training set (200000, 28, 28) (200000,)
-     Validation set (10000, 28, 28) (10000,)
-     Test set (18724, 28, 28) (18724,)
-#+END_EXAMPLE
 
 Reformat into a TensorFlow-friendly shape: - convolutions need the image
 data formatted as a cube (width by height by #channels) - labels as
@@ -2408,14 +2400,7 @@ float 1-hot encodings.
 : Test set (10000, 28, 28, 1) (10000, 10)
 
 
-
-#+BEGIN_EXAMPLE
-     Training set (200000, 28, 28, 1) (200000, 10)
-     Validation set (10000, 28, 28, 1) (10000, 10)
-     Test set (18724, 28, 28, 1) (18724, 10)
-#+END_EXAMPLE
-
-#+BEGIN_SRC python :session a4aspy :results output
+#+BEGIN_SRC python :session a4aspy :results none
   def accuracy(predictions, labels):
     return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
             / predictions.shape[0])
@@ -2433,11 +2418,12 @@ nodes.
   patch_size = 5
   depth = 16
   num_hidden = 64
-
+  tf.reset_default_graph()
   graph = tf.Graph()
 
   with graph.as_default():
     # Input data.
+    sy_learn_rate = tf.placeholder(tf.float32, shape=())
     tf_train_dataset = tf.placeholder(
       tf.float32, shape=(batch_size, image_size, image_size, num_channels))
     tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
@@ -2469,9 +2455,9 @@ nodes.
     # Training computation.
     logits = model(tf_train_dataset)
     loss = tf.reduce_mean(
-      tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
+      tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
     # Optimizer.
-    optimizer = tf.train.GradientDescentOptimizer(0.05).minimize(loss)
+    optimizer = tf.train.AdamOptimizer(learning_rate=sy_learn_rate).minimize(loss)
     # Predictions for the training, validation, and test data.
     train_prediction = tf.nn.softmax(logits)
     valid_prediction = tf.nn.softmax(model(tf_valid_dataset))
@@ -2481,18 +2467,21 @@ nodes.
 #+RESULTS:
 
 #+NAME: run_graph
-#+BEGIN_SRC python :var nsteps = 1001 :session a4aspy :results output
+#+BEGIN_SRC python :var nsteps = 1001 :var keep_prob = 1 :session a4aspy :results output
   num_steps = nsteps
-
-  with tf.Session(graph=graph) as session:
+  lr = 1e-3
+  lr_decay = 0.999995
+  with tf.Session(graph=graph) as sess:
     tf.initialize_all_variables().run()
     print('Initialized')
-    for step in range(num_steps):
+    for step in range(1,num_steps):
       offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
       batch_data = train_dataset[offset:(offset + batch_size), :, :, :]
       batch_labels = train_labels[offset:(offset + batch_size), :]
-      feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
-      _, l, predictions = session.run(
+      lr *= lr_decay
+      feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels, 
+                   sy_learn_rate: lr, sy_keep_prob: keep_prob}
+      _, l, predictions = sess.run(
         [optimizer, loss, train_prediction], feed_dict=feed_dict)
       if (step % 50 == 0):
         print('Minibatch loss at step %d: %f' % (step, l))
@@ -2505,80 +2494,72 @@ nodes.
 #+RESULTS: run_graph
 #+begin_example
 
->>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... E tensorflow/stream_executor/cuda/cuda_driver.cc:504] failed call to cuInit: CUDA_ERROR_UNKNOWN
-I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:158] retrieving CUDA diagnostic information for host: iThinkPad
-I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:165] hostname: iThinkPad
-I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:189] libcuda reported version is: 367.57.0
-I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:363] driver version file contents: """NVRM version: NVIDIA UNIX x86_64 Kernel Module  367.57  Mon Oct  3 20:37:01 PDT 2016
-GCC version:  gcc version 5.4.0 20160609 (Ubuntu 5.4.0-6ubuntu1~16.04.4) 
-"""
-I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:193] kernel reported version is: 367.57.0
-I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:300] kernel version seems to match DSO: 367.57.0
+>>> >>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... 2017-06-15 07:45:35.562943: I tensorflow/core/common_runtime/gpu/gpu_device.cc:997] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Quadro M2000M, pci bus id: 0000:01:00.0)
+WARNING:tensorflow:From /home/ishai/.virtualenvs/ml353_2/lib/python3.5/site-packages/tensorflow/python/util/tf_should_use.py:133: initialize_all_variables (from tensorflow.python.ops.variables) is deprecated and will be removed after 2017-03-02.
+Instructions for updating:
+Use `tf.global_variables_initializer` instead.
 Initialized
-Minibatch loss at step 0: 4.567382
-Minibatch accuracy: 25.0%
-Validation accuracy: 12.6%
-Minibatch loss at step 50: 1.289298
-Minibatch accuracy: 50.0%
-Validation accuracy: 49.7%
-Minibatch loss at step 100: 0.675994
-Minibatch accuracy: 75.0%
-Validation accuracy: 76.9%
-Minibatch loss at step 150: 0.686060
-Minibatch accuracy: 87.5%
-Validation accuracy: 79.1%
-Minibatch loss at step 200: 0.472252
-Minibatch accuracy: 93.8%
-Validation accuracy: 78.3%
-Minibatch loss at step 250: 0.223513
-Minibatch accuracy: 93.8%
-Validation accuracy: 82.2%
-Minibatch loss at step 300: 0.599479
-Minibatch accuracy: 81.2%
-Validation accuracy: 82.7%
-Minibatch loss at step 350: 0.293377
-Minibatch accuracy: 93.8%
-Validation accuracy: 81.8%
-Minibatch loss at step 400: 0.340657
-Minibatch accuracy: 87.5%
-Validation accuracy: 82.2%
-Minibatch loss at step 450: 0.421099
-Minibatch accuracy: 81.2%
-Validation accuracy: 82.3%
-Minibatch loss at step 500: 0.742172
-Minibatch accuracy: 87.5%
-Validation accuracy: 82.3%
-Minibatch loss at step 550: 0.484545
-Minibatch accuracy: 81.2%
-Validation accuracy: 83.4%
-Minibatch loss at step 600: 1.002739
-Minibatch accuracy: 75.0%
-Validation accuracy: 83.6%
-Minibatch loss at step 650: 0.614431
-Minibatch accuracy: 81.2%
-Validation accuracy: 84.0%
-Minibatch loss at step 700: 0.407295
-Minibatch accuracy: 87.5%
-Validation accuracy: 83.2%
-Minibatch loss at step 750: 0.438802
-Minibatch accuracy: 87.5%
-Validation accuracy: 83.7%
-Minibatch loss at step 800: 0.443605
-Minibatch accuracy: 87.5%
-Validation accuracy: 84.5%
-Minibatch loss at step 850: 0.340271
-Minibatch accuracy: 87.5%
-Validation accuracy: 85.3%
-Minibatch loss at step 900: 0.829116
+Minibatch loss at step 50: 1.861184
 Minibatch accuracy: 68.8%
-Validation accuracy: 85.2%
-Minibatch loss at step 950: 0.425079
-Minibatch accuracy: 93.8%
-Validation accuracy: 85.6%
-Minibatch loss at step 1000: 0.239554
-Minibatch accuracy: 93.8%
-Validation accuracy: 85.7%
-Test accuracy: 73.2%
+Validation accuracy: 41.9%
+Minibatch loss at step 100: 5.072113
+Minibatch accuracy: 31.2%
+Validation accuracy: 51.2%
+Minibatch loss at step 150: 4.068310
+Minibatch accuracy: 37.5%
+Validation accuracy: 57.7%
+Minibatch loss at step 200: 2.123676
+Minibatch accuracy: 50.0%
+Validation accuracy: 57.4%
+Minibatch loss at step 250: 1.832294
+Minibatch accuracy: 56.2%
+Validation accuracy: 61.3%
+Minibatch loss at step 300: 0.926931
+Minibatch accuracy: 75.0%
+Validation accuracy: 67.6%
+Minibatch loss at step 350: 0.491697
+Minibatch accuracy: 81.2%
+Validation accuracy: 68.0%
+Minibatch loss at step 400: 0.317087
+Minibatch accuracy: 87.5%
+Validation accuracy: 70.7%
+Minibatch loss at step 450: 0.814103
+Minibatch accuracy: 81.2%
+Validation accuracy: 72.2%
+Minibatch loss at step 500: 1.340266
+Minibatch accuracy: 68.8%
+Validation accuracy: 73.4%
+Minibatch loss at step 550: 0.328524
+Minibatch accuracy: 87.5%
+Validation accuracy: 73.7%
+Minibatch loss at step 600: 0.437495
+Minibatch accuracy: 87.5%
+Validation accuracy: 74.5%
+Minibatch loss at step 650: 0.908238
+Minibatch accuracy: 75.0%
+Validation accuracy: 75.5%
+Minibatch loss at step 700: 0.803429
+Minibatch accuracy: 75.0%
+Validation accuracy: 75.7%
+Minibatch loss at step 750: 1.014526
+Minibatch accuracy: 81.2%
+Validation accuracy: 76.5%
+Minibatch loss at step 800: 0.558631
+Minibatch accuracy: 81.2%
+Validation accuracy: 77.7%
+Minibatch loss at step 850: 0.429926
+Minibatch accuracy: 87.5%
+Validation accuracy: 78.2%
+Minibatch loss at step 900: 0.420720
+Minibatch accuracy: 81.2%
+Validation accuracy: 78.2%
+Minibatch loss at step 950: 0.818006
+Minibatch accuracy: 68.8%
+Validation accuracy: 79.2%
+Minibatch loss at step 1000: 0.752457
+Minibatch accuracy: 81.2%
+Validation accuracy: 79.0%
+Test accuracy: 85.7%
 #+end_example
 
 
@@ -2594,11 +2575,12 @@ the dimensionality. Replace the strides by a max pooling operation
   patch_size = 5
   depth = 16
   num_hidden = 64
-
+  tf.reset_default_graph()
   graph = tf.Graph()
 
   with graph.as_default():
     # Input data.
+    sy_learn_rate = tf.placeholder(tf.float32, shape=())
     tf_train_dataset = tf.placeholder(
       tf.float32, shape=(batch_size, image_size, image_size, num_channels))
     tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
@@ -2636,9 +2618,9 @@ the dimensionality. Replace the strides by a max pooling operation
     # Training computation.
     logits = model(tf_train_dataset)
     loss = tf.reduce_mean(
-      tf.nn.softmax_cross_entropy_with_logits(logits,tf_train_labels))
+      tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
     # Optimizer.
-    optimizer = tf.train.GradientDescentOptimizer(0.05).minimize(loss)
+    optimizer = tf.train.AdamOptimizer(learning_rate=sy_learn_rate).minimize(loss)
     # Predictions for the training, validation, and test data.
     train_prediction = tf.nn.softmax(logits)
     valid_prediction = tf.nn.softmax(model(tf_valid_dataset))
@@ -2648,49 +2630,341 @@ the dimensionality. Replace the strides by a max pooling operation
 #+RESULTS:
 
 
-#+BEGIN_SRC python :session a4aspy :results output :var results=run_graph(nsteps=1001) :results output
-
+#+BEGIN_SRC python :session a4aspy :results output :var results=run_graph(nsteps=5001) :results output
+print(results)
 #+END_SRC
 
 #+RESULTS:
-
+#+begin_example
+08:09:56.957957: I tensorflow/core/common_runtime/gpu/gpu_device.cc:997] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Quadro M2000M, pci bus id: 0000:01:00.0)
+WARNING:tensorflow:From /home/ishai/.virtualenvs/ml353_2/lib/python3.5/site-packages/tensorflow/python/util/tf_should_use.py:133: initialize_all_variables (from tensorflow.python.ops.variables) is deprecated and will be removed after 2017-03-02.
+Instructions for updating:
+Use `tf.global_variables_initializer` instead.
+Initialized
+Minibatch loss at step 50: 2.900611
+Minibatch accuracy: 68.8%
+Validation accuracy: 47.1%
+Minibatch loss at step 100: 1.479307
+Minibatch accuracy: 56.2%
+Validation accuracy: 54.6%
+Minibatch loss at step 150: 4.690967
+Minibatch accuracy: 31.2%
+Validation accuracy: 58.4%
+Minibatch loss at step 200: 1.523903
+Minibatch accuracy: 62.5%
+Validation accuracy: 61.9%
+Minibatch loss at step 250: 1.892011
+Minibatch accuracy: 50.0%
+Validation accuracy: 66.5%
+Minibatch loss at step 300: 1.033208
+Minibatch accuracy: 75.0%
+Validation accuracy: 67.8%
+Minibatch loss at step 350: 1.215178
+Minibatch accuracy: 75.0%
+Validation accuracy: 69.8%
+Minibatch loss at step 400: 0.688676
+Minibatch accuracy: 62.5%
+Validation accuracy: 70.1%
+Minibatch loss at step 450: 1.180127
+Minibatch accuracy: 75.0%
+Validation accuracy: 73.0%
+Minibatch loss at step 500: 1.524866
+Minibatch accuracy: 68.8%
+Validation accuracy: 73.9%
+Minibatch loss at step 550: 0.290829
+Minibatch accuracy: 87.5%
+Validation accuracy: 75.3%
+Minibatch loss at step 600: 0.348496
+Minibatch accuracy: 87.5%
+Validation accuracy: 75.7%
+Minibatch loss at step 650: 1.442225
+Minibatch accuracy: 68.8%
+Validation accuracy: 74.8%
+Minibatch loss at step 700: 0.850661
+Minibatch accuracy: 68.8%
+Validation accuracy: 75.8%
+Minibatch loss at step 750: 1.095397
+Minibatch accuracy: 62.5%
+Validation accuracy: 77.4%
+Minibatch loss at step 800: 0.330389
+Minibatch accuracy: 87.5%
+Validation accuracy: 78.0%
+Minibatch loss at step 850: 0.832846
+Minibatch accuracy: 81.2%
+Validation accuracy: 78.1%
+Minibatch loss at step 900: 0.486584
+Minibatch accuracy: 87.5%
+Validation accuracy: 77.4%
+Minibatch loss at step 950: 1.308142
+Minibatch accuracy: 68.8%
+Validation accuracy: 78.9%
+Minibatch loss at step 1000: 0.909435
+Minibatch accuracy: 75.0%
+Validation accuracy: 79.4%
+Minibatch loss at step 1050: 1.192717
+Minibatch accuracy: 56.2%
+Validation accuracy: 80.1%
+Minibatch loss at step 1100: 0.584909
+Minibatch accuracy: 81.2%
+Validation accuracy: 80.2%
+Minibatch loss at step 1150: 0.142735
+Minibatch accuracy: 100.0%
+Validation accuracy: 79.5%
+Minibatch loss at step 1200: 0.088882
+Minibatch accuracy: 100.0%
+Validation accuracy: 80.1%
+Minibatch loss at step 1250: 0.535772
+Minibatch accuracy: 81.2%
+Validation accuracy: 79.1%
+Minibatch loss at step 1300: 0.890280
+Minibatch accuracy: 81.2%
+Validation accuracy: 81.3%
+Minibatch loss at step 1350: 0.338932
+Minibatch accuracy: 87.5%
+Validation accuracy: 80.3%
+Minibatch loss at step 1400: 0.214247
+Minibatch accuracy: 93.8%
+Validation accuracy: 81.0%
+Minibatch loss at step 1450: 1.065812
+Minibatch accuracy: 62.5%
+Validation accuracy: 81.4%
+Minibatch loss at step 1500: 0.647235
+Minibatch accuracy: 75.0%
+Validation accuracy: 82.0%
+Minibatch loss at step 1550: 0.544307
+Minibatch accuracy: 87.5%
+Validation accuracy: 81.8%
+Minibatch loss at step 1600: 0.329639
+Minibatch accuracy: 87.5%
+Validation accuracy: 81.3%
+Minibatch loss at step 1650: 0.874878
+Minibatch accuracy: 68.8%
+Validation accuracy: 81.2%
+Minibatch loss at step 1700: 1.150976
+Minibatch accuracy: 62.5%
+Validation accuracy: 81.8%
+Minibatch loss at step 1750: 0.856514
+Minibatch accuracy: 81.2%
+Validation accuracy: 81.4%
+Minibatch loss at step 1800: 0.306168
+Minibatch accuracy: 93.8%
+Validation accuracy: 81.8%
+Minibatch loss at step 1850: 0.579684
+Minibatch accuracy: 81.2%
+Validation accuracy: 81.7%
+Minibatch loss at step 1900: 0.453013
+Minibatch accuracy: 87.5%
+Validation accuracy: 82.7%
+Minibatch loss at step 1950: 0.422659
+Minibatch accuracy: 87.5%
+Validation accuracy: 83.0%
+Minibatch loss at step 2000: 0.557044
+Minibatch accuracy: 75.0%
+Validation accuracy: 82.8%
+Minibatch loss at step 2050: 0.886053
+Minibatch accuracy: 75.0%
+Validation accuracy: 83.4%
+Minibatch loss at step 2100: 0.506418
+Minibatch accuracy: 87.5%
+Validation accuracy: 82.9%
+Minibatch loss at step 2150: 0.170724
+Minibatch accuracy: 100.0%
+Validation accuracy: 82.1%
+Minibatch loss at step 2200: 0.240701
+Minibatch accuracy: 93.8%
+Validation accuracy: 83.3%
+Minibatch loss at step 2250: 0.123136
+Minibatch accuracy: 100.0%
+Validation accuracy: 83.7%
+Minibatch loss at step 2300: 0.540390
+Minibatch accuracy: 81.2%
+Validation accuracy: 83.4%
+Minibatch loss at step 2350: 0.372324
+Minibatch accuracy: 93.8%
+Validation accuracy: 82.9%
+Minibatch loss at step 2400: 0.453190
+Minibatch accuracy: 81.2%
+Validation accuracy: 83.9%
+Minibatch loss at step 2450: 1.779238
+Minibatch accuracy: 62.5%
+Validation accuracy: 83.5%
+Minibatch loss at step 2500: 0.705045
+Minibatch accuracy: 68.8%
+Validation accuracy: 84.0%
+Minibatch loss at step 2550: 1.292835
+Minibatch accuracy: 68.8%
+Validation accuracy: 83.6%
+Minibatch loss at step 2600: 0.377887
+Minibatch accuracy: 87.5%
+Validation accuracy: 83.2%
+Minibatch loss at step 2650: 1.297781
+Minibatch accuracy: 68.8%
+Validation accuracy: 83.7%
+Minibatch loss at step 2700: 0.512231
+Minibatch accuracy: 81.2%
+Validation accuracy: 83.9%
+Minibatch loss at step 2750: 1.071017
+Minibatch accuracy: 81.2%
+Validation accuracy: 84.2%
+Minibatch loss at step 2800: 0.298933
+Minibatch accuracy: 81.2%
+Validation accuracy: 84.4%
+Minibatch loss at step 2850: 1.001704
+Minibatch accuracy: 62.5%
+Validation accuracy: 83.7%
+Minibatch loss at step 2900: 0.356880
+Minibatch accuracy: 93.8%
+Validation accuracy: 84.4%
+Minibatch loss at step 2950: 0.796455
+Minibatch accuracy: 62.5%
+Validation accuracy: 84.3%
+Minibatch loss at step 3000: 0.895969
+Minibatch accuracy: 68.8%
+Validation accuracy: 84.5%
+Minibatch loss at step 3050: 0.272711
+Minibatch accuracy: 93.8%
+Validation accuracy: 84.1%
+Minibatch loss at step 3100: 0.733070
+Minibatch accuracy: 81.2%
+Validation accuracy: 84.0%
+Minibatch loss at step 3150: 0.692155
+Minibatch accuracy: 81.2%
+Validation accuracy: 84.1%
+Minibatch loss at step 3200: 0.413291
+Minibatch accuracy: 87.5%
+Validation accuracy: 84.3%
+Minibatch loss at step 3250: 0.643606
+Minibatch accuracy: 75.0%
+Validation accuracy: 84.4%
+Minibatch loss at step 3300: 0.573235
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.2%
+Minibatch loss at step 3350: 0.737073
+Minibatch accuracy: 68.8%
+Validation accuracy: 85.1%
+Minibatch loss at step 3400: 0.278904
+Minibatch accuracy: 93.8%
+Validation accuracy: 84.3%
+Minibatch loss at step 3450: 0.902674
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.0%
+Minibatch loss at step 3500: 0.291990
+Minibatch accuracy: 87.5%
+Validation accuracy: 84.5%
+Minibatch loss at step 3550: 0.689245
+Minibatch accuracy: 75.0%
+Validation accuracy: 85.0%
+Minibatch loss at step 3600: 0.756285
+Minibatch accuracy: 68.8%
+Validation accuracy: 85.4%
+Minibatch loss at step 3650: 0.357790
+Minibatch accuracy: 87.5%
+Validation accuracy: 84.7%
+Minibatch loss at step 3700: 1.061131
+Minibatch accuracy: 62.5%
+Validation accuracy: 84.6%
+Minibatch loss at step 3750: 0.835744
+Minibatch accuracy: 75.0%
+Validation accuracy: 85.7%
+Minibatch loss at step 3800: 0.615569
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.9%
+Minibatch loss at step 3850: 0.258741
+Minibatch accuracy: 93.8%
+Validation accuracy: 85.5%
+Minibatch loss at step 3900: 0.446685
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.8%
+Minibatch loss at step 3950: 0.727674
+Minibatch accuracy: 68.8%
+Validation accuracy: 85.2%
+Minibatch loss at step 4000: 0.505325
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.4%
+Minibatch loss at step 4050: 0.447677
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.2%
+Minibatch loss at step 4100: 0.272943
+Minibatch accuracy: 93.8%
+Validation accuracy: 85.3%
+Minibatch loss at step 4150: 0.159460
+Minibatch accuracy: 93.8%
+Validation accuracy: 85.2%
+Minibatch loss at step 4200: 0.271813
+Minibatch accuracy: 93.8%
+Validation accuracy: 85.3%
+Minibatch loss at step 4250: 0.403566
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.1%
+Minibatch loss at step 4300: 0.862058
+Minibatch accuracy: 75.0%
+Validation accuracy: 85.2%
+Minibatch loss at step 4350: 0.403553
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.0%
+Minibatch loss at step 4400: 0.576407
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.5%
+Minibatch loss at step 4450: 0.401695
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.7%
+Minibatch loss at step 4500: 0.616162
+Minibatch accuracy: 81.2%
+Validation accuracy: 83.4%
+Minibatch loss at step 4550: 0.346180
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.1%
+Minibatch loss at step 4600: 0.267765
+Minibatch accuracy: 93.8%
+Validation accuracy: 86.2%
+Minibatch loss at step 4650: 0.444128
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.7%
+Minibatch loss at step 4700: 0.482445
+Minibatch accuracy: 87.5%
+Validation accuracy: 86.0%
+Minibatch loss at step 4750: 0.698112
+Minibatch accuracy: 68.8%
+Validation accuracy: 85.8%
+Minibatch loss at step 4800: 0.499284
+Minibatch accuracy: 81.2%
+Validation accuracy: 85.4%
+Minibatch loss at step 4850: 0.811626
+Minibatch accuracy: 81.2%
+Validation accuracy: 86.4%
+Minibatch loss at step 4900: 0.526118
+Minibatch accuracy: 75.0%
+Validation accuracy: 86.0%
+Minibatch loss at step 4950: 0.191419
+Minibatch accuracy: 93.8%
+Validation accuracy: 85.8%
+Minibatch loss at step 5000: 0.389479
+Minibatch accuracy: 87.5%
+Validation accuracy: 85.9%
+Test accuracy: 91.7%
+#+end_example
 
 
 *** Problem 2
-Try to get the best performance you can using a convolutional net. Look
-for example at the classic [[http://yann.lecun.com/exdb/lenet/][LeNet5]]
-architecture, adding Dropout, and/or adding learning rate decay.
+Try to get the best performance you can using a convolutional net. Look for example at the classic [[http://yann.lecun.com/exdb/lenet/][LeNet5]] architecture, adding Dropout, and/or adding learning rate decay.
 
 **** experiments
-#+BEGIN_SRC python :session a4aspy :results output :var results=run_graph(nsteps=1001)
-print("complete")
-#+END_SRC
-
 
 ***** 3
-regularizers
+learning rate_decay + dropout+ regularization
 #+BEGIN_SRC python :session a4aspy :results output
   batch_size = 16
   patch_size = 5
   depth = 16
   num_hidden = 64
-  SEED = 66478
-  beta = 5e-4
+  SEED = np.random.randint(low=np.iinfo(np.uint32).min, 
+                           high=np.iinfo(np.uint32).max, size=1)[0]
+  beta = 5e-28
   graph = tf.Graph()
 
   with graph.as_default():
-    batch = tf.Variable(0)
-    rate_param = .01
-    global_step = batch*batch_size
-    decay_steps=len(train_dataset)  
-    decay_rate=.95
-    learning_rate =  tf.train.exponential_decay(
-      learning_rate=rate_param, 
-      global_step=global_step, 
-      decay_steps=decay_steps,  
-      decay_rate=decay_rate, 
-      staircase=True)
-    keep_prob = tf.placeholder(tf.float32)
+    sy_learn_rate = tf.placeholder(tf.float32, shape=())
+    sy_keep_prob = tf.placeholder(tf.float32)
     # Input data.
     tf_train_dataset = tf.placeholder(
       tf.float32, shape=(batch_size, image_size, image_size, num_channels))
@@ -2711,7 +2985,7 @@ regularizers
       [num_hidden, num_labels], stddev=0.1, seed=SEED))
     layer4_biases = tf.Variable(tf.constant(1.0, shape=[num_labels]))
     # Model.
-    def model(data, keep_prob):
+    def model(data, sy_keep_prob):
       conv = tf.nn.conv2d(data, layer1_weights, [1, 1, 1, 1], padding='SAME')
       hidden = tf.nn.relu(conv + layer1_biases)
       # IK: add pooling
@@ -2725,19 +2999,19 @@ regularizers
       shape = h_pool.get_shape().as_list()
       reshape = tf.reshape(h_pool, [shape[0], shape[1] * shape[2] * shape[3]])
       # apply dropout to fully connected layer
-      hidden = tf.nn.dropout(tf.nn.relu(tf.matmul(reshape, layer3_weights) + layer3_biases), keep_prob, seed=SEED)*(1/keep_prob)
+      hidden = tf.div(tf.nn.dropout(tf.nn.relu(tf.matmul(reshape, layer3_weights) + layer3_biases), sy_keep_prob, seed=SEED),sy_keep_prob)
       return tf.matmul(hidden, layer4_weights) + layer4_biases
     # Training computation.
     logits = model(tf_train_dataset,.6)
     loss = tf.reduce_mean(
-      tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
+      tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
     regularizers = (tf.nn.l2_loss(layer1_weights)+ 
                     tf.nn.l2_loss(layer2_weights)+ 
                     tf.nn.l2_loss(layer3_weights)+ 
                     tf.nn.l2_loss(layer4_weights))
     loss += beta*regularizers
     # Optimizer.
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+    optimizer = tf.train.AdamOptimizer(sy_learn_rate).minimize(loss)
     # Predictions for the training, validation, and test data.
     train_prediction = tf.nn.softmax(logits)
     valid_prediction = tf.nn.softmax(model(tf_valid_dataset,1.))
@@ -2746,425 +3020,336 @@ regularizers
 
 #+RESULTS:
 
-#+BEGIN_SRC python :var nsteps = 6001 :session a4aspy :results output
-  num_steps = nsteps
 
-  with tf.Session(graph=graph) as session:
-    tf.initialize_all_variables().run()
-    print('Initialized')
-    for step in range(num_steps):
-      offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
-      batch_data = train_dataset[offset:(offset + batch_size), :, :, :]
-      batch_labels = train_labels[offset:(offset + batch_size), :]
-      feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
-      _, l, predictions = session.run(
-        [optimizer, loss, train_prediction], feed_dict=feed_dict)
-      if (step % 50 == 0):
-        print('Minibatch loss at step %d: %f' % (step, l))
-        print('Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
-        print('Validation accuracy: %.1f%%' % accuracy(
-          valid_prediction.eval(), valid_labels))
-    print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(), test_labels))
+#+BEGIN_SRC python :session a4aspy :results output :var results=run_graph(nsteps=5001, keep_prob=.5) :results output
+print(results)
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-
->>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... I tensorflow/core/common_runtime/gpu/gpu_device.cc:1034] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Quadro M2000M, pci bus id: 0000:01:00.0)
+ 2017-06-15 09:39:23.291681: I tensorflow/core/common_runtime/gpu/gpu_device.cc:997] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Quadro M2000M, pci bus id: 0000:01:00.0)
+WARNING:tensorflow:From /home/ishai/.virtualenvs/ml353_2/lib/python3.5/site-packages/tensorflow/python/util/tf_should_use.py:133: initialize_all_variables (from tensorflow.python.ops.variables) is deprecated and will be removed after 2017-03-02.
+Instructions for updating:
+Use `tf.global_variables_initializer` instead.
 Initialized
-Minibatch loss at step 0: 7.552904
-Minibatch accuracy: 6.2%
-Validation accuracy: 12.7%
-Minibatch loss at step 50: 1.868548
-Minibatch accuracy: 50.0%
-Validation accuracy: 38.4%
-Minibatch loss at step 100: 1.686023
-Minibatch accuracy: 62.5%
-Validation accuracy: 57.3%
-Minibatch loss at step 150: 1.543465
+Minibatch loss at step 50: 4.247050
+Minibatch accuracy: 37.5%
+Validation accuracy: 27.4%
+Minibatch loss at step 100: 4.601756
+Minibatch accuracy: 18.8%
+Validation accuracy: 35.9%
+Minibatch loss at step 150: 3.145462
+Minibatch accuracy: 12.5%
+Validation accuracy: 44.5%
+Minibatch loss at step 200: 3.035318
+Minibatch accuracy: 18.8%
+Validation accuracy: 46.6%
+Minibatch loss at step 250: 2.477204
+Minibatch accuracy: 31.2%
+Validation accuracy: 51.1%
+Minibatch loss at step 300: 1.430561
+Minibatch accuracy: 43.8%
+Validation accuracy: 55.5%
+Minibatch loss at step 350: 1.477067
 Minibatch accuracy: 56.2%
-Validation accuracy: 67.3%
-Minibatch loss at step 200: 1.106614
+Validation accuracy: 61.2%
+Minibatch loss at step 400: 1.614931
+Minibatch accuracy: 43.8%
+Validation accuracy: 65.2%
+Minibatch loss at step 450: 1.169079
+Minibatch accuracy: 62.5%
+Validation accuracy: 66.7%
+Minibatch loss at step 500: 1.250844
+Minibatch accuracy: 62.5%
+Validation accuracy: 68.4%
+Minibatch loss at step 550: 0.673903
 Minibatch accuracy: 68.8%
-Validation accuracy: 65.8%
-Minibatch loss at step 250: 0.951548
-Minibatch accuracy: 62.5%
-Validation accuracy: 74.3%
-Minibatch loss at step 300: 1.207042
-Minibatch accuracy: 56.2%
-Validation accuracy: 74.8%
-Minibatch loss at step 350: 0.748152
-Minibatch accuracy: 81.2%
-Validation accuracy: 77.5%
-Minibatch loss at step 400: 0.749116
-Minibatch accuracy: 81.2%
-Validation accuracy: 75.8%
-Minibatch loss at step 450: 0.971119
+Validation accuracy: 69.3%
+Minibatch loss at step 600: 0.872271
 Minibatch accuracy: 75.0%
-Validation accuracy: 78.9%
-Minibatch loss at step 500: 0.901104
+Validation accuracy: 70.5%
+Minibatch loss at step 650: 1.511239
+Minibatch accuracy: 43.8%
+Validation accuracy: 71.8%
+Minibatch loss at step 700: 1.044477
+Minibatch accuracy: 50.0%
+Validation accuracy: 70.9%
+Minibatch loss at step 750: 1.326239
+Minibatch accuracy: 56.2%
+Validation accuracy: 73.6%
+Minibatch loss at step 800: 0.657693
+Minibatch accuracy: 81.2%
+Validation accuracy: 74.0%
+Minibatch loss at step 850: 0.522227
 Minibatch accuracy: 87.5%
-Validation accuracy: 79.2%
-Minibatch loss at step 550: 0.951675
-Minibatch accuracy: 68.8%
-Validation accuracy: 80.0%
-Minibatch loss at step 600: 1.279480
+Validation accuracy: 74.5%
+Minibatch loss at step 900: 0.841039
+Minibatch accuracy: 81.2%
+Validation accuracy: 75.1%
+Minibatch loss at step 950: 1.378965
+Minibatch accuracy: 56.2%
+Validation accuracy: 75.7%
+Minibatch loss at step 1000: 0.972474
+Minibatch accuracy: 62.5%
+Validation accuracy: 75.6%
+Minibatch loss at step 1050: 1.275453
 Minibatch accuracy: 50.0%
-Validation accuracy: 81.3%
-Minibatch loss at step 650: 0.930019
+Validation accuracy: 77.0%
+Minibatch loss at step 1100: 0.984924
+Minibatch accuracy: 81.2%
+Validation accuracy: 77.4%
+Minibatch loss at step 1150: 0.632606
+Minibatch accuracy: 81.2%
+Validation accuracy: 78.3%
+Minibatch loss at step 1200: 0.348040
+Minibatch accuracy: 87.5%
+Validation accuracy: 76.6%
+Minibatch loss at step 1250: 1.205865
 Minibatch accuracy: 75.0%
-Validation accuracy: 81.5%
-Minibatch loss at step 700: 0.912175
+Validation accuracy: 77.1%
+Minibatch loss at step 1300: 1.500824
+Minibatch accuracy: 62.5%
+Validation accuracy: 78.6%
+Minibatch loss at step 1350: 0.564847
+Minibatch accuracy: 87.5%
+Validation accuracy: 78.8%
+Minibatch loss at step 1400: 1.520104
+Minibatch accuracy: 75.0%
+Validation accuracy: 78.6%
+Minibatch loss at step 1450: 1.583120
 Minibatch accuracy: 68.8%
+Validation accuracy: 78.7%
+Minibatch loss at step 1500: 0.723130
+Minibatch accuracy: 75.0%
+Validation accuracy: 79.1%
+Minibatch loss at step 1550: 1.007327
+Minibatch accuracy: 75.0%
+Validation accuracy: 78.4%
+Minibatch loss at step 1600: 0.972170
+Minibatch accuracy: 62.5%
+Validation accuracy: 78.7%
+Minibatch loss at step 1650: 1.221925
+Minibatch accuracy: 43.8%
+Validation accuracy: 78.9%
+Minibatch loss at step 1700: 1.277078
+Minibatch accuracy: 43.8%
+Validation accuracy: 77.3%
+Minibatch loss at step 1750: 1.305301
+Minibatch accuracy: 81.2%
+Validation accuracy: 79.1%
+Minibatch loss at step 1800: 1.140792
+Minibatch accuracy: 68.8%
+Validation accuracy: 80.2%
+Minibatch loss at step 1850: 0.916527
+Minibatch accuracy: 68.8%
+Validation accuracy: 79.4%
+Minibatch loss at step 1900: 0.319315
+Minibatch accuracy: 93.8%
+Validation accuracy: 80.2%
+Minibatch loss at step 1950: 0.566165
+Minibatch accuracy: 75.0%
+Validation accuracy: 80.6%
+Minibatch loss at step 2000: 0.734313
+Minibatch accuracy: 75.0%
+Validation accuracy: 80.3%
+Minibatch loss at step 2050: 0.861633
+Minibatch accuracy: 75.0%
+Validation accuracy: 79.8%
+Minibatch loss at step 2100: 0.872185
+Minibatch accuracy: 75.0%
 Validation accuracy: 81.3%
-Minibatch loss at step 750: 0.850602
+Minibatch loss at step 2150: 0.436945
+Minibatch accuracy: 81.2%
+Validation accuracy: 80.5%
+Minibatch loss at step 2200: 0.475010
+Minibatch accuracy: 81.2%
+Validation accuracy: 80.8%
+Minibatch loss at step 2250: 0.455218
+Minibatch accuracy: 81.2%
+Validation accuracy: 81.5%
+Minibatch loss at step 2300: 0.766944
+Minibatch accuracy: 75.0%
+Validation accuracy: 81.7%
+Minibatch loss at step 2350: 0.863824
+Minibatch accuracy: 68.8%
+Validation accuracy: 81.7%
+Minibatch loss at step 2400: 0.604405
+Minibatch accuracy: 81.2%
+Validation accuracy: 81.2%
+Minibatch loss at step 2450: 1.457657
+Minibatch accuracy: 50.0%
+Validation accuracy: 79.8%
+Minibatch loss at step 2500: 1.104749
+Minibatch accuracy: 62.5%
+Validation accuracy: 81.8%
+Minibatch loss at step 2550: 1.174053
+Minibatch accuracy: 68.8%
+Validation accuracy: 82.1%
+Minibatch loss at step 2600: 0.624880
+Minibatch accuracy: 75.0%
+Validation accuracy: 81.6%
+Minibatch loss at step 2650: 1.463562
+Minibatch accuracy: 56.2%
+Validation accuracy: 80.8%
+Minibatch loss at step 2700: 0.774168
+Minibatch accuracy: 68.8%
+Validation accuracy: 82.5%
+Minibatch loss at step 2750: 1.511965
+Minibatch accuracy: 56.2%
+Validation accuracy: 82.4%
+Minibatch loss at step 2800: 0.246308
+Minibatch accuracy: 93.8%
+Validation accuracy: 82.2%
+Minibatch loss at step 2850: 1.437925
+Minibatch accuracy: 68.8%
+Validation accuracy: 81.4%
+Minibatch loss at step 2900: 1.087213
+Minibatch accuracy: 62.5%
+Validation accuracy: 82.3%
+Minibatch loss at step 2950: 1.135118
+Minibatch accuracy: 75.0%
+Validation accuracy: 82.2%
+Minibatch loss at step 3000: 0.933039
+Minibatch accuracy: 75.0%
+Validation accuracy: 83.0%
+Minibatch loss at step 3050: 0.496922
+Minibatch accuracy: 87.5%
+Validation accuracy: 81.6%
+Minibatch loss at step 3100: 0.832652
+Minibatch accuracy: 75.0%
+Validation accuracy: 82.0%
+Minibatch loss at step 3150: 0.647313
+Minibatch accuracy: 75.0%
+Validation accuracy: 82.7%
+Minibatch loss at step 3200: 0.759036
+Minibatch accuracy: 75.0%
+Validation accuracy: 83.3%
+Minibatch loss at step 3250: 0.980326
+Minibatch accuracy: 68.8%
+Validation accuracy: 81.7%
+Minibatch loss at step 3300: 0.746954
+Minibatch accuracy: 62.5%
+Validation accuracy: 82.2%
+Minibatch loss at step 3350: 0.861651
+Minibatch accuracy: 81.2%
+Validation accuracy: 82.4%
+Minibatch loss at step 3400: 0.470646
 Minibatch accuracy: 75.0%
 Validation accuracy: 81.9%
-Minibatch loss at step 800: 1.193454
+Minibatch loss at step 3450: 1.103467
+Minibatch accuracy: 56.2%
+Validation accuracy: 82.9%
+Minibatch loss at step 3500: 0.320315
+Minibatch accuracy: 87.5%
+Validation accuracy: 82.1%
+Minibatch loss at step 3550: 1.318188
+Minibatch accuracy: 62.5%
+Validation accuracy: 81.7%
+Minibatch loss at step 3600: 0.733523
 Minibatch accuracy: 62.5%
 Validation accuracy: 82.2%
-Minibatch loss at step 850: 0.831148
-Minibatch accuracy: 75.0%
-Validation accuracy: 82.3%
-Minibatch loss at step 900: 0.923164
-Minibatch accuracy: 68.8%
-Validation accuracy: 81.8%
-Minibatch loss at step 950: 0.908230
+Minibatch loss at step 3650: 0.467246
 Minibatch accuracy: 81.2%
-Validation accuracy: 82.8%
-Minibatch loss at step 1000: 0.454398
-Minibatch accuracy: 100.0%
-Validation accuracy: 82.9%
-Minibatch loss at step 1050: 1.427735
-Minibatch accuracy: 56.2%
-Validation accuracy: 82.1%
-Minibatch loss at step 1100: 0.757183
-Minibatch accuracy: 81.2%
-Validation accuracy: 81.8%
-Minibatch loss at step 1150: 0.962808
-Minibatch accuracy: 75.0%
-Validation accuracy: 83.1%
-Minibatch loss at step 1200: 0.966435
-Minibatch accuracy: 81.2%
-Validation accuracy: 83.6%
-Minibatch loss at step 1250: 0.478997
-Minibatch accuracy: 81.2%
-Validation accuracy: 83.6%
-Minibatch loss at step 1300: 1.662576
-Minibatch accuracy: 56.2%
-Validation accuracy: 82.9%
-Minibatch loss at step 1350: 1.098325
-Minibatch accuracy: 68.8%
-Validation accuracy: 82.2%
-Minibatch loss at step 1400: 0.804765
-Minibatch accuracy: 75.0%
-Validation accuracy: 83.1%
-Minibatch loss at step 1450: 1.078651
-Minibatch accuracy: 68.8%
-Validation accuracy: 83.1%
-Minibatch loss at step 1500: 0.710050
-Minibatch accuracy: 81.2%
-Validation accuracy: 82.7%
-Minibatch loss at step 1550: 0.976368
-Minibatch accuracy: 68.8%
-Validation accuracy: 82.8%
-Minibatch loss at step 1600: 0.337521
-Minibatch accuracy: 93.8%
-Validation accuracy: 83.2%
-Minibatch loss at step 1650: 0.411596
+Validation accuracy: 82.5%
+Minibatch loss at step 3700: 0.993713
+Minibatch accuracy: 62.5%
+Validation accuracy: 80.3%
+Minibatch loss at step 3750: 0.973567
 Minibatch accuracy: 87.5%
 Validation accuracy: 83.3%
-Minibatch loss at step 1700: 0.389294
-Minibatch accuracy: 93.8%
-Validation accuracy: 83.5%
-Minibatch loss at step 1750: 0.668555
-Minibatch accuracy: 87.5%
+Minibatch loss at step 3800: 0.563805
+Minibatch accuracy: 81.2%
 Validation accuracy: 83.7%
-Minibatch loss at step 1800: 1.027090
+Minibatch loss at step 3850: 0.605255
+Minibatch accuracy: 81.2%
+Validation accuracy: 83.3%
+Minibatch loss at step 3900: 0.619934
+Minibatch accuracy: 81.2%
+Validation accuracy: 83.0%
+Minibatch loss at step 3950: 1.044772
+Minibatch accuracy: 68.8%
+Validation accuracy: 83.5%
+Minibatch loss at step 4000: 0.891935
+Minibatch accuracy: 56.2%
+Validation accuracy: 83.8%
+Minibatch loss at step 4050: 0.806958
+Minibatch accuracy: 81.2%
+Validation accuracy: 83.7%
+Minibatch loss at step 4100: 0.429208
+Minibatch accuracy: 81.2%
+Validation accuracy: 83.4%
+Minibatch loss at step 4150: 0.307217
+Minibatch accuracy: 87.5%
+Validation accuracy: 84.3%
+Minibatch loss at step 4200: 0.383367
+Minibatch accuracy: 93.8%
+Validation accuracy: 83.3%
+Minibatch loss at step 4250: 0.518670
 Minibatch accuracy: 81.2%
 Validation accuracy: 83.5%
-Minibatch loss at step 1850: 0.860049
-Minibatch accuracy: 75.0%
-Validation accuracy: 83.9%
-Minibatch loss at step 1900: 0.936876
-Minibatch accuracy: 75.0%
+Minibatch loss at step 4300: 1.212439
+Minibatch accuracy: 81.2%
 Validation accuracy: 84.3%
-Minibatch loss at step 1950: 0.844571
+Minibatch loss at step 4350: 0.709060
+Minibatch accuracy: 75.0%
+Validation accuracy: 84.6%
+Minibatch loss at step 4400: 0.325387
+Minibatch accuracy: 93.8%
+Validation accuracy: 84.6%
+Minibatch loss at step 4450: 0.746855
+Minibatch accuracy: 75.0%
+Validation accuracy: 83.1%
+Minibatch loss at step 4500: 0.570571
+Minibatch accuracy: 81.2%
+Validation accuracy: 84.2%
+Minibatch loss at step 4550: 0.623103
+Minibatch accuracy: 75.0%
+Validation accuracy: 84.4%
+Minibatch loss at step 4600: 0.710920
+Minibatch accuracy: 68.8%
+Validation accuracy: 84.2%
+Minibatch loss at step 4650: 0.657528
 Minibatch accuracy: 87.5%
-Validation accuracy: 83.9%
-Minibatch loss at step 2000: 0.877765
-Minibatch accuracy: 75.0%
-Validation accuracy: 83.4%
-Minibatch loss at step 2050: 0.723814
-Minibatch accuracy: 81.2%
 Validation accuracy: 84.4%
-Minibatch loss at step 2100: 0.649591
-Minibatch accuracy: 81.2%
-Validation accuracy: 84.3%
-Minibatch loss at step 2150: 1.025875
-Minibatch accuracy: 75.0%
-Validation accuracy: 84.3%
-Minibatch loss at step 2200: 0.674252
-Minibatch accuracy: 75.0%
-Validation accuracy: 84.4%
-Minibatch loss at step 2250: 0.830879
-Minibatch accuracy: 81.2%
-Validation accuracy: 84.4%
-Minibatch loss at step 2300: 0.543495
-Minibatch accuracy: 87.5%
-Validation accuracy: 84.7%
-Minibatch loss at step 2350: 1.183975
+Minibatch loss at step 4700: 0.913127
 Minibatch accuracy: 62.5%
-Validation accuracy: 84.3%
-Minibatch loss at step 2400: 1.248241
-Minibatch accuracy: 56.2%
+Validation accuracy: 84.0%
+Minibatch loss at step 4750: 0.738293
+Minibatch accuracy: 81.2%
+Validation accuracy: 84.0%
+Minibatch loss at step 4800: 0.820862
+Minibatch accuracy: 81.2%
 Validation accuracy: 84.7%
-Minibatch loss at step 2450: 0.511514
-Minibatch accuracy: 87.5%
-Validation accuracy: 84.4%
-Minibatch loss at step 2500: 0.572464
-Minibatch accuracy: 87.5%
+Minibatch loss at step 4850: 0.734651
+Minibatch accuracy: 68.8%
+Validation accuracy: 84.7%
+Minibatch loss at step 4900: 1.284054
+Minibatch accuracy: 68.8%
+Validation accuracy: 84.6%
+Minibatch loss at step 4950: 0.473267
+Minibatch accuracy: 81.2%
+Validation accuracy: 84.9%
+Minibatch loss at step 5000: 0.622454
+Minibatch accuracy: 68.8%
 Validation accuracy: 84.5%
-Minibatch loss at step 2550: 0.662893
-Minibatch accuracy: 81.2%
-Validation accuracy: 85.1%
-Minibatch loss at step 2600: 0.606034
-Minibatch accuracy: 81.2%
-Validation accuracy: 84.4%
-Minibatch loss at step 2650: 0.745028
-Minibatch accuracy: 81.2%
-Validation accuracy: 85.1%
-Minibatch loss at step 2700: 0.710003
-Minibatch accuracy: 81.2%
-Validation accuracy: 84.5%
-Minibatch loss at step 2750: 0.755669
-Minibatch accuracy: 81.2%
-Validation accuracy: 85.5%
-Minibatch loss at step 2800: 1.292098
-Minibatch accuracy: 62.5%
-Validation accuracy: 85.2%
-Minibatch loss at step 2850: 0.425851
-Minibatch accuracy: 100.0%
-Validation accuracy: 85.4%
-Minibatch loss at step 2900: 0.399912
-Minibatch accuracy: 93.8%
-Validation accuracy: 85.5%
-Minibatch loss at step 2950: 0.972225
-Minibatch accuracy: 68.8%
-Validation accuracy: 85.1%
-Minibatch loss at step 3000: 0.970749
-Minibatch accuracy: 75.0%
-Validation accuracy: 85.3%
-Minibatch loss at step 3050: 0.469023
-Minibatch accuracy: 93.8%
-Validation accuracy: 85.4%
-Minibatch loss at step 3100: 0.770181
-Minibatch accuracy: 81.2%
-Validation accuracy: 85.7%
-Minibatch loss at step 3150: 0.575410
-Minibatch accuracy: 87.5%
-Validation accuracy: 85.9%
-Minibatch loss at step 3200: 0.608307
-Minibatch accuracy: 87.5%
-Validation accuracy: 85.2%
-Minibatch loss at step 3250: 0.929261
-Minibatch accuracy: 81.2%
-Validation accuracy: 85.4%
-Minibatch loss at step 3300: 0.534638
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.1%
-Minibatch loss at step 3350: 0.639192
-Minibatch accuracy: 87.5%
-Validation accuracy: 85.8%
-Minibatch loss at step 3400: 0.533000
-Minibatch accuracy: 93.8%
-Validation accuracy: 85.9%
-Minibatch loss at step 3450: 0.679216
-Minibatch accuracy: 81.2%
-Validation accuracy: 85.7%
-Minibatch loss at step 3500: 0.658223
-Minibatch accuracy: 81.2%
-Validation accuracy: 85.7%
-Minibatch loss at step 3550: 0.646314
-Minibatch accuracy: 81.2%
-Validation accuracy: 85.8%
-Minibatch loss at step 3600: 0.284332
-Minibatch accuracy: 93.8%
-Validation accuracy: 85.6%
-Minibatch loss at step 3650: 0.725764
-Minibatch accuracy: 75.0%
-Validation accuracy: 85.4%
-Minibatch loss at step 3700: 0.388132
-Minibatch accuracy: 87.5%
-Validation accuracy: 85.3%
-Minibatch loss at step 3750: 0.525476
-Minibatch accuracy: 93.8%
-Validation accuracy: 86.2%
-Minibatch loss at step 3800: 0.366758
-Minibatch accuracy: 93.8%
-Validation accuracy: 86.0%
-Minibatch loss at step 3850: 0.693061
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.1%
-Minibatch loss at step 3900: 0.789479
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.1%
-Minibatch loss at step 3950: 1.024155
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.2%
-Minibatch loss at step 4000: 0.731043
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.4%
-Minibatch loss at step 4050: 0.488768
-Minibatch accuracy: 81.2%
-Validation accuracy: 85.8%
-Minibatch loss at step 4100: 0.440151
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.4%
-Minibatch loss at step 4150: 0.793504
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.5%
-Minibatch loss at step 4200: 0.245356
-Minibatch accuracy: 100.0%
-Validation accuracy: 86.2%
-Minibatch loss at step 4250: 1.080213
-Minibatch accuracy: 68.8%
-Validation accuracy: 85.9%
-Minibatch loss at step 4300: 0.746080
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.3%
-Minibatch loss at step 4350: 0.834907
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.3%
-Minibatch loss at step 4400: 0.622606
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.3%
-Minibatch loss at step 4450: 1.020952
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.3%
-Minibatch loss at step 4500: 0.437958
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.4%
-Minibatch loss at step 4550: 0.640179
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.7%
-Minibatch loss at step 4600: 0.499977
-Minibatch accuracy: 93.8%
-Validation accuracy: 86.9%
-Minibatch loss at step 4650: 0.564801
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.7%
-Minibatch loss at step 4700: 0.595163
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.0%
-Minibatch loss at step 4750: 0.845680
-Minibatch accuracy: 75.0%
-Validation accuracy: 87.0%
-Minibatch loss at step 4800: 0.803662
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.5%
-Minibatch loss at step 4850: 0.709128
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.7%
-Minibatch loss at step 4900: 1.098710
-Minibatch accuracy: 68.8%
-Validation accuracy: 87.0%
-Minibatch loss at step 4950: 0.629900
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.6%
-Minibatch loss at step 5000: 0.339497
-Minibatch accuracy: 93.8%
-Validation accuracy: 86.9%
-Minibatch loss at step 5050: 0.741941
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.2%
-Minibatch loss at step 5100: 0.750215
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.6%
-Minibatch loss at step 5150: 0.503329
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.8%
-Minibatch loss at step 5200: 0.392885
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.0%
-Minibatch loss at step 5250: 1.174028
-Minibatch accuracy: 68.8%
-Validation accuracy: 86.8%
-Minibatch loss at step 5300: 0.454586
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.0%
-Minibatch loss at step 5350: 0.304404
-Minibatch accuracy: 93.8%
-Validation accuracy: 86.9%
-Minibatch loss at step 5400: 0.539259
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.7%
-Minibatch loss at step 5450: 0.668616
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.1%
-Minibatch loss at step 5500: 0.777650
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.9%
-Minibatch loss at step 5550: 0.566293
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.3%
-Minibatch loss at step 5600: 0.576272
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.9%
-Minibatch loss at step 5650: 0.572772
-Minibatch accuracy: 75.0%
-Validation accuracy: 87.2%
-Minibatch loss at step 5700: 0.795984
-Minibatch accuracy: 75.0%
-Validation accuracy: 87.2%
-Minibatch loss at step 5750: 1.100185
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.9%
-Minibatch loss at step 5800: 0.618431
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.3%
-Minibatch loss at step 5850: 0.333045
-Minibatch accuracy: 100.0%
-Validation accuracy: 87.6%
-Minibatch loss at step 5900: 0.742232
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.2%
-Minibatch loss at step 5950: 0.973624
-Minibatch accuracy: 75.0%
-Validation accuracy: 87.2%
-Minibatch loss at step 6000: 0.468864
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.0%
-Test accuracy: 73.8%
+Test accuracy: 90.4%
 #+end_example
-
 
 
 ***** 2
 
 learning rate_decay + dropout 1
-best so far: 74.9 at 9001 steps
 #+BEGIN_SRC python :session a4aspy :results output
   batch_size = 16
   patch_size = 5
   depth = 16
   num_hidden = 64
-
+  tf.reset_default_graph()
   graph = tf.Graph()
 
   with graph.as_default():
-    batch = tf.Variable(0)
-    rate_param = .01
-    global_step = batch*batch_size
-    decay_steps=len(train_dataset)  
-    decay_rate=.95
-    learning_rate =  tf.train.exponential_decay(
-      learning_rate=rate_param, 
-      global_step=global_step, 
-      decay_steps=decay_steps,  
-      decay_rate=decay_rate, 
-      staircase=True)
-    keep_prob = tf.placeholder(tf.float32)
+    sy_learn_rate = tf.placeholder(tf.float32, shape=())
+    sy_keep_prob = tf.placeholder(tf.float32)
     # Input data.
     tf_train_dataset = tf.placeholder(
       tf.float32, shape=(batch_size, image_size, image_size, num_channels))
@@ -3185,7 +3370,7 @@ best so far: 74.9 at 9001 steps
       [num_hidden, num_labels], stddev=0.1))
     layer4_biases = tf.Variable(tf.constant(1.0, shape=[num_labels]))
     # Model.
-    def model(data, keep_prob):
+    def model(data, sy_keep_prob):
       conv = tf.nn.conv2d(data, layer1_weights, [1, 1, 1, 1], padding='SAME')
       hidden = tf.nn.relu(conv + layer1_biases)
       # IK: add pooling
@@ -3199,14 +3384,14 @@ best so far: 74.9 at 9001 steps
       shape = h_pool.get_shape().as_list()
       reshape = tf.reshape(h_pool, [shape[0], shape[1] * shape[2] * shape[3]])
       # apply dropout to fully connected layer
-      hidden = tf.nn.dropout(tf.nn.relu(tf.matmul(reshape, layer3_weights) + layer3_biases), keep_prob)*(1/keep_prob)
+      hidden = tf.div(tf.nn.dropout(tf.nn.relu(tf.matmul(reshape, layer3_weights) + layer3_biases), sy_keep_prob),sy_keep_prob)
       return tf.matmul(hidden, layer4_weights) + layer4_biases
     # Training computation.
     logits = model(tf_train_dataset,.6)
     loss = tf.reduce_mean(
-      tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
+      tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
     # Optimizer.
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+    optimizer = tf.train.AdamOptimizer(sy_learn_rate).minimize(loss)
     # Predictions for the training, validation, and test data.
     train_prediction = tf.nn.softmax(logits)
     valid_prediction = tf.nn.softmax(model(tf_valid_dataset,1.))
@@ -3215,578 +3400,319 @@ best so far: 74.9 at 9001 steps
 
 #+RESULTS:
 
-#+BEGIN_SRC python :var nsteps = 9001 :session a4aspy :results output
-  num_steps = nsteps
-
-  with tf.Session(graph=graph) as session:
-    tf.initialize_all_variables().run()
-    print('Initialized')
-    for step in range(num_steps):
-      offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
-      batch_data = train_dataset[offset:(offset + batch_size), :, :, :]
-      batch_labels = train_labels[offset:(offset + batch_size), :]
-      feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
-      _, l, predictions = session.run(
-        [optimizer, loss, train_prediction], feed_dict=feed_dict)
-      if (step % 50 == 0):
-        print('Minibatch loss at step %d: %f' % (step, l))
-        print('Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
-        print('Validation accuracy: %.1f%%' % accuracy(
-          valid_prediction.eval(), valid_labels))
-    print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(), test_labels))
+#+BEGIN_SRC python :session a4aspy :results output :var results=run_graph(nsteps=5001, keep_prob=.5) :results output
+print(results)
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-
->>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... I tensorflow/core/common_runtime/gpu/gpu_device.cc:1034] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Quadro M2000M, pci bus id: 0000:01:00.0)
+ 2017-06-15 09:31:31.720257: I tensorflow/core/common_runtime/gpu/gpu_device.cc:997] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Quadro M2000M, pci bus id: 0000:01:00.0)
+WARNING:tensorflow:From /home/ishai/.virtualenvs/ml353_2/lib/python3.5/site-packages/tensorflow/python/util/tf_should_use.py:133: initialize_all_variables (from tensorflow.python.ops.variables) is deprecated and will be removed after 2017-03-02.
+Instructions for updating:
+Use `tf.global_variables_initializer` instead.
 Initialized
-Minibatch loss at step 0: 10.217341
-Minibatch accuracy: 0.0%
-Validation accuracy: 12.5%
-Minibatch loss at step 50: 1.901007
-Minibatch accuracy: 31.2%
-Validation accuracy: 25.3%
-Minibatch loss at step 100: 1.716664
+Minibatch loss at step 50: 1.868340
 Minibatch accuracy: 25.0%
-Validation accuracy: 61.2%
-Minibatch loss at step 150: 1.404220
+Validation accuracy: 19.3%
+Minibatch loss at step 100: 2.491972
+Minibatch accuracy: 25.0%
+Validation accuracy: 16.3%
+Minibatch loss at step 150: 2.421418
+Minibatch accuracy: 18.8%
+Validation accuracy: 15.0%
+Minibatch loss at step 200: 2.552014
+Minibatch accuracy: 12.5%
+Validation accuracy: 15.9%
+Minibatch loss at step 250: 2.219394
+Minibatch accuracy: 25.0%
+Validation accuracy: 18.4%
+Minibatch loss at step 300: 2.048537
+Minibatch accuracy: 12.5%
+Validation accuracy: 20.2%
+Minibatch loss at step 350: 2.132483
+Minibatch accuracy: 25.0%
+Validation accuracy: 24.1%
+Minibatch loss at step 400: 2.160150
+Minibatch accuracy: 12.5%
+Validation accuracy: 24.9%
+Minibatch loss at step 450: 3.029988
+Minibatch accuracy: 12.5%
+Validation accuracy: 23.0%
+Minibatch loss at step 500: 2.291509
+Minibatch accuracy: 18.8%
+Validation accuracy: 25.3%
+Minibatch loss at step 550: 2.146008
+Minibatch accuracy: 18.8%
+Validation accuracy: 24.2%
+Minibatch loss at step 600: 2.225887
+Minibatch accuracy: 12.5%
+Validation accuracy: 26.8%
+Minibatch loss at step 650: 2.287751
+Minibatch accuracy: 6.2%
+Validation accuracy: 24.4%
+Minibatch loss at step 700: 2.191564
+Minibatch accuracy: 6.2%
+Validation accuracy: 25.7%
+Minibatch loss at step 750: 2.458062
+Minibatch accuracy: 25.0%
+Validation accuracy: 32.0%
+Minibatch loss at step 800: 1.455145
+Minibatch accuracy: 56.2%
+Validation accuracy: 31.2%
+Minibatch loss at step 850: 1.523927
+Minibatch accuracy: 43.8%
+Validation accuracy: 35.2%
+Minibatch loss at step 900: 1.448095
+Minibatch accuracy: 43.8%
+Validation accuracy: 34.5%
+Minibatch loss at step 950: 2.200823
+Minibatch accuracy: 12.5%
+Validation accuracy: 39.3%
+Minibatch loss at step 1000: 2.055672
+Minibatch accuracy: 12.5%
+Validation accuracy: 37.9%
+Minibatch loss at step 1050: 1.998952
+Minibatch accuracy: 25.0%
+Validation accuracy: 37.1%
+Minibatch loss at step 1100: 2.184813
+Minibatch accuracy: 25.0%
+Validation accuracy: 35.5%
+Minibatch loss at step 1150: 1.700816
 Minibatch accuracy: 50.0%
-Validation accuracy: 67.6%
-Minibatch loss at step 200: 1.162590
+Validation accuracy: 39.0%
+Minibatch loss at step 1200: 1.727975
+Minibatch accuracy: 31.2%
+Validation accuracy: 41.0%
+Minibatch loss at step 1250: 1.804940
+Minibatch accuracy: 18.8%
+Validation accuracy: 39.0%
+Minibatch loss at step 1300: 1.738092
+Minibatch accuracy: 37.5%
+Validation accuracy: 45.6%
+Minibatch loss at step 1350: 1.788531
+Minibatch accuracy: 37.5%
+Validation accuracy: 40.2%
+Minibatch loss at step 1400: 1.873891
+Minibatch accuracy: 31.2%
+Validation accuracy: 39.4%
+Minibatch loss at step 1450: 2.233442
+Minibatch accuracy: 12.5%
+Validation accuracy: 33.6%
+Minibatch loss at step 1500: 1.529142
+Minibatch accuracy: 50.0%
+Validation accuracy: 41.5%
+Minibatch loss at step 1550: 2.086451
+Minibatch accuracy: 12.5%
+Validation accuracy: 43.5%
+Minibatch loss at step 1600: 1.694917
+Minibatch accuracy: 43.8%
+Validation accuracy: 43.5%
+Minibatch loss at step 1650: 2.215186
+Minibatch accuracy: 12.5%
+Validation accuracy: 42.9%
+Minibatch loss at step 1700: 2.049239
+Minibatch accuracy: 25.0%
+Validation accuracy: 46.1%
+Minibatch loss at step 1750: 2.325694
+Minibatch accuracy: 31.2%
+Validation accuracy: 48.3%
+Minibatch loss at step 1800: 1.955550
+Minibatch accuracy: 18.8%
+Validation accuracy: 44.5%
+Minibatch loss at step 1850: 2.122712
+Minibatch accuracy: 25.0%
+Validation accuracy: 46.0%
+Minibatch loss at step 1900: 3.525293
+Minibatch accuracy: 56.2%
+Validation accuracy: 49.0%
+Minibatch loss at step 1950: 1.769775
+Minibatch accuracy: 37.5%
+Validation accuracy: 46.7%
+Minibatch loss at step 2000: 1.658909
+Minibatch accuracy: 31.2%
+Validation accuracy: 50.0%
+Minibatch loss at step 2050: 1.398658
+Minibatch accuracy: 43.8%
+Validation accuracy: 50.0%
+Minibatch loss at step 2100: 1.706336
+Minibatch accuracy: 31.2%
+Validation accuracy: 54.1%
+Minibatch loss at step 2150: 1.517875
+Minibatch accuracy: 37.5%
+Validation accuracy: 44.2%
+Minibatch loss at step 2200: 1.972822
+Minibatch accuracy: 25.0%
+Validation accuracy: 43.0%
+Minibatch loss at step 2250: 1.748646
+Minibatch accuracy: 18.8%
+Validation accuracy: 49.4%
+Minibatch loss at step 2300: 1.821078
+Minibatch accuracy: 18.8%
+Validation accuracy: 43.1%
+Minibatch loss at step 2350: 1.457965
+Minibatch accuracy: 56.2%
+Validation accuracy: 51.2%
+Minibatch loss at step 2400: 1.607498
+Minibatch accuracy: 37.5%
+Validation accuracy: 54.3%
+Minibatch loss at step 2450: 2.106126
+Minibatch accuracy: 25.0%
+Validation accuracy: 54.3%
+Minibatch loss at step 2500: 2.163781
+Minibatch accuracy: 12.5%
+Validation accuracy: 55.3%
+Minibatch loss at step 2550: 1.766758
+Minibatch accuracy: 37.5%
+Validation accuracy: 57.4%
+Minibatch loss at step 2600: 1.667016
+Minibatch accuracy: 31.2%
+Validation accuracy: 51.7%
+Minibatch loss at step 2650: 1.942839
+Minibatch accuracy: 18.8%
+Validation accuracy: 52.8%
+Minibatch loss at step 2700: 1.667981
+Minibatch accuracy: 50.0%
+Validation accuracy: 52.8%
+Minibatch loss at step 2750: 2.108427
+Minibatch accuracy: 25.0%
+Validation accuracy: 54.7%
+Minibatch loss at step 2800: 2.137871
+Minibatch accuracy: 12.5%
+Validation accuracy: 57.0%
+Minibatch loss at step 2850: 1.423964
+Minibatch accuracy: 43.8%
+Validation accuracy: 55.0%
+Minibatch loss at step 2900: 1.178312
+Minibatch accuracy: 62.5%
+Validation accuracy: 60.3%
+Minibatch loss at step 2950: 1.497456
+Minibatch accuracy: 43.8%
+Validation accuracy: 64.3%
+Minibatch loss at step 3000: 1.899452
+Minibatch accuracy: 25.0%
+Validation accuracy: 65.9%
+Minibatch loss at step 3050: 1.557965
+Minibatch accuracy: 43.8%
+Validation accuracy: 61.8%
+Minibatch loss at step 3100: 2.167020
+Minibatch accuracy: 43.8%
+Validation accuracy: 60.1%
+Minibatch loss at step 3150: 1.574410
+Minibatch accuracy: 31.2%
+Validation accuracy: 65.0%
+Minibatch loss at step 3200: 1.563329
+Minibatch accuracy: 31.2%
+Validation accuracy: 63.9%
+Minibatch loss at step 3250: 1.821066
+Minibatch accuracy: 31.2%
+Validation accuracy: 61.9%
+Minibatch loss at step 3300: 1.937753
+Minibatch accuracy: 12.5%
+Validation accuracy: 65.5%
+Minibatch loss at step 3350: 1.285227
+Minibatch accuracy: 43.8%
+Validation accuracy: 66.4%
+Minibatch loss at step 3400: 1.164702
+Minibatch accuracy: 50.0%
+Validation accuracy: 60.1%
+Minibatch loss at step 3450: 1.756230
+Minibatch accuracy: 37.5%
+Validation accuracy: 67.9%
+Minibatch loss at step 3500: 1.453190
+Minibatch accuracy: 50.0%
+Validation accuracy: 69.2%
+Minibatch loss at step 3550: 5.874414
+Minibatch accuracy: 25.0%
+Validation accuracy: 64.8%
+Minibatch loss at step 3600: 1.309912
+Minibatch accuracy: 31.2%
+Validation accuracy: 63.2%
+Minibatch loss at step 3650: 1.374123
+Minibatch accuracy: 50.0%
+Validation accuracy: 72.3%
+Minibatch loss at step 3700: 2.032023
+Minibatch accuracy: 12.5%
+Validation accuracy: 71.4%
+Minibatch loss at step 3750: 1.890442
+Minibatch accuracy: 31.2%
+Validation accuracy: 72.5%
+Minibatch loss at step 3800: 1.468653
+Minibatch accuracy: 43.8%
+Validation accuracy: 70.6%
+Minibatch loss at step 3850: 1.072326
 Minibatch accuracy: 68.8%
-Validation accuracy: 72.9%
-Minibatch loss at step 250: 0.774594
-Minibatch accuracy: 87.5%
+Validation accuracy: 73.0%
+Minibatch loss at step 3900: 1.276820
+Minibatch accuracy: 37.5%
+Validation accuracy: 73.2%
+Minibatch loss at step 3950: 1.458550
+Minibatch accuracy: 56.2%
 Validation accuracy: 74.3%
-Minibatch loss at step 300: 1.180029
+Minibatch loss at step 4000: 1.425846
+Minibatch accuracy: 50.0%
+Validation accuracy: 75.0%
+Minibatch loss at step 4050: 1.352317
+Minibatch accuracy: 37.5%
+Validation accuracy: 73.2%
+Minibatch loss at step 4100: 1.841503
+Minibatch accuracy: 37.5%
+Validation accuracy: 69.4%
+Minibatch loss at step 4150: 1.434784
+Minibatch accuracy: 37.5%
+Validation accuracy: 69.5%
+Minibatch loss at step 4200: 1.577219
+Minibatch accuracy: 43.8%
+Validation accuracy: 73.9%
+Minibatch loss at step 4250: 1.199322
+Minibatch accuracy: 62.5%
+Validation accuracy: 74.3%
+Minibatch loss at step 4300: 3.041095
+Minibatch accuracy: 31.2%
+Validation accuracy: 74.4%
+Minibatch loss at step 4350: 1.320103
+Minibatch accuracy: 50.0%
+Validation accuracy: 74.6%
+Minibatch loss at step 4400: 1.233494
+Minibatch accuracy: 50.0%
+Validation accuracy: 74.9%
+Minibatch loss at step 4450: 1.534841
+Minibatch accuracy: 31.2%
+Validation accuracy: 76.6%
+Minibatch loss at step 4500: 1.474233
+Minibatch accuracy: 31.2%
+Validation accuracy: 74.2%
+Minibatch loss at step 4550: 1.027656
+Minibatch accuracy: 62.5%
+Validation accuracy: 77.2%
+Minibatch loss at step 4600: 1.420190
+Minibatch accuracy: 43.8%
+Validation accuracy: 77.1%
+Minibatch loss at step 4650: 0.945686
+Minibatch accuracy: 68.8%
+Validation accuracy: 75.6%
+Minibatch loss at step 4700: 1.448259
+Minibatch accuracy: 50.0%
+Validation accuracy: 76.8%
+Minibatch loss at step 4750: 1.097918
+Minibatch accuracy: 62.5%
+Validation accuracy: 78.6%
+Minibatch loss at step 4800: 1.283625
 Minibatch accuracy: 56.2%
-Validation accuracy: 78.2%
-Minibatch loss at step 350: 0.922411
-Minibatch accuracy: 75.0%
-Validation accuracy: 79.1%
-Minibatch loss at step 400: 0.535455
-Minibatch accuracy: 87.5%
-Validation accuracy: 77.9%
-Minibatch loss at step 450: 0.979195
-Minibatch accuracy: 75.0%
-Validation accuracy: 79.3%
-Minibatch loss at step 500: 1.241119
-Minibatch accuracy: 87.5%
-Validation accuracy: 79.9%
-Minibatch loss at step 550: 0.855008
-Minibatch accuracy: 68.8%
-Validation accuracy: 79.4%
-Minibatch loss at step 600: 1.293591
-Minibatch accuracy: 56.2%
-Validation accuracy: 80.8%
-Minibatch loss at step 650: 0.607245
-Minibatch accuracy: 87.5%
-Validation accuracy: 81.8%
-Minibatch loss at step 700: 0.797803
-Minibatch accuracy: 68.8%
-Validation accuracy: 81.5%
-Minibatch loss at step 750: 0.823959
-Minibatch accuracy: 81.2%
-Validation accuracy: 80.0%
-Minibatch loss at step 800: 1.169000
+Validation accuracy: 76.1%
+Minibatch loss at step 4850: 1.620434
 Minibatch accuracy: 62.5%
-Validation accuracy: 81.9%
-Minibatch loss at step 850: 0.701765
-Minibatch accuracy: 81.2%
-Validation accuracy: 82.7%
-Minibatch loss at step 900: 1.354591
+Validation accuracy: 77.8%
+Minibatch loss at step 4900: 1.379436
+Minibatch accuracy: 50.0%
+Validation accuracy: 73.8%
+Minibatch loss at step 4950: 0.794228
 Minibatch accuracy: 68.8%
-Validation accuracy: 82.2%
-Minibatch loss at step 950: 0.554118
-Minibatch accuracy: 87.5%
-Validation accuracy: 82.8%
-Minibatch loss at step 1000: 0.597194
-Minibatch accuracy: 81.2%
-Validation accuracy: 82.7%
-Minibatch loss at step 1050: 1.066285
-Minibatch accuracy: 56.2%
-Validation accuracy: 82.7%
-Minibatch loss at step 1100: 0.738086
+Validation accuracy: 76.8%
+Minibatch loss at step 5000: 1.118136
 Minibatch accuracy: 68.8%
-Validation accuracy: 82.9%
-Minibatch loss at step 1150: 0.745425
-Minibatch accuracy: 75.0%
-Validation accuracy: 83.0%
-Minibatch loss at step 1200: 0.552734
-Minibatch accuracy: 87.5%
-Validation accuracy: 83.2%
-Minibatch loss at step 1250: 0.436012
-Minibatch accuracy: 87.5%
-Validation accuracy: 82.8%
-Minibatch loss at step 1300: 1.073946
-Minibatch accuracy: 62.5%
-Validation accuracy: 83.1%
-Minibatch loss at step 1350: 1.081193
-Minibatch accuracy: 75.0%
-Validation accuracy: 82.8%
-Minibatch loss at step 1400: 0.724149
-Minibatch accuracy: 75.0%
-Validation accuracy: 84.0%
-Minibatch loss at step 1450: 0.873476
-Minibatch accuracy: 81.2%
-Validation accuracy: 84.0%
-Minibatch loss at step 1500: 0.512037
-Minibatch accuracy: 87.5%
-Validation accuracy: 82.9%
-Minibatch loss at step 1550: 1.176669
-Minibatch accuracy: 56.2%
-Validation accuracy: 83.1%
-Minibatch loss at step 1600: 0.134104
-Minibatch accuracy: 93.8%
-Validation accuracy: 83.8%
-Minibatch loss at step 1650: 0.358381
-Minibatch accuracy: 87.5%
-Validation accuracy: 83.2%
-Minibatch loss at step 1700: 0.208498
-Minibatch accuracy: 93.8%
-Validation accuracy: 84.2%
-Minibatch loss at step 1750: 0.720953
-Minibatch accuracy: 87.5%
-Validation accuracy: 84.1%
-Minibatch loss at step 1800: 0.895711
-Minibatch accuracy: 81.2%
-Validation accuracy: 83.9%
-Minibatch loss at step 1850: 0.881983
-Minibatch accuracy: 75.0%
-Validation accuracy: 84.2%
-Minibatch loss at step 1900: 0.697529
-Minibatch accuracy: 87.5%
-Validation accuracy: 84.7%
-Minibatch loss at step 1950: 0.646642
-Minibatch accuracy: 75.0%
-Validation accuracy: 83.8%
-Minibatch loss at step 2000: 0.734193
-Minibatch accuracy: 81.2%
-Validation accuracy: 83.5%
-Minibatch loss at step 2050: 0.332985
-Minibatch accuracy: 87.5%
-Validation accuracy: 84.3%
-Minibatch loss at step 2100: 0.718663
-Minibatch accuracy: 75.0%
-Validation accuracy: 84.3%
-Minibatch loss at step 2150: 1.062643
-Minibatch accuracy: 68.8%
-Validation accuracy: 84.3%
-Minibatch loss at step 2200: 0.406806
-Minibatch accuracy: 87.5%
-Validation accuracy: 84.6%
-Minibatch loss at step 2250: 0.600188
-Minibatch accuracy: 75.0%
-Validation accuracy: 84.4%
-Minibatch loss at step 2300: 0.368519
-Minibatch accuracy: 87.5%
-Validation accuracy: 84.3%
-Minibatch loss at step 2350: 0.815262
-Minibatch accuracy: 75.0%
-Validation accuracy: 84.5%
-Minibatch loss at step 2400: 1.009128
-Minibatch accuracy: 62.5%
-Validation accuracy: 84.8%
-Minibatch loss at step 2450: 0.442663
-Minibatch accuracy: 93.8%
-Validation accuracy: 84.8%
-Minibatch loss at step 2500: 0.334077
-Minibatch accuracy: 93.8%
-Validation accuracy: 84.6%
-Minibatch loss at step 2550: 0.755665
-Minibatch accuracy: 75.0%
-Validation accuracy: 85.3%
-Minibatch loss at step 2600: 0.492959
-Minibatch accuracy: 87.5%
-Validation accuracy: 85.3%
-Minibatch loss at step 2650: 0.515493
-Minibatch accuracy: 81.2%
-Validation accuracy: 85.1%
-Minibatch loss at step 2700: 0.659037
-Minibatch accuracy: 75.0%
-Validation accuracy: 84.1%
-Minibatch loss at step 2750: 0.521527
-Minibatch accuracy: 81.2%
-Validation accuracy: 85.3%
-Minibatch loss at step 2800: 0.975360
-Minibatch accuracy: 62.5%
-Validation accuracy: 85.3%
-Minibatch loss at step 2850: 0.497808
-Minibatch accuracy: 87.5%
-Validation accuracy: 84.9%
-Minibatch loss at step 2900: 0.412503
-Minibatch accuracy: 87.5%
-Validation accuracy: 85.6%
-Minibatch loss at step 2950: 1.354580
-Minibatch accuracy: 62.5%
-Validation accuracy: 85.6%
-Minibatch loss at step 3000: 0.706733
-Minibatch accuracy: 81.2%
-Validation accuracy: 85.3%
-Minibatch loss at step 3050: 0.131155
-Minibatch accuracy: 100.0%
-Validation accuracy: 85.8%
-Minibatch loss at step 3100: 0.582790
-Minibatch accuracy: 75.0%
-Validation accuracy: 85.5%
-Minibatch loss at step 3150: 0.518745
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.0%
-Minibatch loss at step 3200: 0.538316
-Minibatch accuracy: 87.5%
-Validation accuracy: 85.5%
-Minibatch loss at step 3250: 0.565349
-Minibatch accuracy: 81.2%
-Validation accuracy: 85.5%
-Minibatch loss at step 3300: 0.448692
-Minibatch accuracy: 87.5%
-Validation accuracy: 85.9%
-Minibatch loss at step 3350: 0.604608
-Minibatch accuracy: 81.2%
-Validation accuracy: 85.6%
-Minibatch loss at step 3400: 0.779694
-Minibatch accuracy: 68.8%
-Validation accuracy: 86.2%
-Minibatch loss at step 3450: 0.637949
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.1%
-Minibatch loss at step 3500: 0.536732
-Minibatch accuracy: 81.2%
-Validation accuracy: 85.9%
-Minibatch loss at step 3550: 0.497536
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.0%
-Minibatch loss at step 3600: 0.180090
-Minibatch accuracy: 93.8%
-Validation accuracy: 86.1%
-Minibatch loss at step 3650: 0.551766
-Minibatch accuracy: 75.0%
-Validation accuracy: 85.9%
-Minibatch loss at step 3700: 0.293851
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.2%
-Minibatch loss at step 3750: 0.263068
-Minibatch accuracy: 93.8%
-Validation accuracy: 86.4%
-Minibatch loss at step 3800: 0.370420
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.3%
-Minibatch loss at step 3850: 0.886709
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.2%
-Minibatch loss at step 3900: 0.801355
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.4%
-Minibatch loss at step 3950: 0.679693
-Minibatch accuracy: 68.8%
-Validation accuracy: 86.4%
-Minibatch loss at step 4000: 0.473770
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.4%
-Minibatch loss at step 4050: 0.379127
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.3%
-Minibatch loss at step 4100: 0.555311
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.5%
-Minibatch loss at step 4150: 0.574208
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.8%
-Minibatch loss at step 4200: 0.284687
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.3%
-Minibatch loss at step 4250: 0.497705
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.8%
-Minibatch loss at step 4300: 0.485333
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.8%
-Minibatch loss at step 4350: 0.833850
-Minibatch accuracy: 68.8%
-Validation accuracy: 86.8%
-Minibatch loss at step 4400: 0.446757
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.0%
-Minibatch loss at step 4450: 1.207085
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.5%
-Minibatch loss at step 4500: 0.298299
-Minibatch accuracy: 93.8%
-Validation accuracy: 86.5%
-Minibatch loss at step 4550: 0.553604
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.5%
-Minibatch loss at step 4600: 0.263351
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.0%
-Minibatch loss at step 4650: 0.752121
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.7%
-Minibatch loss at step 4700: 0.480976
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.0%
-Minibatch loss at step 4750: 0.502001
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.6%
-Minibatch loss at step 4800: 0.729118
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.8%
-Minibatch loss at step 4850: 0.508766
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.7%
-Minibatch loss at step 4900: 0.735236
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.8%
-Minibatch loss at step 4950: 0.504930
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.8%
-Minibatch loss at step 5000: 0.235487
-Minibatch accuracy: 93.8%
-Validation accuracy: 86.9%
-Minibatch loss at step 5050: 0.572293
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.5%
-Minibatch loss at step 5100: 0.599076
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.8%
-Minibatch loss at step 5150: 0.353266
-Minibatch accuracy: 93.8%
-Validation accuracy: 87.0%
-Minibatch loss at step 5200: 0.332135
-Minibatch accuracy: 93.8%
-Validation accuracy: 86.9%
-Minibatch loss at step 5250: 1.320656
-Minibatch accuracy: 68.8%
-Validation accuracy: 86.7%
-Minibatch loss at step 5300: 0.508076
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.0%
-Minibatch loss at step 5350: 0.095383
-Minibatch accuracy: 100.0%
-Validation accuracy: 87.1%
-Minibatch loss at step 5400: 0.458464
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.2%
-Minibatch loss at step 5450: 0.468286
-Minibatch accuracy: 93.8%
-Validation accuracy: 87.0%
-Minibatch loss at step 5500: 0.755360
-Minibatch accuracy: 68.8%
-Validation accuracy: 87.0%
-Minibatch loss at step 5550: 0.486609
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.9%
-Minibatch loss at step 5600: 0.441597
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.4%
-Minibatch loss at step 5650: 0.321139
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.5%
-Minibatch loss at step 5700: 0.588963
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.2%
-Minibatch loss at step 5750: 0.787152
-Minibatch accuracy: 68.8%
-Validation accuracy: 87.5%
-Minibatch loss at step 5800: 0.511678
-Minibatch accuracy: 75.0%
-Validation accuracy: 87.4%
-Minibatch loss at step 5850: 0.140539
-Minibatch accuracy: 100.0%
-Validation accuracy: 87.5%
-Minibatch loss at step 5900: 0.580482
-Minibatch accuracy: 75.0%
-Validation accuracy: 87.5%
-Minibatch loss at step 5950: 0.838468
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.9%
-Minibatch loss at step 6000: 0.574959
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.1%
-Minibatch loss at step 6050: 0.497272
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.5%
-Minibatch loss at step 6100: 0.305750
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.3%
-Minibatch loss at step 6150: 0.446855
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.4%
-Minibatch loss at step 6200: 0.413655
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.4%
-Minibatch loss at step 6250: 0.255216
-Minibatch accuracy: 93.8%
-Validation accuracy: 87.6%
-Minibatch loss at step 6300: 0.328991
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.4%
-Minibatch loss at step 6350: 0.399737
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.7%
-Minibatch loss at step 6400: 0.576837
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.4%
-Minibatch loss at step 6450: 0.768810
-Minibatch accuracy: 68.8%
-Validation accuracy: 87.3%
-Minibatch loss at step 6500: 0.480283
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.3%
-Minibatch loss at step 6550: 0.468112
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.6%
-Minibatch loss at step 6600: 0.551207
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.3%
-Minibatch loss at step 6650: 1.118600
-Minibatch accuracy: 75.0%
-Validation accuracy: 87.8%
-Minibatch loss at step 6700: 0.230128
-Minibatch accuracy: 100.0%
-Validation accuracy: 87.9%
-Minibatch loss at step 6750: 0.541451
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.6%
-Minibatch loss at step 6800: 0.484172
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.8%
-Minibatch loss at step 6850: 0.575396
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.8%
-Minibatch loss at step 6900: 0.619090
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.0%
-Minibatch loss at step 6950: 0.337633
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.9%
-Minibatch loss at step 7000: 0.413715
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.8%
-Minibatch loss at step 7050: 0.450452
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.7%
-Minibatch loss at step 7100: 0.713609
-Minibatch accuracy: 68.8%
-Validation accuracy: 87.6%
-Minibatch loss at step 7150: 0.137439
-Minibatch accuracy: 100.0%
-Validation accuracy: 87.9%
-Minibatch loss at step 7200: 0.365590
-Minibatch accuracy: 93.8%
-Validation accuracy: 87.9%
-Minibatch loss at step 7250: 0.360435
-Minibatch accuracy: 93.8%
-Validation accuracy: 87.8%
-Minibatch loss at step 7300: 0.444241
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.7%
-Minibatch loss at step 7350: 0.911179
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.0%
-Minibatch loss at step 7400: 0.839497
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.7%
-Minibatch loss at step 7450: 0.285658
-Minibatch accuracy: 93.8%
-Validation accuracy: 87.6%
-Minibatch loss at step 7500: 0.108055
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.1%
-Minibatch loss at step 7550: 0.417158
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.0%
-Minibatch loss at step 7600: 0.867456
-Minibatch accuracy: 68.8%
-Validation accuracy: 87.8%
-Minibatch loss at step 7650: 0.182858
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.2%
-Minibatch loss at step 7700: 0.351644
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.0%
-Minibatch loss at step 7750: 0.480466
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.6%
-Minibatch loss at step 7800: 0.405093
-Minibatch accuracy: 93.8%
-Validation accuracy: 87.8%
-Minibatch loss at step 7850: 0.559737
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.9%
-Minibatch loss at step 7900: 0.809748
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.1%
-Minibatch loss at step 7950: 0.433778
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.8%
-Minibatch loss at step 8000: 0.118903
-Minibatch accuracy: 100.0%
-Validation accuracy: 87.6%
-Minibatch loss at step 8050: 0.025950
-Minibatch accuracy: 100.0%
-Validation accuracy: 87.9%
-Minibatch loss at step 8100: 0.304847
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.9%
-Minibatch loss at step 8150: 0.402380
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.2%
-Minibatch loss at step 8200: 0.407174
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.9%
-Minibatch loss at step 8250: 0.085110
-Minibatch accuracy: 100.0%
-Validation accuracy: 87.9%
-Minibatch loss at step 8300: 0.260617
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.1%
-Minibatch loss at step 8350: 0.105973
-Minibatch accuracy: 100.0%
-Validation accuracy: 87.7%
-Minibatch loss at step 8400: 0.802626
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.0%
-Minibatch loss at step 8450: 0.191482
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.0%
-Minibatch loss at step 8500: 0.292776
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.1%
-Minibatch loss at step 8550: 0.414011
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.0%
-Minibatch loss at step 8600: 0.328727
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.2%
-Minibatch loss at step 8650: 0.349144
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.4%
-Minibatch loss at step 8700: 0.104163
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.0%
-Minibatch loss at step 8750: 0.515413
-Minibatch accuracy: 68.8%
-Validation accuracy: 88.0%
-Minibatch loss at step 8800: 0.275915
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.2%
-Minibatch loss at step 8850: 0.353553
-Minibatch accuracy: 100.0%
-Validation accuracy: 88.0%
-Minibatch loss at step 8900: 0.324793
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.2%
-Minibatch loss at step 8950: 0.556808
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.2%
-Minibatch loss at step 9000: 0.622893
-Minibatch accuracy: 75.0%
-Validation accuracy: 88.3%
-Test accuracy: 75.3%
+Validation accuracy: 77.3%
+Test accuracy: 83.8%
 #+end_example
-
 
 
 ***** 1
@@ -3797,11 +3723,12 @@ only dropout
   patch_size = 5
   depth = 16
   num_hidden = 64
-  
+  tf.reset_default_graph()
   graph = tf.Graph()
 
   with graph.as_default():
-    keep_prob = tf.placeholder(tf.float32)
+    sy_keep_prob = tf.placeholder(tf.float32)
+    sy_learn_rate = tf.placeholder(tf.float32, shape=())
     # Input data.
     tf_train_dataset = tf.placeholder(
       tf.float32, shape=(batch_size, image_size, image_size, num_channels))
@@ -3822,7 +3749,7 @@ only dropout
       [num_hidden, num_labels], stddev=0.1))
     layer4_biases = tf.Variable(tf.constant(1.0, shape=[num_labels]))
     # Model.
-    def model(data, keep_prob):
+    def model(data, sy_keep_prob):
       conv = tf.nn.conv2d(data, layer1_weights, [1, 1, 1, 1], padding='SAME')
       hidden = tf.nn.relu(conv + layer1_biases)
       # IK: add pooling
@@ -3836,16 +3763,16 @@ only dropout
       shape = h_pool.get_shape().as_list()
       reshape = tf.reshape(h_pool, [shape[0], shape[1] * shape[2] * shape[3]])
       # apply dropout to fully connected layer
-      hidden = tf.nn.dropout(
+      hidden = tf.div(tf.nn.dropout(
         tf.nn.relu(tf.matmul(reshape, layer3_weights) + layer3_biases), 
-        keep_prob)*(1/keep_prob)
+        sy_keep_prob), sy_keep_prob)
       return tf.matmul(hidden, layer4_weights) + layer4_biases
     # Training computation.
     logits = model(tf_train_dataset,.6)
     loss = tf.reduce_mean(
-      tf.nn.softmax_cross_entropy_with_logits(logits,tf_train_labels))
+      tf.nn.softmax_cross_entropy_with_logits(logits=logits,labels=tf_train_labels))
     # Optimizer.
-    optimizer = tf.train.GradientDescentOptimizer(0.05).minimize(loss)
+    optimizer = tf.train.AdamOptimizer(learning_rate=sy_learn_rate).minimize(loss)
     # Predictions for the training, validation, and test data.
     train_prediction = tf.nn.softmax(logits)
     valid_prediction = tf.nn.softmax(model(tf_valid_dataset,1.))
@@ -3854,404 +3781,320 @@ only dropout
 
 #+RESULTS:
 
-
-#+BEGIN_SRC python :var nsteps = 6001 :session a4aspy :results output
-  num_steps = nsteps
-
-  with tf.Session(graph=graph) as session:
-    tf.initialize_all_variables().run()
-    print('Initialized')
-    for step in range(num_steps):
-      offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
-      batch_data = train_dataset[offset:(offset + batch_size), :, :, :]
-      batch_labels = train_labels[offset:(offset + batch_size), :]
-      feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
-      _, l, predictions = session.run(
-        [optimizer, loss, train_prediction], feed_dict=feed_dict)
-      if (step % 50 == 0):
-        print('Minibatch loss at step %d: %f' % (step, l))
-        print('Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
-        print('Validation accuracy: %.1f%%' % accuracy(
-          valid_prediction.eval(), valid_labels))
-    print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(), test_labels))
+#+BEGIN_SRC python :session a4aspy :results output :var results=run_graph(nsteps=5001, keep_prob=.5) :results output
+print(results)
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-
->>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... I tensorflow/core/common_runtime/gpu/gpu_device.cc:1034] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Quadro M2000M, pci bus id: 0000:01:00.0)
+ 2017-06-15 09:29:31.169213: I tensorflow/core/common_runtime/gpu/gpu_device.cc:997] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Quadro M2000M, pci bus id: 0000:01:00.0)
+WARNING:tensorflow:From /home/ishai/.virtualenvs/ml353_2/lib/python3.5/site-packages/tensorflow/python/util/tf_should_use.py:133: initialize_all_variables (from tensorflow.python.ops.variables) is deprecated and will be removed after 2017-03-02.
+Instructions for updating:
+Use `tf.global_variables_initializer` instead.
 Initialized
-Minibatch loss at step 0: 7.703359
+Minibatch loss at step 50: 11.566952
+Minibatch accuracy: 6.2%
+Validation accuracy: 21.2%
+Minibatch loss at step 100: 3.870863
 Minibatch accuracy: 12.5%
-Validation accuracy: 12.5%
-Minibatch loss at step 50: 1.453293
-Minibatch accuracy: 56.2%
-Validation accuracy: 52.5%
-Minibatch loss at step 100: 1.111036
-Minibatch accuracy: 68.8%
-Validation accuracy: 71.6%
-Minibatch loss at step 150: 1.992369
+Validation accuracy: 19.8%
+Minibatch loss at step 150: 2.895633
+Minibatch accuracy: 31.2%
+Validation accuracy: 18.5%
+Minibatch loss at step 200: 2.107081
+Minibatch accuracy: 31.2%
+Validation accuracy: 18.0%
+Minibatch loss at step 250: 1.950364
+Minibatch accuracy: 25.0%
+Validation accuracy: 20.6%
+Minibatch loss at step 300: 1.999945
+Minibatch accuracy: 31.2%
+Validation accuracy: 20.1%
+Minibatch loss at step 350: 2.289965
+Minibatch accuracy: 6.2%
+Validation accuracy: 24.4%
+Minibatch loss at step 400: 2.300172
+Minibatch accuracy: 12.5%
+Validation accuracy: 25.6%
+Minibatch loss at step 450: 3.869735
+Minibatch accuracy: 12.5%
+Validation accuracy: 26.2%
+Minibatch loss at step 500: 2.144319
+Minibatch accuracy: 18.8%
+Validation accuracy: 29.3%
+Minibatch loss at step 550: 1.584909
 Minibatch accuracy: 43.8%
-Validation accuracy: 72.9%
-Minibatch loss at step 200: 0.988855
+Validation accuracy: 29.3%
+Minibatch loss at step 600: 2.151093
+Minibatch accuracy: 12.5%
+Validation accuracy: 27.3%
+Minibatch loss at step 650: 2.215356
+Minibatch accuracy: 18.8%
+Validation accuracy: 29.4%
+Minibatch loss at step 700: 2.065422
+Minibatch accuracy: 31.2%
+Validation accuracy: 28.2%
+Minibatch loss at step 750: 2.016208
+Minibatch accuracy: 43.8%
+Validation accuracy: 30.5%
+Minibatch loss at step 800: 1.894511
+Minibatch accuracy: 31.2%
+Validation accuracy: 32.8%
+Minibatch loss at step 850: 1.741181
+Minibatch accuracy: 31.2%
+Validation accuracy: 33.9%
+Minibatch loss at step 900: 1.899962
+Minibatch accuracy: 37.5%
+Validation accuracy: 36.7%
+Minibatch loss at step 950: 1.929227
+Minibatch accuracy: 37.5%
+Validation accuracy: 33.0%
+Minibatch loss at step 1000: 1.671435
+Minibatch accuracy: 37.5%
+Validation accuracy: 36.7%
+Minibatch loss at step 1050: 2.124148
+Minibatch accuracy: 25.0%
+Validation accuracy: 37.7%
+Minibatch loss at step 1100: 1.898282
+Minibatch accuracy: 18.8%
+Validation accuracy: 37.7%
+Minibatch loss at step 1150: 1.952750
+Minibatch accuracy: 31.2%
+Validation accuracy: 36.0%
+Minibatch loss at step 1200: 1.512580
+Minibatch accuracy: 50.0%
+Validation accuracy: 43.4%
+Minibatch loss at step 1250: 1.629997
+Minibatch accuracy: 43.8%
+Validation accuracy: 40.1%
+Minibatch loss at step 1300: 1.712072
 Minibatch accuracy: 62.5%
-Validation accuracy: 68.2%
-Minibatch loss at step 250: 0.770999
+Validation accuracy: 46.1%
+Minibatch loss at step 1350: 2.116345
+Minibatch accuracy: 50.0%
+Validation accuracy: 40.9%
+Minibatch loss at step 1400: 1.630803
+Minibatch accuracy: 43.8%
+Validation accuracy: 39.9%
+Minibatch loss at step 1450: 1.668554
+Minibatch accuracy: 43.8%
+Validation accuracy: 43.1%
+Minibatch loss at step 1500: 1.650850
+Minibatch accuracy: 31.2%
+Validation accuracy: 44.3%
+Minibatch loss at step 1550: 1.749657
+Minibatch accuracy: 31.2%
+Validation accuracy: 48.2%
+Minibatch loss at step 1600: 1.506760
+Minibatch accuracy: 37.5%
+Validation accuracy: 47.2%
+Minibatch loss at step 1650: 1.655661
+Minibatch accuracy: 37.5%
+Validation accuracy: 47.4%
+Minibatch loss at step 1700: 2.183458
+Minibatch accuracy: 12.5%
+Validation accuracy: 43.5%
+Minibatch loss at step 1750: 1.683201
+Minibatch accuracy: 37.5%
+Validation accuracy: 46.4%
+Minibatch loss at step 1800: 1.963095
+Minibatch accuracy: 12.5%
+Validation accuracy: 47.1%
+Minibatch loss at step 1850: 1.611518
+Minibatch accuracy: 31.2%
+Validation accuracy: 39.4%
+Minibatch loss at step 1900: 1.658273
+Minibatch accuracy: 50.0%
+Validation accuracy: 48.3%
+Minibatch loss at step 1950: 1.590845
+Minibatch accuracy: 25.0%
+Validation accuracy: 47.9%
+Minibatch loss at step 2000: 2.187780
+Minibatch accuracy: 18.8%
+Validation accuracy: 52.0%
+Minibatch loss at step 2050: 1.394493
+Minibatch accuracy: 43.8%
+Validation accuracy: 50.4%
+Minibatch loss at step 2100: 2.159330
+Minibatch accuracy: 18.8%
+Validation accuracy: 49.3%
+Minibatch loss at step 2150: 1.423224
+Minibatch accuracy: 37.5%
+Validation accuracy: 50.3%
+Minibatch loss at step 2200: 1.767830
+Minibatch accuracy: 31.2%
+Validation accuracy: 51.1%
+Minibatch loss at step 2250: 1.687594
+Minibatch accuracy: 37.5%
+Validation accuracy: 52.3%
+Minibatch loss at step 2300: 1.296938
+Minibatch accuracy: 50.0%
+Validation accuracy: 51.9%
+Minibatch loss at step 2350: 2.348637
+Minibatch accuracy: 18.8%
+Validation accuracy: 53.7%
+Minibatch loss at step 2400: 1.952907
+Minibatch accuracy: 18.8%
+Validation accuracy: 57.0%
+Minibatch loss at step 2450: 2.153319
+Minibatch accuracy: 37.5%
+Validation accuracy: 56.1%
+Minibatch loss at step 2500: 2.116488
+Minibatch accuracy: 25.0%
+Validation accuracy: 60.0%
+Minibatch loss at step 2550: 1.489463
+Minibatch accuracy: 50.0%
+Validation accuracy: 60.7%
+Minibatch loss at step 2600: 1.149191
+Minibatch accuracy: 43.8%
+Validation accuracy: 56.6%
+Minibatch loss at step 2650: 2.170089
+Minibatch accuracy: 25.0%
+Validation accuracy: 63.5%
+Minibatch loss at step 2700: 1.525531
+Minibatch accuracy: 37.5%
+Validation accuracy: 59.3%
+Minibatch loss at step 2750: 1.509228
+Minibatch accuracy: 37.5%
+Validation accuracy: 61.9%
+Minibatch loss at step 2800: 1.147282
+Minibatch accuracy: 56.2%
+Validation accuracy: 62.5%
+Minibatch loss at step 2850: 1.438620
+Minibatch accuracy: 50.0%
+Validation accuracy: 63.5%
+Minibatch loss at step 2900: 1.439854
+Minibatch accuracy: 43.8%
+Validation accuracy: 64.3%
+Minibatch loss at step 2950: 1.930614
+Minibatch accuracy: 25.0%
+Validation accuracy: 62.6%
+Minibatch loss at step 3000: 1.589028
+Minibatch accuracy: 43.8%
+Validation accuracy: 62.4%
+Minibatch loss at step 3050: 1.181139
+Minibatch accuracy: 50.0%
+Validation accuracy: 59.9%
+Minibatch loss at step 3100: 1.706787
+Minibatch accuracy: 50.0%
+Validation accuracy: 64.2%
+Minibatch loss at step 3150: 1.876871
+Minibatch accuracy: 56.2%
+Validation accuracy: 68.5%
+Minibatch loss at step 3200: 1.360961
+Minibatch accuracy: 37.5%
+Validation accuracy: 69.2%
+Minibatch loss at step 3250: 2.285524
+Minibatch accuracy: 50.0%
+Validation accuracy: 70.5%
+Minibatch loss at step 3300: 1.441857
+Minibatch accuracy: 50.0%
+Validation accuracy: 70.5%
+Minibatch loss at step 3350: 1.000102
+Minibatch accuracy: 68.8%
+Validation accuracy: 69.4%
+Minibatch loss at step 3400: 0.899509
+Minibatch accuracy: 68.8%
+Validation accuracy: 71.0%
+Minibatch loss at step 3450: 1.446827
+Minibatch accuracy: 50.0%
+Validation accuracy: 73.5%
+Minibatch loss at step 3500: 1.269377
+Minibatch accuracy: 50.0%
+Validation accuracy: 67.3%
+Minibatch loss at step 3550: 1.662549
+Minibatch accuracy: 31.2%
+Validation accuracy: 70.9%
+Minibatch loss at step 3600: 1.274959
+Minibatch accuracy: 56.2%
+Validation accuracy: 72.7%
+Minibatch loss at step 3650: 0.897081
 Minibatch accuracy: 62.5%
-Validation accuracy: 79.7%
-Minibatch loss at step 300: 0.957460
-Minibatch accuracy: 75.0%
-Validation accuracy: 80.2%
-Minibatch loss at step 350: 0.683521
+Validation accuracy: 74.3%
+Minibatch loss at step 3700: 1.394020
+Minibatch accuracy: 50.0%
+Validation accuracy: 74.4%
+Minibatch loss at step 3750: 1.613516
+Minibatch accuracy: 50.0%
+Validation accuracy: 74.4%
+Minibatch loss at step 3800: 0.905103
 Minibatch accuracy: 68.8%
-Validation accuracy: 79.8%
-Minibatch loss at step 400: 0.679164
+Validation accuracy: 72.7%
+Minibatch loss at step 3850: 1.036171
 Minibatch accuracy: 75.0%
-Validation accuracy: 80.8%
-Minibatch loss at step 450: 0.421687
-Minibatch accuracy: 87.5%
-Validation accuracy: 82.0%
-Minibatch loss at step 500: 1.042448
+Validation accuracy: 76.2%
+Minibatch loss at step 3900: 0.679254
 Minibatch accuracy: 81.2%
-Validation accuracy: 81.8%
-Minibatch loss at step 550: 1.006495
+Validation accuracy: 74.8%
+Minibatch loss at step 3950: 1.198567
+Minibatch accuracy: 43.8%
+Validation accuracy: 76.8%
+Minibatch loss at step 4000: 1.513273
+Minibatch accuracy: 43.8%
+Validation accuracy: 74.3%
+Minibatch loss at step 4050: 1.243160
+Minibatch accuracy: 56.2%
+Validation accuracy: 74.3%
+Minibatch loss at step 4100: 0.809120
 Minibatch accuracy: 62.5%
-Validation accuracy: 82.5%
-Minibatch loss at step 600: 0.988384
+Validation accuracy: 75.2%
+Minibatch loss at step 4150: 0.775453
+Minibatch accuracy: 75.0%
+Validation accuracy: 76.8%
+Minibatch loss at step 4200: 0.922803
+Minibatch accuracy: 75.0%
+Validation accuracy: 76.6%
+Minibatch loss at step 4250: 0.865568
 Minibatch accuracy: 68.8%
-Validation accuracy: 83.6%
-Minibatch loss at step 650: 0.580334
+Validation accuracy: 76.1%
+Minibatch loss at step 4300: 1.376431
+Minibatch accuracy: 56.2%
+Validation accuracy: 77.6%
+Minibatch loss at step 4350: 1.052437
+Minibatch accuracy: 56.2%
+Validation accuracy: 77.3%
+Minibatch loss at step 4400: 0.973835
+Minibatch accuracy: 50.0%
+Validation accuracy: 78.2%
+Minibatch loss at step 4450: 0.995051
+Minibatch accuracy: 56.2%
+Validation accuracy: 78.1%
+Minibatch loss at step 4500: 1.235685
+Minibatch accuracy: 50.0%
+Validation accuracy: 78.3%
+Minibatch loss at step 4550: 1.097849
+Minibatch accuracy: 43.8%
+Validation accuracy: 78.2%
+Minibatch loss at step 4600: 1.154400
+Minibatch accuracy: 62.5%
+Validation accuracy: 77.8%
+Minibatch loss at step 4650: 1.348891
+Minibatch accuracy: 50.0%
+Validation accuracy: 76.6%
+Minibatch loss at step 4700: 0.996796
+Minibatch accuracy: 62.5%
+Validation accuracy: 79.4%
+Minibatch loss at step 4750: 0.857328
+Minibatch accuracy: 56.2%
+Validation accuracy: 79.3%
+Minibatch loss at step 4800: 0.978085
+Minibatch accuracy: 62.5%
+Validation accuracy: 79.3%
+Minibatch loss at step 4850: 1.388877
+Minibatch accuracy: 50.0%
+Validation accuracy: 78.6%
+Minibatch loss at step 4900: 1.505564
+Minibatch accuracy: 50.0%
+Validation accuracy: 78.1%
+Minibatch loss at step 4950: 0.628969
 Minibatch accuracy: 75.0%
-Validation accuracy: 83.2%
-Minibatch loss at step 700: 0.474393
-Minibatch accuracy: 81.2%
-Validation accuracy: 83.0%
-Minibatch loss at step 750: 0.829427
-Minibatch accuracy: 87.5%
-Validation accuracy: 84.2%
-Minibatch loss at step 800: 0.748837
-Minibatch accuracy: 75.0%
-Validation accuracy: 84.0%
-Minibatch loss at step 850: 0.637818
-Minibatch accuracy: 75.0%
-Validation accuracy: 85.2%
-Minibatch loss at step 900: 0.636577
-Minibatch accuracy: 81.2%
-Validation accuracy: 84.9%
-Minibatch loss at step 950: 0.739790
-Minibatch accuracy: 87.5%
-Validation accuracy: 85.1%
-Minibatch loss at step 1000: 0.494076
-Minibatch accuracy: 87.5%
-Validation accuracy: 85.5%
-Minibatch loss at step 1050: 0.667214
-Minibatch accuracy: 68.8%
-Validation accuracy: 85.2%
-Minibatch loss at step 1100: 0.536276
-Minibatch accuracy: 75.0%
-Validation accuracy: 85.7%
-Minibatch loss at step 1150: 0.717775
-Minibatch accuracy: 68.8%
-Validation accuracy: 85.6%
-Minibatch loss at step 1200: 0.551628
-Minibatch accuracy: 75.0%
-Validation accuracy: 85.4%
-Minibatch loss at step 1250: 0.560189
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.1%
-Minibatch loss at step 1300: 1.119643
-Minibatch accuracy: 75.0%
-Validation accuracy: 85.8%
-Minibatch loss at step 1350: 0.511195
-Minibatch accuracy: 75.0%
-Validation accuracy: 85.8%
-Minibatch loss at step 1400: 0.600486
-Minibatch accuracy: 75.0%
-Validation accuracy: 86.8%
-Minibatch loss at step 1450: 1.538319
-Minibatch accuracy: 68.8%
-Validation accuracy: 85.5%
-Minibatch loss at step 1500: 0.542604
-Minibatch accuracy: 87.5%
-Validation accuracy: 85.8%
-Minibatch loss at step 1550: 1.144598
-Minibatch accuracy: 75.0%
-Validation accuracy: 85.7%
-Minibatch loss at step 1600: 0.149813
-Minibatch accuracy: 93.8%
-Validation accuracy: 86.7%
-Minibatch loss at step 1650: 0.222449
-Minibatch accuracy: 93.8%
-Validation accuracy: 86.7%
-Minibatch loss at step 1700: 0.268436
-Minibatch accuracy: 87.5%
-Validation accuracy: 86.5%
-Minibatch loss at step 1750: 0.598422
-Minibatch accuracy: 93.8%
-Validation accuracy: 86.9%
-Minibatch loss at step 1800: 1.087819
-Minibatch accuracy: 75.0%
-Validation accuracy: 87.1%
-Minibatch loss at step 1850: 0.790796
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.8%
-Minibatch loss at step 1900: 1.074700
-Minibatch accuracy: 75.0%
-Validation accuracy: 87.4%
-Minibatch loss at step 1950: 0.631297
-Minibatch accuracy: 68.8%
-Validation accuracy: 86.8%
-Minibatch loss at step 2000: 0.620251
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.9%
-Minibatch loss at step 2050: 0.281859
-Minibatch accuracy: 100.0%
-Validation accuracy: 86.8%
-Minibatch loss at step 2100: 0.664190
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.4%
-Minibatch loss at step 2150: 0.816639
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.7%
-Minibatch loss at step 2200: 0.431455
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.3%
-Minibatch loss at step 2250: 0.430422
-Minibatch accuracy: 93.8%
-Validation accuracy: 87.3%
-Minibatch loss at step 2300: 0.440268
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.0%
-Minibatch loss at step 2350: 0.733630
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.3%
-Minibatch loss at step 2400: 0.785089
-Minibatch accuracy: 75.0%
-Validation accuracy: 87.2%
-Minibatch loss at step 2450: 0.339766
-Minibatch accuracy: 93.8%
-Validation accuracy: 87.4%
-Minibatch loss at step 2500: 0.277850
-Minibatch accuracy: 93.8%
-Validation accuracy: 86.8%
-Minibatch loss at step 2550: 0.562286
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.5%
-Minibatch loss at step 2600: 0.442142
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.2%
-Minibatch loss at step 2650: 0.587847
-Minibatch accuracy: 75.0%
-Validation accuracy: 87.6%
-Minibatch loss at step 2700: 0.537113
-Minibatch accuracy: 75.0%
-Validation accuracy: 85.6%
-Minibatch loss at step 2750: 0.551168
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.9%
-Minibatch loss at step 2800: 0.851702
-Minibatch accuracy: 68.8%
-Validation accuracy: 87.7%
-Minibatch loss at step 2850: 0.342875
-Minibatch accuracy: 87.5%
-Validation accuracy: 87.9%
-Minibatch loss at step 2900: 0.192347
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.0%
-Minibatch loss at step 2950: 0.734541
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.3%
-Minibatch loss at step 3000: 0.727084
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.8%
-Minibatch loss at step 3050: 0.219189
-Minibatch accuracy: 100.0%
-Validation accuracy: 87.8%
-Minibatch loss at step 3100: 0.514300
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.5%
-Minibatch loss at step 3150: 0.204189
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.0%
-Minibatch loss at step 3200: 0.398616
-Minibatch accuracy: 81.2%
-Validation accuracy: 86.7%
-Minibatch loss at step 3250: 0.365987
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.0%
-Minibatch loss at step 3300: 0.232628
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.0%
-Minibatch loss at step 3350: 0.408626
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.8%
-Minibatch loss at step 3400: 0.328191
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.3%
-Minibatch loss at step 3450: 0.641322
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.3%
-Minibatch loss at step 3500: 0.337487
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.2%
-Minibatch loss at step 3550: 0.638126
-Minibatch accuracy: 75.0%
-Validation accuracy: 87.7%
-Minibatch loss at step 3600: 0.178808
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.4%
-Minibatch loss at step 3650: 0.275481
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.3%
-Minibatch loss at step 3700: 0.418931
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.2%
-Minibatch loss at step 3750: 0.327169
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.5%
-Minibatch loss at step 3800: 0.219871
-Minibatch accuracy: 100.0%
-Validation accuracy: 88.1%
-Minibatch loss at step 3850: 0.544495
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.5%
-Minibatch loss at step 3900: 0.600975
-Minibatch accuracy: 75.0%
-Validation accuracy: 88.5%
-Minibatch loss at step 3950: 0.456590
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.8%
-Minibatch loss at step 4000: 0.620138
-Minibatch accuracy: 75.0%
-Validation accuracy: 88.8%
-Minibatch loss at step 4050: 0.348265
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.1%
-Minibatch loss at step 4100: 0.189196
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.1%
-Minibatch loss at step 4150: 0.659856
-Minibatch accuracy: 75.0%
-Validation accuracy: 88.3%
-Minibatch loss at step 4200: 0.118239
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.5%
-Minibatch loss at step 4250: 0.532288
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.6%
-Minibatch loss at step 4300: 0.591780
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.7%
-Minibatch loss at step 4350: 0.559559
-Minibatch accuracy: 75.0%
-Validation accuracy: 88.9%
-Minibatch loss at step 4400: 0.370801
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.2%
-Minibatch loss at step 4450: 1.050965
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.4%
-Minibatch loss at step 4500: 0.293047
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.7%
-Minibatch loss at step 4550: 0.455999
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.1%
-Minibatch loss at step 4600: 0.297718
-Minibatch accuracy: 87.5%
-Validation accuracy: 89.0%
-Minibatch loss at step 4650: 0.224106
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.8%
-Minibatch loss at step 4700: 0.474958
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.8%
-Minibatch loss at step 4750: 0.587448
-Minibatch accuracy: 81.2%
-Validation accuracy: 89.0%
-Minibatch loss at step 4800: 0.506016
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.4%
-Minibatch loss at step 4850: 0.504431
-Minibatch accuracy: 81.2%
-Validation accuracy: 87.7%
-Minibatch loss at step 4900: 0.515334
-Minibatch accuracy: 75.0%
-Validation accuracy: 88.6%
-Minibatch loss at step 4950: 0.238837
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.6%
-Minibatch loss at step 5000: 0.197913
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.7%
-Minibatch loss at step 5050: 0.963532
-Minibatch accuracy: 75.0%
-Validation accuracy: 88.3%
-Minibatch loss at step 5100: 0.866537
-Minibatch accuracy: 75.0%
-Validation accuracy: 87.8%
-Minibatch loss at step 5150: 0.384256
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.5%
-Minibatch loss at step 5200: 0.224600
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.9%
-Minibatch loss at step 5250: 0.969593
-Minibatch accuracy: 75.0%
-Validation accuracy: 88.3%
-Minibatch loss at step 5300: 0.274430
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.9%
-Minibatch loss at step 5350: 0.047597
-Minibatch accuracy: 100.0%
-Validation accuracy: 88.5%
-Minibatch loss at step 5400: 0.226244
-Minibatch accuracy: 93.8%
-Validation accuracy: 88.8%
-Minibatch loss at step 5450: 0.533304
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.6%
-Minibatch loss at step 5500: 0.730091
-Minibatch accuracy: 81.2%
-Validation accuracy: 88.6%
-Minibatch loss at step 5550: 0.301287
-Minibatch accuracy: 93.8%
-Validation accuracy: 89.2%
-Minibatch loss at step 5600: 0.360858
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.0%
-Minibatch loss at step 5650: 0.387872
-Minibatch accuracy: 87.5%
-Validation accuracy: 89.4%
-Minibatch loss at step 5700: 0.525682
-Minibatch accuracy: 75.0%
-Validation accuracy: 89.3%
-Minibatch loss at step 5750: 0.696057
-Minibatch accuracy: 68.8%
-Validation accuracy: 89.1%
-Minibatch loss at step 5800: 0.403799
-Minibatch accuracy: 87.5%
-Validation accuracy: 89.1%
-Minibatch loss at step 5850: 0.081617
-Minibatch accuracy: 100.0%
-Validation accuracy: 89.1%
-Minibatch loss at step 5900: 0.429070
-Minibatch accuracy: 75.0%
-Validation accuracy: 88.8%
-Minibatch loss at step 5950: 0.934973
-Minibatch accuracy: 68.8%
-Validation accuracy: 88.4%
-Minibatch loss at step 6000: 0.315617
-Minibatch accuracy: 87.5%
-Validation accuracy: 88.0%
-Test accuracy: 75.1%
+Validation accuracy: 76.9%
+Minibatch loss at step 5000: 0.963439
+Minibatch accuracy: 56.2%
+Validation accuracy: 79.2%
+Test accuracy: 85.4%
 #+end_example
 
-
-
-*** notes
-
-**** DONE add learning rate
 
 
 ** Assignment 5
