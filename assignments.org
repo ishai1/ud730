@@ -4102,7 +4102,7 @@ Test accuracy: 85.4%
 :header-args: :session a5py :results output
 :END:
 
-*** starter
+*** starter code
 :PROPERTIES:
 :ATTACH_DIR_INHERIT: t
 :END:
@@ -4110,7 +4110,7 @@ Test accuracy: 85.4%
 The goal of this assignment is to train a Word2Vec skip-gram model over
 [[http://mattmahoney.net/dc/textdata][Text8]] data.
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :results none
   # These are all the modules we'll be using later. Make sure you can import them
   # before proceeding further.
   # %matplotlib inline
@@ -4128,17 +4128,9 @@ The goal of this assignment is to train a Word2Vec skip-gram model over
   from sklearn.manifold import TSNE
 #+END_SRC
 
-#+RESULTS:
-: 
-: >>> >>> ... ... ... >>> >>> >>> >>> I tensorflow/stream_executor/dso_loader.cc:125] successfully opened CUDA library libcublas.so.7.5 locally
-: I tensorflow/stream_executor/dso_loader.cc:125] successfully opened CUDA library libcudnn.so.5.0.5 locally
-: I tensorflow/stream_executor/dso_loader.cc:125] successfully opened CUDA library libcufft.so.7.5 locally
-: I tensorflow/stream_executor/dso_loader.cc:125] successfully opened CUDA library libcuda.so.1 locally
-: I tensorflow/stream_executor/dso_loader.cc:125] successfully opened CUDA library libcurand.so.7.5 locally
-
 Download the data from the source website if necessary.
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :results output
   Url = 'http://mattmahoney.net/dc/'
 
   def maybe_download(filename, expected_bytes):
@@ -4161,10 +4153,6 @@ Download the data from the source website if necessary.
 : 
 : >>> ... ... ... ... ... ... ... ... ... ... ... ... >>> Found and verified text8.zip
 
-#+BEGIN_EXAMPLE
-     Found and verified text8.zip
-#+END_EXAMPLE
-
 Read the data into a string.
 
 #+BEGIN_SRC python
@@ -4181,10 +4169,6 @@ Read the data into a string.
 #+RESULTS:
 : 
 : ... ... ... ... >>> >>> Data size 17005207
-
-#+BEGIN_EXAMPLE
-     Data size 17005207
-#+END_EXAMPLE
 
 Build the dictionary and replace rare words with UNK token.
 
@@ -4219,12 +4203,7 @@ Build the dictionary and replace rare words with UNK token.
 #+RESULTS:
 : 
 : >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... >>> >>> Most common words (+UNK) [['UNK', 418391], ('the', 1061396), ('of', 593677), ('and', 416629), ('one', 411764)]
-: Sample data [5242, 3081, 12, 6, 195, 2, 3134, 46, 59, 156]
-
-#+BEGIN_EXAMPLE
-     Most common words (+UNK) [['UNK', 418391], ('the', 1061396), ('of', 593677), ('and', 416629), ('one', 411764)]
-     Sample data [5243, 3083, 12, 6, 195, 2, 3136, 46, 59, 156]
-#+END_EXAMPLE
+: Sample data [5236, 3084, 12, 6, 195, 2, 3134, 46, 59, 156]
 
 Function to generate a training batch for the skip-gram model.
 
@@ -4272,24 +4251,12 @@ Function to generate a training batch for the skip-gram model.
 >>> ... ... ... ... ... ... 
 with num_skips = 2 and skip_window = 1:
     batch: ['originated', 'originated', 'as', 'as', 'a', 'a', 'term', 'term']
-    labels: ['as', 'anarchism', 'a', 'originated', 'as', 'term', 'a', 'of']
+    labels: ['as', 'anarchism', 'a', 'originated', 'as', 'term', 'of', 'a']
 
 with num_skips = 4 and skip_window = 2:
     batch: ['as', 'as', 'as', 'as', 'a', 'a', 'a', 'a']
-    labels: ['anarchism', 'term', 'a', 'originated', 'originated', 'of', 'term', 'as']
+    labels: ['term', 'anarchism', 'a', 'originated', 'of', 'as', 'originated', 'term']
 #+end_example
-
-#+BEGIN_EXAMPLE
-     data: ['anarchism', 'originated', 'as', 'a', 'term', 'of', 'abuse', 'first']
-
-     with num_skips = 2 and skip_window = 1:
-         batch: ['originated', 'originated', 'as', 'as', 'a', 'a', 'term', 'term']
-         labels: ['as', 'anarchism', 'a', 'originated', 'term', 'as', 'a', 'of']
-
-     with num_skips = 4 and skip_window = 2:
-         batch: ['as', 'as', 'as', 'as', 'a', 'a', 'a', 'a']
-         labels: ['anarchism', 'originated', 'term', 'a', 'as', 'of', 'originated', 'term']
-#+END_EXAMPLE
 
 Train a skip-gram model.
 
@@ -4305,10 +4272,10 @@ Train a skip-gram model.
   valid_window = 100 # Only pick dev samples in the head of the distribution.
   valid_examples = np.array(random.sample(range(valid_window), valid_size))
   num_sampled = 64 # Number of negative examples to sample.
-
+  tf.reset_default_graph()
   graph = tf.Graph()
 
-  with graph.as_default(), tf.device('/cpu:0'):
+  with graph.as_default():
     # Input data.
     train_dataset = tf.placeholder(tf.int32, shape=[batch_size])
     train_labels = tf.placeholder(tf.int32, shape=[batch_size, 1])
@@ -4325,8 +4292,9 @@ Train a skip-gram model.
     embed = tf.nn.embedding_lookup(embeddings, train_dataset)
     # Compute the softmax loss, using a sample of the negative labels each time.
     loss = tf.reduce_mean(
-      tf.nn.sampled_softmax_loss(softmax_weights, softmax_biases, embed,
-                                 train_labels, num_sampled, vocabulary_size))
+      tf.nn.sampled_softmax_loss(weights=softmax_weights, biases=softmax_biases, inputs=embed,
+                                 labels=train_labels, num_sampled=num_sampled, 
+                                 num_classes=vocabulary_size))
     # Optimizer.
     # Note: The optimizer will optimize the softmax_weights AND the embeddings.
     # This is because the embeddings are defined as a variable quantity and the
@@ -4381,476 +4349,256 @@ Train a skip-gram model.
 
 #+RESULTS:
 #+begin_example
-
->>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... E tensorflow/stream_executor/cuda/cuda_driver.cc:504] failed call to cuInit: CUDA_ERROR_UNKNOWN
-I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:158] retrieving CUDA diagnostic information for host: iThinkPad
-I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:165] hostname: iThinkPad
-I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:189] libcuda reported version is: 367.57.0
-I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:363] driver version file contents: """NVRM version: NVIDIA UNIX x86_64 Kernel Module  367.57  Mon Oct  3 20:37:01 PDT 2016
-GCC version:  gcc version 5.4.0 20160609 (Ubuntu 5.4.0-6ubuntu1~16.04.4) 
-"""
-I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:193] kernel reported version is: 367.57.0
-I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:300] kernel version seems to match DSO: 367.57.0
+2017-06-15 18:08:02.513700: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2017-06-15 18:08:02.516168: I tensorflow/core/common_runtime/gpu/gpu_device.cc:907] Found device 0 with properties: 
+name: Quadro M2000M
+major: 5 minor: 0 memoryClockRate (GHz) 1.137
+pciBusID 0000:01:00.0
+Total memory: 3.95GiB
+Free memory: 3.66GiB
+2017-06-15 18:08:02.516249: I tensorflow/core/common_runtime/gpu/gpu_device.cc:928] DMA: 0 
+2017-06-15 18:08:02.516276: I tensorflow/core/common_runtime/gpu/gpu_device.cc:938] 0:   Y 
+2017-06-15 18:08:02.516305: I tensorflow/core/common_runtime/gpu/gpu_device.cc:997] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Quadro M2000M, pci bus id: 0000:01:00.0)
+WARNING:tensorflow:From /home/ishai/.virtualenvs/ml353_2/lib/python3.5/site-packages/tensorflow/python/util/tf_should_use.py:133: initialize_all_variables (from tensorflow.python.ops.variables) is deprecated and will be removed after 2017-03-02.
+Instructions for updating:
+Use `tf.global_variables_initializer` instead.
+2017-06-15 18:08:03.777980: I tensorflow/compiler/xla/service/platform_util.cc:58] platform CUDA present with 1 visible devices
+2017-06-15 18:08:03.778053: I tensorflow/compiler/xla/service/platform_util.cc:58] platform Host present with 8 visible devices
+2017-06-15 18:08:03.781478: I tensorflow/compiler/xla/service/service.cc:183] XLA service 0x5603ba66c610 executing computations on platform Host. Devices:
+2017-06-15 18:08:03.781535: I tensorflow/compiler/xla/service/service.cc:191]   StreamExecutor device (0): <undefined>, <undefined>
+2017-06-15 18:08:03.782140: I tensorflow/compiler/xla/service/platform_util.cc:58] platform CUDA present with 1 visible devices
+2017-06-15 18:08:03.782195: I tensorflow/compiler/xla/service/platform_util.cc:58] platform Host present with 8 visible devices
+2017-06-15 18:08:03.784474: I tensorflow/compiler/xla/service/service.cc:183] XLA service 0x5603ba680b70 executing computations on platform CUDA. Devices:
+2017-06-15 18:08:03.784521: I tensorflow/compiler/xla/service/service.cc:191]   StreamExecutor device (0): Quadro M2000M, Compute Capability 5.0
 Initialized
-Average loss at step 0: 7.916452
-Nearest to one: processions, were, prophecies, overlapped, perkins, biddle, sapkowski, hagi,
-Nearest to during: updating, comedian, destroys, kindred, moose, subordinated, vivant, resumption,
-Nearest to was: umts, cingular, dynastic, malibu, iie, pedophilia, apparitions, yoakum,
-Nearest to first: jadwiga, deposing, salazar, lvares, cups, extensions, tramiel, voivodship,
-Nearest to a: cnidaria, henriques, depending, sens, avesta, examined, hers, ajax,
-Nearest to their: blemish, children, kanu, nonexistence, ath, frac, reload, laconia,
-Nearest to th: yuma, hayek, behaviorist, unconnected, grammatically, glorantha, thicknesses, intentionality,
-Nearest to so: coolant, oder, baryogenesis, interruption, ladino, gaelic, giga, dukes,
-Nearest to two: visual, percival, sarti, aligned, recognizably, howstuffworks, objector, showers,
-Nearest to also: hyperlinks, injection, variational, width, prey, iced, cleanse, tardis,
-Nearest to known: habilis, pngimage, apply, africana, tee, ww, abdicates, tear,
-Nearest to has: bud, hrothgar, stipulation, irvine, archives, mercantile, negated, softening,
-Nearest to often: sns, elucidate, fijian, pinscher, brigade, equiv, causes, opposed,
-Nearest to most: bandit, ground, empresses, strengthens, ideologue, run, vir, tourists,
-Nearest to are: canes, cplp, macs, dagger, quests, doodle, desperate, cheap,
-Nearest to were: one, razed, transpose, epithet, bourgeoisie, thule, read, academies,
-Average loss at step 2000: 4.354806
-Average loss at step 4000: 3.865634
-Average loss at step 6000: 3.790162
-Average loss at step 8000: 3.690257
-Average loss at step 10000: 3.615377
-Nearest to one: three, two, four, five, seven, six, eight, hurst,
-Nearest to during: on, with, hester, amoeba, in, eamon, fires, destroys,
-Nearest to was: is, were, has, had, by, are, be, been,
-Nearest to first: deposing, ess, rove, about, lvares, salazar, gyro, cups,
-Nearest to a: the, this, any, evidence, ju, mezzo, permitting, his,
-Nearest to their: his, its, formerly, voltage, machinery, mor, leaning, ojibwa,
-Nearest to th: behaviorist, beings, nd, shawnee, unconnected, destabilize, hayek, grammatically,
-Nearest to so: baryogenesis, oder, gaelic, veritable, dukes, mohenjo, comes, menial,
-Nearest to two: three, five, four, eight, seven, six, nine, zero,
-Nearest to also: which, often, ballparks, xxxviii, not, sometimes, chinon, cleanse,
-Nearest to known: habilis, such, present, well, faro, used, pngimage, commute,
-Nearest to has: had, is, was, have, rcs, orally, carneiro, tesco,
-Nearest to often: it, also, he, causes, marlowe, licensure, turbofans, winchester,
-Nearest to most: apeiron, shelf, jeannette, all, vir, ideologue, georgia, bolshevik,
-Nearest to are: were, is, have, was, doodle, but, spectator, feast,
-Nearest to were: are, was, been, had, is, haydn, read, be,
-Average loss at step 12000: 3.600304
-Average loss at step 14000: 3.571341
-Average loss at step 16000: 3.407872
-Average loss at step 18000: 3.459439
-Average loss at step 20000: 3.538420
-Nearest to one: six, three, two, eight, four, seven, five, nine,
-Nearest to during: on, with, in, when, after, for, amoeba, at,
-Nearest to was: is, were, has, had, became, been, be, are,
-Nearest to first: second, ess, deposing, old, rove, same, keillor, by,
-Nearest to a: the, mezzo, this, any, another, ju, learnt, amulets,
-Nearest to their: its, his, the, her, them, gorge, any, leaning,
-Nearest to th: nd, behaviorist, beings, hayek, shawnee, destabilize, married, unconnected,
-Nearest to so: baryogenesis, oder, mohenjo, menial, gaelic, look, criticizes, veritable,
-Nearest to two: five, three, four, six, eight, seven, zero, nine,
-Nearest to also: which, often, sometimes, never, now, not, who, karen,
-Nearest to known: such, used, well, habilis, faro, highness, reluctantly, elbaradei,
-Nearest to has: had, have, was, is, rcs, hertogenbosch, carneiro, orally,
-Nearest to often: also, it, who, which, sometimes, galvani, localized, widely,
-Nearest to most: more, some, apeiron, all, shelf, ideologue, many, jeannette,
-Nearest to are: were, is, have, was, locative, sharpened, lada, influences,
-Nearest to were: are, was, had, by, been, have, be, is,
-Average loss at step 22000: 3.504639
-Average loss at step 24000: 3.490412
-Average loss at step 26000: 3.482481
-Average loss at step 28000: 3.478874
-Average loss at step 30000: 3.505072
-Nearest to one: two, four, seven, three, eight, six, five, nine,
-Nearest to during: after, when, in, on, at, with, through, gilchrist,
-Nearest to was: is, had, became, were, has, been, be, when,
-Nearest to first: second, deposing, same, last, ess, old, best, smelling,
-Nearest to a: any, the, permitting, another, intercontinental, ju, wakefulness, no,
-Nearest to their: its, his, the, her, these, our, gorge, some,
-Nearest to th: nd, behaviorist, hayek, tiling, shawnee, numeral, six, unconnected,
-Nearest to so: baryogenesis, menial, criticizes, handlebars, rahman, mohenjo, jeong, veritable,
-Nearest to two: four, three, one, five, seven, six, eight, nine,
-Nearest to also: often, now, never, sometimes, usually, still, which, amicable,
-Nearest to known: used, well, such, described, regarded, faro, called, habilis,
-Nearest to has: had, have, is, was, rcs, carneiro, orally, hertogenbosch,
-Nearest to often: sometimes, also, usually, generally, widely, always, they, commonly,
-Nearest to most: more, many, some, bred, legalistic, among, shelf, apeiron,
-Nearest to are: were, have, is, include, eudes, these, goldfish, recessions,
-Nearest to were: are, was, have, been, had, by, be, digit,
-Average loss at step 32000: 3.501719
-Average loss at step 34000: 3.492923
-Average loss at step 36000: 3.458800
-Average loss at step 38000: 3.302050
-Average loss at step 40000: 3.426942
-Nearest to one: seven, two, four, six, eight, three, five, nine,
-Nearest to during: after, when, on, before, in, at, eros, temptations,
-Nearest to was: is, became, has, were, had, been, when, be,
-Nearest to first: second, last, deposing, next, rove, fated, best, chic,
-Nearest to a: mezzo, the, sharpe, another, wakefulness, brainwashed, ju, learnt,
-Nearest to their: its, his, her, the, them, our, these, any,
-Nearest to th: nd, hayek, behaviorist, shawnee, scrimmage, tiling, unconnected, mage,
-Nearest to so: baryogenesis, jeong, criticizes, mohenjo, rahman, menial, atzma, supercontinent,
-Nearest to two: three, four, six, five, seven, eight, one, nine,
-Nearest to also: often, never, which, usually, now, still, sometimes, typically,
-Nearest to known: used, such, well, regarded, described, possible, habilis, called,
-Nearest to has: had, have, was, is, having, carneiro, hauk, rcs,
-Nearest to often: usually, generally, sometimes, also, still, commonly, widely, always,
-Nearest to most: more, many, some, among, all, ovaries, bred, legalistic,
-Nearest to are: were, have, is, but, these, while, recessions, be,
-Nearest to were: are, have, was, while, been, had, but, those,
-Average loss at step 42000: 3.437635
-Average loss at step 44000: 3.449876
-Average loss at step 46000: 3.447851
-Average loss at step 48000: 3.348519
-Average loss at step 50000: 3.385307
-Nearest to one: two, six, eight, four, seven, three, five, nine,
-Nearest to during: after, when, in, before, at, through, gilchrist, from,
-Nearest to was: is, were, has, had, became, been, be, are,
-Nearest to first: second, last, next, under, same, deposing, balancing, mutagenesis,
-Nearest to a: another, wakefulness, any, the, tocantins, mezzo, fl, permitting,
-Nearest to their: its, his, the, her, these, your, insurgencies, our,
-Nearest to th: nd, hayek, six, bce, one, behaviorist, abdel, noisy,
-Nearest to so: baryogenesis, vasily, banana, then, meditation, mohenjo, jeong, note,
-Nearest to two: three, six, four, one, five, eight, seven, zero,
-Nearest to also: often, now, never, which, still, typically, usually, sometimes,
-Nearest to known: used, such, well, described, regarded, possible, called, defined,
-Nearest to has: had, have, was, is, having, orally, substantial, raza,
-Nearest to often: usually, generally, sometimes, commonly, also, still, widely, now,
-Nearest to most: more, many, some, ovaries, among, assignments, less, all,
-Nearest to are: were, is, have, these, be, sharpened, was, those,
-Nearest to were: are, was, have, be, had, been, avalon, those,
-Average loss at step 52000: 3.436014
-Average loss at step 54000: 3.428417
-Average loss at step 56000: 3.439921
-Average loss at step 58000: 3.400723
-Average loss at step 60000: 3.394617
-Nearest to one: seven, four, two, eight, five, six, nine, three,
-Nearest to during: after, before, in, when, despite, although, under, through,
-Nearest to was: is, became, had, were, has, be, when, been,
-Nearest to first: second, last, same, next, best, amalthea, final, polytechnical,
-Nearest to a: another, the, any, wakefulness, mezzo, this, odysseus, amulets,
-Nearest to their: its, his, her, the, these, your, some, insurgencies,
-Nearest to th: nd, eight, hayek, bce, six, abdel, bc, behaviorist,
-Nearest to so: baryogenesis, note, then, meditation, jihad, discusses, concluded, banana,
-Nearest to two: four, three, five, six, seven, eight, one, zero,
-Nearest to also: now, often, still, never, usually, typically, sometimes, generally,
-Nearest to known: used, well, such, possible, described, regarded, called, defined,
-Nearest to has: had, have, is, was, having, substantial, guglielmo, contains,
-Nearest to often: sometimes, usually, generally, commonly, also, now, frequently, still,
-Nearest to most: more, many, some, among, all, ovaries, defections, essendon,
-Nearest to are: were, is, have, eudes, be, include, including, recessions,
-Nearest to were: are, was, have, had, been, although, while, those,
-Average loss at step 62000: 3.243951
-Average loss at step 64000: 3.255204
-Average loss at step 66000: 3.400393
-Average loss at step 68000: 3.395339
-Average loss at step 70000: 3.362295
-Nearest to one: two, seven, six, eight, four, five, nine, three,
-Nearest to during: after, in, before, despite, throughout, when, until, through,
-Nearest to was: is, has, were, had, been, became, be, when,
-Nearest to first: second, last, next, same, best, earliest, final, original,
-Nearest to a: another, the, any, this, mezzo, homeowners, hd, quite,
-Nearest to their: its, his, her, the, your, our, these, some,
-Nearest to th: nd, bce, hayek, bc, one, behaviorist, abdel, eighth,
-Nearest to so: baryogenesis, thus, when, then, crematoria, ishiro, jihad, banana,
-Nearest to two: three, four, six, seven, one, five, eight, zero,
-Nearest to also: now, still, often, which, never, typically, usually, generally,
-Nearest to known: used, such, regarded, defined, described, well, called, seen,
-Nearest to has: had, have, is, was, since, substantial, having, contains,
-Nearest to often: usually, sometimes, generally, commonly, now, frequently, also, still,
-Nearest to most: more, many, some, all, among, legalistic, less, hiberno,
-Nearest to are: were, is, have, include, these, while, be, including,
-Nearest to were: are, was, have, had, be, been, although, those,
-Average loss at step 72000: 3.378108
-Average loss at step 74000: 3.350002
-Average loss at step 76000: 3.309625
-Average loss at step 78000: 3.348543
-Average loss at step 80000: 3.376354
-Nearest to one: seven, six, two, three, four, five, eight, nine,
-Nearest to during: after, before, when, in, despite, throughout, although, within,
-Nearest to was: is, became, were, had, has, been, although, becomes,
-Nearest to first: second, last, next, same, earliest, final, third, fourth,
-Nearest to a: another, the, mezzo, every, polycarbonate, any, wakefulness, violet,
-Nearest to their: its, his, her, your, our, the, these, insurgencies,
-Nearest to th: nd, bc, bce, hayek, six, rd, paasikivi, cutter,
-Nearest to so: baryogenesis, when, banana, then, concluded, meditation, leveraged, crematoria,
-Nearest to two: three, six, four, five, seven, one, eight, zero,
-Nearest to also: now, often, still, typically, sometimes, which, never, actually,
-Nearest to known: used, regarded, called, described, such, defined, possible, serve,
-Nearest to has: had, have, is, was, since, having, contains, includes,
-Nearest to often: sometimes, usually, generally, commonly, frequently, still, now, typically,
-Nearest to most: more, some, many, ovaries, among, katha, especially, legalistic,
-Nearest to are: were, have, those, is, include, although, fsln, be,
-Nearest to were: are, was, have, had, those, being, been, these,
-Average loss at step 82000: 3.409099
-Average loss at step 84000: 3.409469
-Average loss at step 86000: 3.389135
-Average loss at step 88000: 3.351981
-Average loss at step 90000: 3.367400
-Nearest to one: seven, two, four, five, eight, six, three, th,
-Nearest to during: after, before, in, despite, while, throughout, when, within,
-Nearest to was: is, had, were, became, be, been, has, being,
-Nearest to first: second, last, earliest, next, original, fourth, third, same,
-Nearest to a: another, any, mezzo, hd, wakefulness, every, amulets, the,
-Nearest to their: its, his, her, your, our, the, heading, whose,
-Nearest to th: nd, seven, bce, one, bc, eighth, six, paasikivi,
-Nearest to so: thus, baryogenesis, when, discusses, banana, ishiro, jihad, phallus,
+Average loss at step 0: 8.152785
+Nearest to zero: icrm, greeneville, fastened, bolland, grays, combi, svetlana, incurred,
+Nearest to he: sennett, cheat, litt, arcadia, soares, majapahit, postpositions, leonidas,
+Nearest to people: infantryman, southside, consumerism, philibert, ranges, bitstream, kauravas, confess,
+Nearest to six: wicket, emcee, peas, sie, marini, wf, bewildering, lifeboats,
+Nearest to many: jackson, exists, karo, composes, khufu, sucked, backer, passionately,
+Nearest to however: blok, px, sinless, ise, emblems, venona, austerity, coughing,
+Nearest to that: karabakh, jarrett, betrays, luo, mannheim, grove, reoccupied, swapping,
+Nearest to also: imperfections, macduff, originator, stow, hitters, arnold, analog, porpoises,
+Nearest to during: outpatient, marcia, improvisation, visions, panspermia, refugee, unstructured, gpp,
+Nearest to world: churchyard, fluoxetine, tort, malls, taoiseach, unconvinced, tx, dearly,
+Nearest to two: onwards, ordovician, emulator, published, mauritanian, root, musk, gated,
+Nearest to some: ddd, unintentional, calorie, recension, jewellery, automorphism, class, digimon,
+Nearest to not: digitally, netware, hurdler, parade, scans, popularity, letters, received,
+Nearest to most: guayaquil, mencius, hata, hypnos, felt, motorist, designed, additional,
+Nearest to between: naghten, highbury, january, weigh, sacrilegious, adf, thing, blasts,
+Nearest to i: shuffle, fists, broadcasting, edgard, environmentally, cigarettes, mujibur, soulful,
+Average loss at step 2000: 4.360054
+Average loss at step 4000: 3.866475
+Average loss at step 6000: 3.788148
+Average loss at step 8000: 3.689236
+Average loss at step 10000: 3.612638
+Nearest to zero: nine, eight, seven, six, four, five, three, two,
+Nearest to he: it, they, she, there, who, sennett, arcadia, cheat,
+Nearest to people: infantryman, countries, reintroducing, tibeto, ranges, southside, influential, fanclub,
+Nearest to six: seven, eight, four, three, five, nine, zero, two,
+Nearest to many: some, all, backer, composes, several, aman, these, heavier,
+Nearest to however: but, px, blok, tavern, venona, although, miscegenation, jogaila,
+Nearest to that: which, it, geq, bara, getz, wears, makeshift, scrambled,
+Nearest to also: still, schirra, chydenius, ads, bech, which, now, arnold,
+Nearest to during: unstructured, biometric, at, in, outpatient, improvisation, marcia, nder,
+Nearest to world: taoiseach, eschewed, malls, churchyard, meaningful, certainly, smallville, dilapidated,
+Nearest to two: three, four, five, seven, six, nine, eight, one,
+Nearest to some: many, these, plate, parsed, crystallized, shaku, jewellery, rupiah,
+Nearest to not: it, novi, they, conspiracies, parade, enhancing, dusty, sarcophagus,
+Nearest to most: motorist, mencius, uneven, macross, additional, blending, crumbling, designed,
+Nearest to between: in, presidency, canned, naghten, worldwide, with, adf, elitism,
+Nearest to i: t, personally, broadcasting, taiwan, shower, cranes, notices, webern,
+Average loss at step 12000: 3.605409
+Average loss at step 14000: 3.572850
+Average loss at step 16000: 3.413008
+Average loss at step 18000: 3.460469
+Average loss at step 20000: 3.538633
+Nearest to zero: five, six, four, seven, three, eight, nine, two,
+Nearest to he: it, they, she, who, there, which, complementing, lanterns,
+Nearest to people: countries, infantryman, ranges, reintroducing, influential, klement, those, shanks,
+Nearest to six: five, nine, eight, four, seven, three, zero, two,
+Nearest to many: some, several, all, these, other, composes, aman, various,
+Nearest to however: but, although, that, miscegenation, jogaila, tavern, again, blok,
+Nearest to that: which, but, however, murat, this, mooted, governance, bara,
+Nearest to also: now, which, still, not, often, chydenius, never, schirra,
+Nearest to during: at, unstructured, in, assay, refugee, subsidy, after, with,
+Nearest to world: taoiseach, eschewed, u, cleese, malls, churchyard, speech, meaningful,
+Nearest to two: three, five, four, six, zero, one, eight, seven,
+Nearest to some: many, these, several, all, their, other, his, jewellery,
+Nearest to not: novi, they, also, generally, it, to, still, overlapped,
+Nearest to most: escherichia, modern, motorist, analysis, colliery, baroness, macross, uneven,
+Nearest to between: with, rogue, presidency, downing, in, canned, cf, within,
+Nearest to i: ii, iii, astride, notices, t, shower, cranes, we,
+Average loss at step 22000: 3.508200
+Average loss at step 24000: 3.490601
+Average loss at step 26000: 3.481171
+Average loss at step 28000: 3.480548
+Average loss at step 30000: 3.503050
+Nearest to zero: five, six, four, eight, seven, three, nine, two,
+Nearest to he: it, she, they, there, who, lanterns, weaknesses, polygamous,
+Nearest to people: countries, klement, laying, reintroducing, those, ranges, infantryman, michelangelo,
+Nearest to six: four, eight, five, nine, seven, three, two, zero,
+Nearest to many: some, several, these, composes, all, alois, various, values,
+Nearest to however: but, although, while, miscegenation, jogaila, that, though, px,
+Nearest to that: which, this, but, what, mooted, however, geq, mclaughlin,
+Nearest to also: now, still, always, often, which, never, schirra, ads,
+Nearest to during: in, after, at, until, before, involve, unstructured, subsidy,
+Nearest to world: taoiseach, cleese, u, repealing, eschewed, atmosphere, speech, churchyard,
+Nearest to two: four, three, one, six, seven, five, eight, nine,
+Nearest to some: many, these, several, all, their, this, various, adaptable,
+Nearest to not: they, novi, generally, to, it, tagging, still, gently,
+Nearest to most: escherichia, baroness, more, many, analysis, reviewers, modern, motorist,
+Nearest to between: with, in, adf, downing, within, presidency, autodesk, from,
+Nearest to i: ii, you, iii, t, kamala, we, shower, astride,
+Average loss at step 32000: 3.500849
+Average loss at step 34000: 3.492524
+Average loss at step 36000: 3.458225
+Average loss at step 38000: 3.302418
+Average loss at step 40000: 3.430410
+Nearest to zero: five, seven, nine, eight, six, three, four, two,
+Nearest to he: she, it, they, there, who, i, eventually, soon,
+Nearest to people: countries, klement, those, actions, epilogue, others, members, reintroducing,
+Nearest to six: seven, four, five, eight, nine, three, two, one,
+Nearest to many: some, several, these, various, both, all, alois, most,
+Nearest to however: but, although, that, which, though, and, while, where,
+Nearest to that: which, however, this, ambient, what, but, where, indentured,
+Nearest to also: often, still, now, which, never, usually, always, not,
+Nearest to during: in, before, after, within, at, heysel, involve, subsidy,
+Nearest to world: u, cleese, repealing, speech, lattices, malls, felix, taoiseach,
+Nearest to two: three, four, five, six, seven, one, eight, nine,
+Nearest to some: many, these, several, this, any, their, the, certain,
+Nearest to not: they, never, it, still, generally, also, to, novi,
+Nearest to most: more, baroness, extremely, escherichia, many, scouring, forties, annual,
+Nearest to between: with, adf, within, wabash, from, sennacherib, maxine, pontifex,
+Nearest to i: you, we, t, ii, he, iii, they, amherst,
+Average loss at step 42000: 3.433557
+Average loss at step 44000: 3.456737
+Average loss at step 46000: 3.453549
+Average loss at step 48000: 3.351593
+Average loss at step 50000: 3.383822
+Nearest to zero: seven, four, five, six, eight, nine, three, two,
+Nearest to he: she, it, they, there, who, eventually, but, this,
+Nearest to people: countries, actions, players, others, members, klement, nestorian, those,
+Nearest to six: eight, seven, four, nine, three, five, two, zero,
+Nearest to many: some, several, these, both, various, most, electrophilic, other,
+Nearest to however: but, although, though, where, that, while, when, and,
+Nearest to that: which, however, this, where, but, what, geq, mooted,
+Nearest to also: now, which, often, still, always, usually, never, generally,
+Nearest to during: in, at, after, within, until, when, including, before,
+Nearest to world: cleese, felix, repealing, u, unit, flocked, malls, comprehensive,
+Nearest to two: three, four, one, six, five, seven, eight, zero,
+Nearest to some: many, several, these, various, both, their, most, the,
+Nearest to not: never, generally, still, they, now, novi, dusty, always,
+Nearest to most: more, extremely, many, some, less, baroness, uneven, crusading,
+Nearest to between: with, within, in, adf, from, gospels, among, sennacherib,
+Nearest to i: you, we, ii, t, iii, they, x, ebenezer,
+Average loss at step 52000: 3.434259
+Average loss at step 54000: 3.428692
+Average loss at step 56000: 3.439087
+Average loss at step 58000: 3.398797
+Average loss at step 60000: 3.392078
+Nearest to zero: five, four, eight, six, seven, nine, three, two,
+Nearest to he: she, it, they, there, who, soon, eventually, we,
+Nearest to people: countries, players, those, others, students, members, actions, men,
+Nearest to six: eight, four, five, seven, nine, three, zero, two,
+Nearest to many: some, several, these, various, other, all, both, most,
+Nearest to however: but, although, though, when, that, which, and, where,
+Nearest to that: which, what, this, however, it, mooted, there, indentured,
+Nearest to also: now, still, usually, often, never, sometimes, generally, always,
+Nearest to during: after, before, in, when, until, including, at, within,
+Nearest to world: lattices, u, cleese, felix, malls, churchyard, coolidge, unit,
+Nearest to two: three, four, one, six, five, seven, eight, zero,
+Nearest to some: many, several, these, all, any, various, most, the,
+Nearest to not: they, never, still, usually, technically, generally, you, now,
+Nearest to most: more, many, some, baroness, electress, less, extremely, among,
+Nearest to between: with, within, among, remaining, from, gospels, in, sennacherib,
+Nearest to i: you, we, ii, organizes, t, iii, they, ebenezer,
+Average loss at step 62000: 3.246887
+Average loss at step 64000: 3.257387
+Average loss at step 66000: 3.400697
+Average loss at step 68000: 3.395861
+Average loss at step 70000: 3.359366
+Nearest to zero: five, four, seven, eight, six, nine, three, two,
+Nearest to he: she, it, they, there, eventually, who, soon, we,
+Nearest to people: countries, players, students, women, others, men, philosophers, members,
+Nearest to six: eight, seven, four, five, nine, three, two, zero,
+Nearest to many: some, several, these, various, both, all, most, each,
+Nearest to however: but, although, though, where, while, that, when, which,
+Nearest to that: which, however, what, this, but, where, portillo, mooted,
+Nearest to also: now, still, which, often, usually, never, schirra, generally,
+Nearest to during: after, before, in, until, throughout, within, at, while,
+Nearest to world: u, lattices, churchyard, cleese, coolidge, felix, exact, malls,
+Nearest to two: three, six, four, seven, one, five, eight, zero,
+Nearest to some: many, several, these, all, various, most, each, any,
+Nearest to not: never, still, now, generally, they, technically, usually, normally,
+Nearest to most: more, many, some, less, extremely, electress, uneven, baroness,
+Nearest to between: within, with, from, among, in, gospels, sennacherib, adf,
+Nearest to i: you, we, ii, organizes, ebenezer, they, cranes, tatiana,
+Average loss at step 72000: 3.372637
+Average loss at step 74000: 3.349423
+Average loss at step 76000: 3.315401
+Average loss at step 78000: 3.355518
+Average loss at step 80000: 3.373379
+Nearest to zero: five, seven, eight, six, four, three, nine, two,
+Nearest to he: she, it, they, there, who, we, soon, originally,
+Nearest to people: students, countries, men, women, players, others, those, members,
+Nearest to six: five, seven, eight, four, three, nine, two, zero,
+Nearest to many: some, several, these, various, both, all, most, those,
+Nearest to however: but, although, though, that, where, while, which, forgery,
+Nearest to that: which, however, where, what, this, levitt, hortense, mooted,
+Nearest to also: now, still, often, never, which, usually, always, sometimes,
+Nearest to during: after, before, in, until, throughout, when, despite, although,
+Nearest to world: u, lattices, cleese, felix, aircrew, repealing, malls, speech,
 Nearest to two: three, four, six, five, seven, one, eight, zero,
-Nearest to also: now, often, still, which, never, typically, sometimes, actually,
-Nearest to known: used, regarded, described, such, called, possible, defined, seen,
-Nearest to has: had, have, is, having, was, since, contains, includes,
-Nearest to often: sometimes, usually, generally, commonly, frequently, now, typically, still,
-Nearest to most: more, some, many, among, less, ovaries, especially, anchorage,
-Nearest to are: were, is, these, include, have, contain, those, although,
-Nearest to were: are, was, had, while, have, although, those, these,
-Average loss at step 92000: 3.396319
-Average loss at step 94000: 3.250602
-Average loss at step 96000: 3.355531
-Average loss at step 98000: 3.241937
-Average loss at step 100000: 3.360208
-Nearest to one: two, four, seven, six, eight, five, three, nine,
-Nearest to during: after, in, before, throughout, within, despite, when, until,
-Nearest to was: is, became, has, had, been, were, remains, koalas,
-Nearest to first: second, last, next, third, fourth, best, final, same,
-Nearest to a: another, any, the, mezzo, virility, unfriendly, harford, wakefulness,
-Nearest to their: its, his, her, your, our, the, these, whose,
-Nearest to th: nd, bc, rd, eighth, bce, paasikivi, twentieth, sainte,
-Nearest to so: thus, then, when, baryogenesis, crematoria, ishiro, rosser, sometimes,
-Nearest to two: three, four, five, six, seven, one, eight, zero,
-Nearest to also: now, still, never, often, typically, sometimes, actually, generally,
-Nearest to known: used, such, regarded, described, possible, defined, seen, identified,
-Nearest to has: had, have, is, was, having, since, contains, recently,
-Nearest to often: usually, sometimes, generally, commonly, typically, frequently, still, now,
-Nearest to most: more, less, especially, many, ovaries, some, among, all,
-Nearest to are: were, have, is, include, although, those, these, be,
-Nearest to were: are, have, those, these, was, had, include, although,
+Nearest to some: many, several, these, various, most, certain, all, both,
+Nearest to not: still, normally, generally, technically, never, usually, always, they,
+Nearest to most: more, some, many, among, less, extremely, especially, electress,
+Nearest to between: within, with, among, in, from, rogue, sennacherib, downing,
+Nearest to i: you, we, ii, organizes, they, iii, cloak, t,
+Average loss at step 82000: 3.410528
+Average loss at step 84000: 3.412772
+Average loss at step 86000: 3.388072
+Average loss at step 88000: 3.350503
+Average loss at step 90000: 3.366962
+Nearest to zero: seven, five, eight, six, four, nine, three, two,
+Nearest to he: she, it, they, there, soon, who, originally, later,
+Nearest to people: students, players, men, women, countries, those, members, jews,
+Nearest to six: seven, eight, five, four, nine, three, zero, two,
+Nearest to many: some, several, these, various, all, most, certain, numerous,
+Nearest to however: but, although, though, that, where, which, nevertheless, while,
+Nearest to that: which, however, what, mooted, instead, portillo, neurologic, accidentally,
+Nearest to also: now, often, still, which, never, generally, always, actually,
+Nearest to during: after, before, until, in, although, while, under, throughout,
+Nearest to world: actual, lattices, psilocybin, eschewed, churchyard, aircrew, cleese, recreation,
+Nearest to two: three, four, five, seven, six, one, eight, nine,
+Nearest to some: many, several, these, most, various, certain, any, all,
+Nearest to not: normally, still, never, generally, technically, we, also, tagging,
+Nearest to most: more, less, many, some, all, among, particularly, nasir,
+Nearest to between: with, within, among, from, jamal, ensuing, romano, into,
+Nearest to i: you, we, g, iii, ii, frac, they, t,
+Average loss at step 92000: 3.398437
+Average loss at step 94000: 3.258491
+Average loss at step 96000: 3.357522
+Average loss at step 98000: 3.241308
+Average loss at step 100000: 3.355222
+Nearest to zero: five, four, seven, eight, six, nine, three, two,
+Nearest to he: she, it, they, there, we, who, soon, never,
+Nearest to people: players, students, countries, women, men, children, others, klement,
+Nearest to six: seven, eight, four, five, nine, three, two, zero,
+Nearest to many: several, some, various, these, numerous, all, few, certain,
+Nearest to however: but, although, though, that, especially, where, nevertheless, chicks,
+Nearest to that: which, what, however, hawick, actually, hortense, gzip, how,
+Nearest to also: now, still, never, often, actually, bonhomme, sometimes, which,
+Nearest to during: after, in, before, until, following, although, throughout, at,
+Nearest to world: tendon, lattices, actual, cleese, hellenistic, duffy, eschewed, coolidge,
+Nearest to two: three, four, five, six, one, eight, seven, zero,
+Nearest to some: many, several, these, any, certain, various, all, the,
+Nearest to not: never, still, they, normally, always, generally, now, technically,
+Nearest to most: more, less, nasir, extremely, particularly, especially, among, many,
+Nearest to between: with, within, among, sennacherib, adf, hooking, arecibo, cereal,
+Nearest to i: we, you, ii, they, iii, frac, t, never,
 #+end_example
-
-#+BEGIN_EXAMPLE
-     Initialized
-     Average loss at step 0 : 8.58149623871
-     Nearest to been: unfavourably, marmara, ancestral, legal, bogart, glossaries, worst, rooms,
-     Nearest to time: conformist, strawberries, sindhi, waterfall, xia, nominates, psp, sensitivity,
-     Nearest to over: overlord, panda, golden, semigroup, rawlings, involved, shreveport, handling,
-     Nearest to not: hymenoptera, reintroducing, lamiaceae, because, davao, omnipotent, combustion, debilitating,
-     Nearest to three: catalog, koza, gn, braque, holstein, postgresql, luddite, justine,
-     Nearest to if: chilled, vince, fiddler, represented, sandinistas, happiness, lya, glands,
-     Nearest to there: coast, photosynthetic, kimmei, legally, inner, illyricum, formats, fullmetal,
-     Nearest to between: chuvash, prinz, suitability, wolfe, guideline, computability, diminutive, paulo,
-     Nearest to from: tanganyika, workshop, elphinstone, spearhead, resurrected, kevlar, shangri, loves,
-     Nearest to state: sextus, wuppertal, glaring, inches, unrounded, courageous, adler, connie,
-     Nearest to on: gino, phocas, rhine, jg, macrocosm, jackass, jays, theorie,
-     Nearest to and: standings, towed, reyes, willard, equality, juggling, wladislaus, faked,
-     Nearest to eight: gresham, dogg, moko, tennis, superseded, telegraphy, scramble, vinod,
-     Nearest to they: prisons, divisor, coder, ribeira, willingness, factional, nne, lotta,
-     Nearest to more: blues, fur, sterling, tangier, khwarizmi, discouraged, cal, deicide,
-     Nearest to other: enemies, bogged, brassicaceae, lascaux, dispense, alexandrians, crimea, dou,
-     Average loss at step 2000 : 4.39983723116
-     Average loss at step 4000 : 3.86921076906
-     Average loss at step 6000 : 3.72542127335
-     Average loss at step 8000 : 3.57835536212
-     Average loss at step 10000 : 3.61056993055
-     Nearest to been: glossaries, legal, unfavourably, be, hadad, wore, scarcity, were,
-     Nearest to time: strawberries, conformist, gleichschaltung, waterfall, molality, nominates, baal, dole,
-     Nearest to over: golden, semigroup, catus, motorways, brick, shehri, mussolini, overlord,
-     Nearest to not: hinayana, it, often, they, boots, also, noaa, lindsey,
-     Nearest to three: four, seven, six, five, nine, eight, two, zero,
-     Nearest to if: glands, euros, wallpaper, redefine, toho, confuse, unsound, shepherd,
-     Nearest to there: it, they, fullmetal, pace, legally, harpsichord, mma, bug,
-     Nearest to between: chuvash, wandering, from, kirsch, pursuant, eurocents, suitability, jackie,
-     Nearest to from: into, in, workshop, to, at, misogynist, elphinstone, spearhead,
-     Nearest to state: sextus, glaring, connie, adler, esoteric, didactic, handedness, presidents,
-     Nearest to on: in, at, for, ruminants, wakefulness, torrey, foley, gino,
-     Nearest to and: or, who, but, zelda, of, for, thirst, chisel,
-     Nearest to eight: nine, six, seven, five, four, three, zero, two,
-     Nearest to they: he, prisons, there, we, hydrate, it, not, cumbersome,
-     Nearest to more: skye, blues, trypomastigotes, deicide, most, readable, used, sterling,
-     Nearest to other: trochaic, hush, surveyors, joachim, differentiation, attackers, reverence, attestation,
-     Average loss at step 12000 : 3.66169466591
-     Average loss at step 14000 : 3.60342905837
-     Average loss at step 16000 : 3.57761328053
-     Average loss at step 18000 : 3.57667332476
-     Average loss at step 20000 : 3.53310145146
-     Nearest to been: be, become, was, hadad, unfavourably, were, wore, partido,
-     Nearest to time: gleichschaltung, strawberries, year, nominates, conformist, etch, admittedly, treasuries,
-     Nearest to over: golden, semigroup, motorways, rawlings, triangle, trey, ustawa, mattingly,
-     Nearest to not: they, boots, often, dieppe, still, hinayana, nearly, be,
-     Nearest to three: two, four, five, seven, eight, six, nine, one,
-     Nearest to if: wallpaper, euros, before, toho, unsound, so, bg, pfc,
-     Nearest to there: they, it, he, usually, which, we, not, transactions,
-     Nearest to between: from, with, about, near, reactance, eurocents, wandering, voltaire,
-     Nearest to from: into, workshop, by, between, in, on, elphinstone, under,
-     Nearest to state: glaring, esoteric, succeeding, sextus, vorarlberg, presidents, depends, connie,
-     Nearest to on: in, at, upon, during, from, janis, foley, nubian,
-     Nearest to and: or, thirst, but, where, s, who, pfaff, including,
-     Nearest to eight: nine, seven, six, five, four, three, zero, one,
-     Nearest to they: there, he, we, not, it, you, prisons, who,
-     Nearest to more: less, most, deicide, skye, trypomastigotes, interventionism, toed, drummond,
-     Nearest to other: such, joachim, hush, attackers, surveyors, trochaic, differentiation, reverence,
-     Average loss at step 22000 : 3.59519316927
-     Average loss at step 24000 : 3.55378576797
-     Average loss at step 26000 : 3.56455037558
-     Average loss at step 28000 : 3.5040882225
-     Average loss at step 30000 : 3.39208897972
-     Nearest to been: become, be, were, was, spotless, hadad, by, hausdorff,
-     Nearest to time: gleichschaltung, year, day, nominates, jesus, strawberries, way, admittedly,
-     Nearest to over: golden, semigroup, motorways, rawlings, interventionism, counternarcotics, adaption, brick,
-     Nearest to not: often, they, it, never, still, nor, boots, pki,
-     Nearest to three: four, six, two, eight, five, seven, nine, zero,
-     Nearest to if: when, before, so, should, toho, where, bg, wallpaper,
-     Nearest to there: they, it, which, usually, he, that, also, now,
-     Nearest to between: with, from, in, panasonic, presupposes, churchmen, hijacking, where,
-     Nearest to from: into, elphinstone, workshop, between, through, speculates, sosa, in,
-     Nearest to state: esoteric, glaring, presidents, vorarlberg, atmosphere, succeeding, lute, connie,
-     Nearest to on: upon, in, janis, during, torrey, against, infield, catalans,
-     Nearest to and: or, thirst, in, but, of, sobib, cleaves, including,
-     Nearest to eight: nine, six, four, seven, three, zero, five, one,
-     Nearest to they: we, there, he, you, it, these, who, i,
-     Nearest to more: less, most, deicide, faster, toed, very, skye, tonic,
-     Nearest to other: different, attackers, joachim, various, such, many, differentiation, these,
-     Average loss at step 32000 : 3.49501452419
-     Average loss at step 34000 : 3.48593705952
-     Average loss at step 36000 : 3.50112806576
-     Average loss at step 38000 : 3.49244426501
-     Average loss at step 40000 : 3.3890105716
-     Nearest to been: become, be, were, was, jolie, hausdorff, spotless, had,
-     Nearest to time: year, way, gleichschaltung, period, day, stanislav, stage, outcome,
-     Nearest to over: through, semigroup, rawlings, golden, about, brick, on, motorways,
-     Nearest to not: they, radiated, never, pki, still, omnipotent, hinayana, really,
-     Nearest to three: four, six, five, two, seven, eight, one, nine,
-     Nearest to if: when, before, where, then, bg, because, can, should,
-     Nearest to there: they, it, he, usually, this, typically, still, often,
-     Nearest to between: with, in, from, about, against, churchmen, johansen, presupposes,
-     Nearest to from: into, through, elphinstone, in, workshop, between, suing, under,
-     Nearest to state: esoteric, presidents, atmosphere, vorarlberg, lute, succeeding, glaring, didactic,
-     Nearest to on: upon, at, in, during, unitarians, under, catalans, batavians,
-     Nearest to and: or, but, s, incapacitation, including, while, of, which,
-     Nearest to eight: nine, six, seven, four, five, three, one, two,
-     Nearest to they: we, he, there, you, she, i, not, it,
-     Nearest to more: less, most, deicide, toed, greater, faster, quite, longer,
-     Nearest to other: various, different, attackers, joachim, clutter, nz, trochaic, apulia,
-     Average loss at step 42000 : 3.45294014364
-     Average loss at step 44000 : 3.47660055941
-     Average loss at step 46000 : 3.47458503014
-     Average loss at step 48000 : 3.47261548793
-     Average loss at step 50000 : 3.45390708435
-     Nearest to been: become, be, had, was, were, hausdorff, prem, remained,
-     Nearest to time: way, year, period, stv, day, gleichschaltung, stage, outcome,
-     Nearest to over: through, golden, semigroup, about, brick, counternarcotics, theremin, mattingly,
-     Nearest to not: they, still, never, really, sometimes, it, kiwifruit, nearly,
-     Nearest to three: five, four, six, seven, two, eight, one, nine,
-     Nearest to if: when, before, where, because, connexion, though, so, whether,
-     Nearest to there: they, it, he, this, now, often, usually, still,
-     Nearest to between: with, from, fashioned, churchmen, panasonic, explores, within, racial,
-     Nearest to from: into, through, under, elphinstone, between, workshop, circumpolar, idiom,
-     Nearest to state: atmosphere, vorarlberg, esoteric, presidents, madhya, majority, moulin, bowmen,
-     Nearest to on: upon, in, catalans, tezuka, minotaurs, wakefulness, batavians, guglielmo,
-     Nearest to and: or, but, thirst, signifier, which, however, including, unattractive,
-     Nearest to eight: six, nine, seven, five, four, three, zero, two,
-     Nearest to they: we, there, he, you, it, she, these, not,
-     Nearest to more: less, most, quite, very, further, faster, toed, deicide,
-     Nearest to other: various, different, many, attackers, are, joachim, nihilo, reject,
-     Average loss at step 52000 : 3.43597227755
-     Average loss at step 54000 : 3.25126817495
-     Average loss at step 56000 : 3.35102432287
-     Average loss at step 58000 : 3.44654818082
-     Average loss at step 60000 : 3.4287913968
-     Nearest to been: become, be, was, prem, had, remained, hadad, stanislavsky,
-     Nearest to time: year, way, period, stv, barely, name, stage, restoring,
-     Nearest to over: about, through, golden, adaption, counternarcotics, up, mattingly, brick,
-     Nearest to not: still, never, nor, kiwifruit, they, nearly, therefore, rarely,
-     Nearest to three: two, five, four, six, seven, eight, one, nine,
-     Nearest to if: when, though, before, where, although, because, can, could,
-     Nearest to there: they, it, he, still, she, we, this, often,
-     Nearest to between: with, from, churchmen, among, ethical, within, vma, panasonic,
-     Nearest to from: through, into, under, during, between, in, suing, across,
-     Nearest to state: atmosphere, infringe, madhya, vorarlberg, government, bowmen, vargas, republic,
-     Nearest to on: upon, through, within, ridiculous, janis, in, under, over,
-     Nearest to and: or, while, including, but, of, like, whose, bannister,
-     Nearest to eight: nine, six, five, four, seven, zero, three, two,
-     Nearest to they: we, there, you, he, it, these, she, prisons,
-     Nearest to more: less, most, quite, further, toed, very, faster, rather,
-     Nearest to other: different, various, many, nihilo, these, amour, including, screenplays,
-     Average loss at step 62000 : 3.38358767056
-     Average loss at step 64000 : 3.41693099326
-     Average loss at step 66000 : 3.39588000977
-     Average loss at step 68000 : 3.35567189544
-     Average loss at step 70000 : 3.38878934443
-     Nearest to been: become, be, was, prem, remained, were, being, discounts,
-     Nearest to time: year, way, day, period, barely, ethos, stage, reason,
-     Nearest to over: about, through, fortunately, semigroup, theremin, off, loudest, up,
-     Nearest to not: still, nor, never, they, actually, nearly, unelected, therefore,
-     Nearest to three: five, two, four, six, seven, eight, nine, zero,
-     Nearest to if: when, though, before, where, because, then, after, since,
-     Nearest to there: they, it, he, often, she, we, usually, still,
-     Nearest to between: among, with, within, from, ethical, churchmen, racial, prentice,
-     Nearest to from: through, into, within, during, under, until, between, across,
-     Nearest to state: city, atmosphere, desks, surrounding, preservation, bohr, principal, republic,
-     Nearest to on: upon, tezuka, through, within, wakefulness, catalans, at, ingeborg,
-     Nearest to and: or, but, while, including, thirst, jerzy, massing, abadan,
-     Nearest to eight: seven, six, nine, five, four, three, two, zero,
-     Nearest to they: we, you, he, there, she, it, prisons, who,
-     Nearest to more: less, most, quite, very, faster, smaller, further, larger,
-     Nearest to other: various, different, some, screenplays, lab, many, including, debugging,
-     Average loss at step 72000 : 3.41103189731
-     Average loss at step 74000 : 3.44926435578
-     Average loss at step 76000 : 3.4423020488
-     Average loss at step 78000 : 3.41976813722
-     Average loss at step 80000 : 3.39511853886
-     Nearest to been: become, be, remained, was, grown, were, prem, already,
-     Nearest to time: year, way, period, reason, barely, distance, stage, day,
-     Nearest to over: about, fortunately, through, semigroup, further, mattingly, rawlings, golden,
-     Nearest to not: still, they, nor, never, we, kiwifruit, noaa, really,
-     Nearest to three: five, two, seven, four, eight, six, nine, zero,
-     Nearest to if: when, where, though, before, since, because, although, follows,
-     Nearest to there: they, it, he, we, she, still, typically, actually,
-     Nearest to between: with, among, within, in, racial, around, from, serapeum,
-     Nearest to from: into, through, in, within, under, using, during, towards,
-     Nearest to state: city, atmosphere, ferro, vorarlberg, surrounding, republic, madhya, national,
-     Nearest to on: upon, poll, in, from, tezuka, janis, through, within,
-     Nearest to and: or, but, including, while, s, which, thirst, although,
-     Nearest to eight: nine, seven, six, five, four, three, zero, two,
-     Nearest to they: we, you, there, he, she, it, these, not,
-     Nearest to more: less, most, smaller, very, faster, quite, rather, larger,
-     Nearest to other: various, different, joachim, including, theos, smaller, individual, screenplays,
-     Average loss at step 82000 : 3.40933967865
-     Average loss at step 84000 : 3.41618054378
-     Average loss at step 86000 : 3.31485116804
-     Average loss at step 88000 : 3.37068593091
-     Average loss at step 90000 : 3.2785516749
-     Nearest to been: become, be, was, prem, remained, grown, recently, already,
-     Nearest to time: year, way, period, day, barely, battle, buds, name,
-     Nearest to over: through, about, fortunately, off, theremin, semigroup, extraterrestrial, mattingly,
-     Nearest to not: nor, still, never, otherwise, generally, separately, gown, hydrate,
-     Nearest to three: four, five, six, two, eight, seven, nine, zero,
-     Nearest to if: when, where, before, though, because, since, then, while,
-     Nearest to there: they, it, he, we, she, still, typically, fiorello,
-     Nearest to between: with, among, within, from, churchmen, prentice, racial, panasonic,
-     Nearest to from: through, into, across, during, towards, until, at, within,
-     Nearest to state: bohr, city, atmosphere, ferro, bowmen, republic, retaliation, vorarlberg,
-     Nearest to on: upon, in, tezuka, at, during, within, via, catalans,
-     Nearest to and: or, including, but, while, like, thirst, with, schuman,
-     Nearest to eight: seven, nine, six, five, four, three, zero, two,
-     Nearest to they: we, there, he, you, she, it, prisons, these,
-     Nearest to more: less, most, very, faster, larger, quite, smaller, better,
-     Nearest to other: different, various, tamara, prosthetic, including, individual, failing, restaurants,
-     Average loss at step 92000 : 3.40355363208
-     Average loss at step 94000 : 3.35647508007
-     Average loss at step 96000 : 3.34374570692
-     Average loss at step 98000 : 3.4230104093
-     Average loss at step 100000 : 3.36909827
-     Nearest to been: become, be, grown, was, being, already, remained, prem,
-     Nearest to time: way, year, day, period, years, days, mothersbaugh, separators,
-     Nearest to over: through, about, semigroup, further, fortunately, off, into, theremin,
-     Nearest to not: never, nor, still, dieppe, really, unelected, actually, now,
-     Nearest to three: four, two, five, seven, six, eight, nine, zero,
-     Nearest to if: when, though, where, before, is, abe, then, follows,
-     Nearest to there: they, it, he, we, still, she, typically, often,
-     Nearest to between: within, with, among, churchmen, around, explores, from, reactance,
-     Nearest to from: into, through, within, across, in, between, using, workshop,
-     Nearest to state: atmosphere, bohr, national, ferro, germ, desks, city, unpaid,
-     Nearest to on: upon, in, within, tezuka, janis, batavians, about, macrocosm,
-     Nearest to and: or, but, purview, thirst, sukkot, epr, including, honesty,
-     Nearest to eight: seven, nine, six, four, five, three, zero, one,
-     Nearest to they: we, there, you, he, she, prisons, it, these,
-     Nearest to more: less, most, very, quite, faster, larger, rather, smaller,
-     Nearest to other: various, different, tamara, theos, some, cope, many, others,
-#+END_EXAMPLE
 
 
 #+BEGIN_SRC python
@@ -4871,35 +4619,524 @@ Nearest to were: are, have, those, these, was, had, include, although,
       pylab.scatter(x, y)
       pylab.annotate(label, xy=(x, y), xytext=(5, 2), textcoords='offset points',
                      ha='right', va='bottom')
-    pylab.show()
+    # pylab.show()
 
   words = [reverse_dictionary[i] for i in range(1, num_points+1)]
 #+END_SRC
-  
-#+BEGIN_SRC python
-  plot(two_d_embeddings, words)
-  pylab.savefig('images/python-matplot-fig.png')  
-#+END_SRC
+
+#+RESULTS:
   
 #+BEGIN_SRC python :results file
-  'images/python-matplot-fig.png' # return filename to org-mode
+  plot(two_d_embeddings, words)
+  img_file = "imgs/python-matplot-fig.png"
+  pylab.savefig(img_file)
+  
+  img_file
 #+END_SRC
 
-[[output_14_0.png]]
-
---------------
-
+#+RESULTS:
+[[file:imgs/python-matplot-fig.png]]
 
 
 *** Problem
 
-An alternative to skip-gram is another Word2Vec model called
-[[http://arxiv.org/abs/1301.3781][CBOW]] (Continuous Bag of Words). In
-the CBOW model, instead of predicting a context word from a word vector,
-you predict a word from the sum of all the word vectors in its context.
-Implement and evaluate a CBOW model trained on the text8 dataset.
+An alternative to skip-gram is another Word2Vec model called [[http://arxiv.org/abs/1301.3781][CBOW]] (Continuous Bag of Words). In the CBOW model, instead of predicting a context word from a word vector, you predict a word from the sum of all the word vectors in its context. Implement and evaluate a CBOW model trained on the text8 dataset.
 
---------------
+
+#+BEGIN_SRC python :results none
+  # These are all the modules we'll be using later. Make sure you can import them
+  # before proceeding further.
+  # %matplotlib inline
+  from __future__ import print_function
+  import collections
+  import math
+  import numpy as np
+  import os
+  import random
+  import tensorflow as tf
+  import zipfile
+  from matplotlib import pylab
+  from six.moves import range
+  from six.moves.urllib.request import urlretrieve
+  from sklearn.manifold import TSNE
+#+END_SRC
+
+#+BEGIN_SRC python :results output
+  Url = 'http://mattmahoney.net/dc/'
+
+  def maybe_download(filename, expected_bytes):
+    """Download a file if not present, and make sure it's the right size."""
+    if not os.path.exists(filename):
+      filename, _ = urlretrieve(url + filename, filename)
+    statinfo = os.stat(filename)
+    if statinfo.st_size == expected_bytes:
+      print('Found and verified %s' % filename)
+    else:
+      print(statinfo.st_size)
+      raise Exception(
+        'Failed to verify ' + filename + '. Can you get to it with a browser?')
+    return filename
+
+  filename = maybe_download('text8.zip', 31344016)
+#+END_SRC
+
+#+RESULTS:
+: 
+: >>> ... ... ... ... ... ... ... ... ... ... ... ... >>> Found and verified text8.zip
+
+Read the data into a string.
+
+#+BEGIN_SRC python
+     def read_data(filename):
+       """Extract the first file enclosed in a zip file as a list of words"""
+       with zipfile.ZipFile(filename) as f:
+         data = tf.compat.as_str(f.read(f.namelist()[0])).split()
+       return data
+      
+     words = read_data(filename)
+     print('Data size %d' % len(words))
+#+END_SRC
+
+#+RESULTS:
+: 
+: ... ... ... ... >>> >>> Data size 17005207
+
+Build the dictionary and replace rare words with UNK token.
+
+#+BEGIN_SRC python
+     vocabulary_size = 50000
+
+     def build_dataset(words):
+       count = [['UNK', -1]]
+       count.extend(collections.Counter(words).most_common(vocabulary_size - 1))
+       dictionary = dict()
+       for word, _ in count:
+         dictionary[word] = len(dictionary)
+       data = list()
+       unk_count = 0
+       for word in words:
+         if word in dictionary:
+           index = dictionary[word]
+         else:
+           index = 0  # dictionary['UNK']
+           unk_count = unk_count + 1
+         data.append(index)
+       count[0][1] = unk_count
+       reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys())) 
+       return data, count, dictionary, reverse_dictionary
+
+     data, count, dictionary, reverse_dictionary = build_dataset(words)
+     print('Most common words (+UNK)', count[:5])
+     print('Sample data', data[:10])
+     del words  # Hint to reduce memory.
+#+END_SRC
+
+#+RESULTS:
+: 
+: >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... >>> >>> Most common words (+UNK) [['UNK', 418391], ('the', 1061396), ('of', 593677), ('and', 416629), ('one', 411764)]
+: Sample data [5234, 3081, 12, 6, 195, 2, 3137, 46, 59, 156]
+
+Function to generate a training batch for the CBOW model.
+#+BEGIN_SRC python
+  def generate_batch_Q(batch_size, radius, num_epochs=None):
+    window_size = 2*radius+1
+    B = batch_size
+    N = tf.Variable(len(data), dtype = tf.int32)
+    sy_data = tf.Variable(data)
+    index_q = tf.train.range_input_producer(limit=N-window_size, shuffle=True, 
+                                            num_epochs=num_epochs)
+    left_ix = index_q.dequeue()
+    train = sy_data[left_ix:left_ix+window_size]
+    ctx_l, label, ctx_r = tf.train.batch(tensors=tf.split(train, [radius,1,radius]),
+                                         batch_size=B, dynamic_pad=True, name="data_batch",
+                                         allow_smaller_final_batch=True)
+    return tf.concat([ctx_l, ctx_r], axis=1), label
+#+END_SRC
+
+#+RESULTS:
+
+Train a skip-gram model.
+#+BEGIN_SRC python
+  batch_size = 128
+  embedding_size = 128 # Dimension of the embedding vector.
+  radius = 4 # number of history / future words (total = R x 2)
+  # validation samples to the words that have a low numeric ID, which by
+  # construction are also the most frequent. 
+  valid_size = 16 # Random set of words to evaluate similarity on.
+  valid_window = 100 # Only pick dev samples in the head of the distribution.
+  valid_examples = np.array(random.sample(range(valid_window), valid_size))
+  num_sampled = 64 # Number of negative examples to sample.
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+  tf.reset_default_graph()
+  graph = tf.Graph()
+  with graph.as_default():
+    # Input data.
+    train_dataset, train_labels = generate_batch_Q(batch_size, radius)
+    valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
+    # Variables.
+    embeddings = tf.Variable(
+      tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
+    softmax_weights = tf.Variable(
+      tf.truncated_normal([vocabulary_size, embedding_size],
+                           stddev=1.0 / math.sqrt(embedding_size)))
+    softmax_biases = tf.Variable(tf.zeros([vocabulary_size]))
+    # Model.
+    # Look up (averaged) embeddings for inputs.
+    embed = tf.reduce_mean(tf.nn.embedding_lookup(embeddings, train_dataset), axis=1)  # take mean of embeddings over contexts 
+    # Compute the softmax loss, using a sample of the negative labels each time.
+    loss = tf.reduce_mean(
+      tf.nn.sampled_softmax_loss(weights=softmax_weights, biases=softmax_biases, inputs=embed,
+                                 labels=train_labels, num_sampled=num_sampled,
+                                 num_classes=vocabulary_size))
+    # Optimizer.
+    # Note: The optimizer will optimize the softmax_weights AND the embeddings.
+    # This is because the embeddings are defined as a variable quantity and the
+    # optimizer's `minimize` method will by default modify all variable quantities 
+    # that contribute to the tensor it is passed.
+    # See docs on `tf.train.Optimizer.minimize()` for more details.
+    optimizer = tf.train.AdagradOptimizer(1.0).minimize(loss)
+    # Compute the similarity between minibatch examples and all embeddings.
+    # We use the cosine distance:
+    norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keep_dims=True))
+    normalized_embeddings = embeddings / norm
+    valid_embeddings = tf.nn.embedding_lookup(
+      normalized_embeddings, valid_dataset)
+    similarity = tf.matmul(valid_embeddings, tf.transpose(normalized_embeddings))
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+  num_steps = 100001
+
+  with tf.Session(graph=graph) as session:
+    tf.initialize_all_variables().run()
+    q_threads = tf.train.start_queue_runners()   
+    print('Initialized')
+    average_loss = 0
+    for step in range(num_steps):
+      _, l = session.run([optimizer, loss])
+      average_loss += l
+      if step % 2000 == 0:
+        if step > 0:
+          average_loss = average_loss / 2000
+        # The average loss is an estimate of the loss over the last 2000 batches.
+        print('Average loss at step %d: %f' % (step, average_loss))
+        average_loss = 0
+      # note that this is expensive (~20% slowdown if computed every 500 steps)
+      if step % 10000 == 0:
+        sim = similarity.eval()
+        for i in range(valid_size):
+          valid_word = reverse_dictionary[valid_examples[i]]
+          top_k = 8 # number of nearest neighbors
+          nearest = (-sim[i, :]).argsort()[1:top_k+1]
+          log = 'Nearest to %s:' % valid_word
+          for k in range(top_k):
+            close_word = reverse_dictionary[nearest[k]]
+            log = '%s %s,' % (log, close_word)
+          print(log)
+    final_embeddings = normalized_embeddings.eval()
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+>>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... 2017-06-18 21:17:40.837351: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2017-06-18 21:17:40.837849: I tensorflow/core/common_runtime/gpu/gpu_device.cc:907] Found device 0 with properties: 
+name: Quadro M2000M
+major: 5 minor: 0 memoryClockRate (GHz) 1.137
+pciBusID 0000:01:00.0
+Total memory: 3.95GiB
+Free memory: 3.63GiB
+2017-06-18 21:17:40.837861: I tensorflow/core/common_runtime/gpu/gpu_device.cc:928] DMA: 0 
+2017-06-18 21:17:40.837865: I tensorflow/core/common_runtime/gpu/gpu_device.cc:938] 0:   Y 
+2017-06-18 21:17:40.837871: I tensorflow/core/common_runtime/gpu/gpu_device.cc:997] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Quadro M2000M, pci bus id: 0000:01:00.0)
+WARNING:tensorflow:From /home/ishai/.virtualenvs/ml353_2/lib/python3.5/site-packages/tensorflow/python/util/tf_should_use.py:133: initialize_all_variables (from tensorflow.python.ops.variables) is deprecated and will be removed after 2017-03-02.
+Instructions for updating:
+Use `tf.global_variables_initializer` instead.
+2017-06-18 21:17:41.067831: I tensorflow/compiler/xla/service/platform_util.cc:58] platform CUDA present with 1 visible devices
+2017-06-18 21:17:41.067851: I tensorflow/compiler/xla/service/platform_util.cc:58] platform Host present with 8 visible devices
+2017-06-18 21:17:41.068648: I tensorflow/compiler/xla/service/service.cc:183] XLA service 0x55a405303bf0 executing computations on platform Host. Devices:
+2017-06-18 21:17:41.068666: I tensorflow/compiler/xla/service/service.cc:191]   StreamExecutor device (0): <undefined>, <undefined>
+2017-06-18 21:17:41.068778: I tensorflow/compiler/xla/service/platform_util.cc:58] platform CUDA present with 1 visible devices
+2017-06-18 21:17:41.068786: I tensorflow/compiler/xla/service/platform_util.cc:58] platform Host present with 8 visible devices
+2017-06-18 21:17:41.069181: I tensorflow/compiler/xla/service/service.cc:183] XLA service 0x55a40534c1d0 executing computations on platform CUDA. Devices:
+2017-06-18 21:17:41.069190: I tensorflow/compiler/xla/service/service.cc:191]   StreamExecutor device (0): Quadro M2000M, Compute Capability 5.0
+Initialized
+Average loss at step 0: 7.901086
+Nearest to also: apparent, wealthy, mussels, psychiatric, hitpa, walras, exmoor, respecting,
+Nearest to have: barristers, denounces, obsessive, staircase, irv, summon, marguerite, scars,
+Nearest to been: weil, vax, cabbie, realisation, hydrate, harmless, confucianism, blaxploitation,
+Nearest to new: interface, narrated, flaherty, kit, criticism, physicalism, bosom, thursday,
+Nearest to of: loonie, cartagena, rambla, observing, almeida, osage, aron, securing,
+Nearest to i: yoshinkan, supper, venue, lili, belvedere, brilliance, assr, maximilian,
+Nearest to its: conductor, cds, floated, fretting, malleus, tae, asymptotically, jpg,
+Nearest to about: analog, minster, cheney, redstone, mostar, esdi, muni, go,
+Nearest to most: soundly, glucose, inlets, band, euphonium, mustafa, meccan, watchdog,
+Nearest to not: beethoven, decentralisation, wycliffe, ellipsis, humble, waas, ferguson, romanization,
+Nearest to may: mcmaster, coincidental, pejorative, meat, husserl, macedonians, confirmed, ism,
+Nearest to between: df, mathematik, harvests, synonym, stand, weidman, exceptionally, dwarfed,
+Nearest to there: legacy, caesura, chronicon, lollard, coveted, arguably, cockpits, trustworthy,
+Nearest to more: ravel, tide, violins, dupuis, escort, banned, intermission, research,
+Nearest to see: fx, mistakenly, ya, labeling, metered, osip, childless, middleweight,
+Nearest to two: environments, pir, fingal, must, disordered, magnificat, fireplace, rose,
+2017-06-18 21:17:42.165060: I tensorflow/core/common_runtime/gpu/pool_allocator.cc:247] PoolAllocator: After 2749 get requests, put_count=2523 evicted_count=1000 eviction_rate=0.396354 and unsatisfied allocation rate=0.482357
+2017-06-18 21:17:42.165083: I tensorflow/core/common_runtime/gpu/pool_allocator.cc:259] Raising pool_size_limit_ from 100 to 110
+2017-06-18 21:17:42.650474: I tensorflow/core/common_runtime/gpu/pool_allocator.cc:247] PoolAllocator: After 4898 get requests, put_count=4809 evicted_count=1000 eviction_rate=0.207943 and unsatisfied allocation rate=0.227031
+2017-06-18 21:17:42.650497: I tensorflow/core/common_runtime/gpu/pool_allocator.cc:259] Raising pool_size_limit_ from 256 to 281
+Average loss at step 2000: 4.352453
+Average loss at step 4000: 3.896251
+Average loss at step 6000: 3.775162
+Average loss at step 8000: 3.711626
+Average loss at step 10000: 3.654511
+Nearest to also: apparent, systems, eventually, mussels, atheistic, weishaupt, gust, exmoor,
+Nearest to have: has, had, be, are, denounces, marguerite, brandt, barristers,
+Nearest to been: vax, harmless, rance, confucianism, weil, irritate, realisation, blaxploitation,
+Nearest to new: interface, iceni, flaherty, lone, bosom, viol, precedents, secunda,
+Nearest to of: loonie, among, rambla, undertaken, securing, observing, admiral, cataloging,
+Nearest to i: you, falklands, abbott, g, thanksgiving, lili, powerbook, sedative,
+Nearest to its: this, manchukuo, the, kushan, asymptotically, rowboat, their, hada,
+Nearest to about: redstone, if, code, vyasa, analog, quine, louise, pooh,
+Nearest to most: tower, language, soundly, glucose, raps, nsfnet, stram, bing,
+Nearest to not: still, what, ellipsis, decentralisation, it, however, beethoven, homosexuality,
+Nearest to may: could, can, will, must, coincidental, would, should, distinguish,
+Nearest to between: weidman, over, synonym, penchant, quell, tats, sidebands, cosby,
+Nearest to there: legacy, sept, trustworthy, these, cuyp, farms, inquire, funimation,
+Nearest to more: crispy, escort, intermission, boats, spaceman, ravel, arithmetical, less,
+Nearest to see: fx, inheritors, metered, mistakenly, francia, california, cartels, assistance,
+Nearest to two: three, missoula, one, arturo, environments, pir, spirituals, ste,
+Average loss at step 12000: 3.626777
+Average loss at step 14000: 3.586024
+Average loss at step 16000: 3.556536
+Average loss at step 18000: 3.533802
+Average loss at step 20000: 3.507083
+Nearest to also: apparent, gust, abram, systems, eventually, mussels, wealthy, atheistic,
+Nearest to have: had, has, having, brandt, be, straddles, barristers, are,
+Nearest to been: become, rance, vax, harmless, realisation, embattled, irritate, globes,
+Nearest to new: interface, flaherty, iceni, lup, ftl, rrez, kit, lone,
+Nearest to of: among, rambla, loonie, securing, cataloging, admiral, undertaken, observing,
+Nearest to i: you, me, g, powerbook, abbott, lili, m, sedative,
+Nearest to its: their, kushan, the, this, asymptotically, manchukuo, rowboat, hada,
+Nearest to about: redstone, if, since, louise, little, code, vyasa, strictly,
+Nearest to most: tower, language, soundly, ethnic, glucose, nsfnet, bearers, among,
+Nearest to not: still, what, ellipsis, homosexuality, centrepiece, specialized, decentralisation, thermotropic,
+Nearest to may: could, can, must, will, should, would, might, cannot,
+Nearest to between: weidman, over, department, synonym, penchant, tats, inflow, quell,
+Nearest to there: legacy, trustworthy, cuyp, sept, these, marrying, landings, inquire,
+Nearest to more: less, crispy, rather, boats, spaceman, escort, thence, dane,
+Nearest to see: fx, inheritors, metered, assistance, francia, mistakenly, cartels, madge,
+Nearest to two: three, arturo, missoula, veterinarians, strictly, four, ste, radio,
+Average loss at step 22000: 3.482478
+Average loss at step 24000: 3.460762
+Average loss at step 26000: 3.441429
+Average loss at step 28000: 3.427378
+Average loss at step 30000: 3.417792
+Nearest to also: apparent, abram, gust, pronounce, witt, wealthy, stockhausen, hitpa,
+Nearest to have: had, has, having, brandt, straddles, be, were, barristers,
+Nearest to been: become, rance, embattled, vax, realisation, harmless, several, globes,
+Nearest to new: flaherty, iceni, ftl, enabled, interface, lup, kit, rrez,
+Nearest to of: among, rambla, securing, loonie, cataloging, observing, undertaken, throughout,
+Nearest to i: you, me, powerbook, g, abbott, we, t, lili,
+Nearest to its: their, kushan, the, lydian, this, asymptotically, manchukuo, potential,
+Nearest to about: redstone, louise, little, if, code, remarking, mounted, since,
+Nearest to most: tower, among, ethnic, bearers, more, soundly, many, upsets,
+Nearest to not: still, what, ellipsis, homosexuality, centrepiece, specialized, decentralisation, struma,
+Nearest to may: could, can, must, will, should, would, might, cannot,
+Nearest to between: weidman, over, tats, forbade, other, department, inflow, coretta,
+Nearest to there: legacy, cuyp, trustworthy, sept, these, marrying, landings, lollard,
+Nearest to more: less, rather, crispy, boats, escort, spaceman, faster, thence,
+Nearest to see: fx, inheritors, metered, assistance, madge, thyroid, mistakenly, dieu,
+Nearest to two: three, four, arturo, one, veterinarians, turret, five, alpinus,
+Average loss at step 32000: 3.396475
+Average loss at step 34000: 3.385493
+Average loss at step 36000: 3.370742
+Average loss at step 38000: 3.359877
+Average loss at step 40000: 3.344813
+Nearest to also: abram, apparent, pronounce, gust, hitpa, below, witt, craters,
+Nearest to have: has, had, having, brandt, straddles, include, be, were,
+Nearest to been: become, rance, realisation, vax, embattled, globes, irritate, bolshevik,
+Nearest to new: flaherty, iceni, ftl, lup, enabled, kit, adhesive, lombok,
+Nearest to of: among, rambla, throughout, observing, securing, cataloging, undertaken, loonie,
+Nearest to i: you, me, we, g, powerbook, rias, t, my,
+Nearest to its: their, kushan, the, lydian, jodie, potential, stays, supporting,
+Nearest to about: redstone, louise, code, little, mounted, analog, among, severe,
+Nearest to most: more, tower, many, bearers, among, ethnic, upsets, decline,
+Nearest to not: still, ellipsis, specialized, homosexuality, struma, centrepiece, what, decentralisation,
+Nearest to may: could, can, must, should, will, would, might, cannot,
+Nearest to between: weidman, over, forbade, department, tats, selangor, within, stowe,
+Nearest to there: legacy, trustworthy, sept, cuyp, marrying, lollard, freefall, funimation,
+Nearest to more: less, rather, most, faster, boats, crispy, spaceman, escort,
+Nearest to see: fx, metered, inheritors, madge, assistance, thyroid, dieu, routledge,
+Nearest to two: three, four, arturo, five, missoula, mile, one, veterinarians,
+Average loss at step 42000: 3.335228
+Average loss at step 44000: 3.319990
+Average loss at step 46000: 3.313496
+Average loss at step 48000: 3.302013
+Average loss at step 50000: 3.289619
+Nearest to also: below, abram, pronounce, hitpa, selene, wealthy, apparent, dwan,
+Nearest to have: has, had, having, brandt, be, straddles, include, were,
+Nearest to been: become, rance, globes, embattled, irritate, realisation, vax, led,
+Nearest to new: lup, flaherty, iceni, ftl, kit, enabled, adhesive, segment,
+Nearest to of: throughout, among, rambla, securing, observing, cataloging, undertaken, loonie,
+Nearest to i: you, me, we, my, g, god, rias, powerbook,
+Nearest to its: their, kushan, the, lydian, jodie, our, his, potential,
+Nearest to about: louise, redstone, bogart, severe, rousseau, keynote, mounted, kajang,
+Nearest to most: more, many, tower, bearers, among, upsets, extremely, decline,
+Nearest to not: still, ellipsis, specialized, homosexuality, struma, sustainable, centrepiece, treeless,
+Nearest to may: could, can, must, should, would, will, might, cannot,
+Nearest to between: forbade, weidman, both, within, selangor, department, tats, stowe,
+Nearest to there: legacy, cuyp, trustworthy, sept, marrying, lollard, mapuche, funimation,
+Nearest to more: less, rather, most, faster, boats, spaceman, violins, escort,
+Nearest to see: fx, metered, madge, assistance, thyroid, inheritors, dieu, cooperatives,
+Nearest to two: three, four, licensee, mile, arturo, veterinarians, delaware, one,
+Average loss at step 52000: 3.285617
+Average loss at step 54000: 3.267626
+Average loss at step 56000: 3.264203
+Average loss at step 58000: 3.252832
+Average loss at step 60000: 3.240172
+Nearest to also: below, abram, pronounce, selene, disambiguation, craters, wealthy, hitpa,
+Nearest to have: has, had, having, brandt, include, straddles, were, barristers,
+Nearest to been: become, rance, globes, led, come, embattled, irritate, kaltenbrunner,
+Nearest to new: lup, flaherty, iceni, adhesive, kit, enabled, ftl, segment,
+Nearest to of: throughout, rambla, securing, among, cataloging, loonie, observing, undertaken,
+Nearest to i: you, me, we, my, god, g, rias, glare,
+Nearest to its: their, kushan, his, lydian, bengal, stays, malleus, jodie,
+Nearest to about: louise, redstone, bogart, rousseau, severe, kajang, keynote, caterpillars,
+Nearest to most: more, many, bearers, tower, some, among, upsets, decline,
+Nearest to not: still, homosexuality, ellipsis, struma, sustainable, specialized, centrepiece, oahu,
+Nearest to may: could, must, can, should, would, will, might, cannot,
+Nearest to between: both, selangor, forbade, within, stowe, tats, with, weidman,
+Nearest to there: legacy, sept, trustworthy, cuyp, marrying, safin, mapuche, considered,
+Nearest to more: less, most, rather, faster, boats, spaceman, greater, diamond,
+Nearest to see: fx, known, madge, thyroid, metered, assistance, cooperatives, cyprus,
+Nearest to two: three, four, veterinarians, arturo, licensee, throats, five, six,
+Average loss at step 62000: 3.232007
+Average loss at step 64000: 3.218891
+Average loss at step 66000: 3.216947
+Average loss at step 68000: 3.212265
+Average loss at step 70000: 3.210981
+Nearest to also: below, abram, disambiguation, pronounce, selene, dwan, wealthy, brugha,
+Nearest to have: has, had, having, brandt, include, straddles, were, barristers,
+Nearest to been: become, come, led, rance, globes, panic, embattled, bolshevik,
+Nearest to new: lup, kit, adhesive, flaherty, iceni, segment, enabled, ambrosius,
+Nearest to of: rambla, securing, throughout, among, cataloging, undertaken, observing, loonie,
+Nearest to i: you, me, we, my, g, god, rias, mchale,
+Nearest to its: their, kushan, his, bengal, lydian, stays, the, jodie,
+Nearest to about: louise, redstone, rousseau, bogart, severe, kajang, arthropod, keynote,
+Nearest to most: more, many, bearers, among, upsets, some, tower, decline,
+Nearest to not: still, homosexuality, ellipsis, specialized, sustainable, neusner, struma, oahu,
+Nearest to may: can, must, could, should, would, will, might, cannot,
+Nearest to between: both, selangor, within, forbade, stowe, mmix, with, weidman,
+Nearest to there: legacy, sept, trustworthy, cuyp, mapuche, marrying, safin, cayce,
+Nearest to more: less, most, faster, rather, boats, greater, spaceman, diamond,
+Nearest to see: fx, known, madge, cyprus, thyroid, metered, galante, ludovico,
+Nearest to two: three, four, five, veterinarians, arturo, mile, kw, licensee,
+Average loss at step 72000: 3.196167
+Average loss at step 74000: 3.185174
+Average loss at step 76000: 3.184540
+Average loss at step 78000: 3.180000
+Average loss at step 80000: 3.173517
+Nearest to also: below, abram, disambiguation, pronounce, dwan, inept, selene, wealthy,
+Nearest to have: has, had, having, include, brandt, straddles, were, are,
+Nearest to been: become, come, rance, led, globes, panic, gone, embattled,
+Nearest to new: lup, kit, flaherty, adhesive, segment, iceni, enabled, timescale,
+Nearest to of: throughout, rambla, securing, loonie, among, cataloging, observing, undertaken,
+Nearest to i: you, me, we, my, g, god, ii, rias,
+Nearest to its: their, kushan, his, jodie, the, lydian, stays, bengal,
+Nearest to about: louise, bogart, rousseau, redstone, severe, around, kajang, arthropod,
+Nearest to most: more, many, bearers, some, among, upsets, very, extremely,
+Nearest to not: still, ellipsis, homosexuality, specialized, neusner, sustainable, struma, never,
+Nearest to may: can, could, must, should, would, will, might, cannot,
+Nearest to between: both, selangor, within, forbade, mmix, with, stowe, laxness,
+Nearest to there: legacy, sept, trustworthy, cayce, marrying, cuyp, mapuche, lollard,
+Nearest to more: less, faster, most, rather, boats, diamond, greater, better,
+Nearest to see: fx, known, cyprus, madge, thyroid, galante, ludovico, strata,
+Nearest to two: three, four, five, arturo, six, kw, bubbles, veterinarians,
+Average loss at step 82000: 3.165248
+Average loss at step 84000: 3.156991
+Average loss at step 86000: 3.151638
+Average loss at step 88000: 3.146849
+Average loss at step 90000: 3.138458
+Nearest to also: below, disambiguation, abram, pronounce, selene, abkhazian, angela, statutes,
+Nearest to have: has, had, having, include, brandt, straddles, scars, barristers,
+Nearest to been: become, come, gone, globes, led, rance, panic, hoddle,
+Nearest to new: kit, lup, segment, flaherty, adhesive, enabled, heater, fijian,
+Nearest to of: securing, throughout, cataloging, rambla, observing, loonie, among, cargo,
+Nearest to i: you, me, we, ii, my, god, g, rias,
+Nearest to its: their, his, kushan, the, jodie, our, stays, bengal,
+Nearest to about: louise, severe, bogart, rousseau, redstone, around, kajang, arthropod,
+Nearest to most: more, many, bearers, some, among, extremely, very, upsets,
+Nearest to not: still, ellipsis, specialized, never, homosexuality, sustainable, struma, neusner,
+Nearest to may: can, must, could, should, might, would, will, cannot,
+Nearest to between: both, within, selangor, with, forbade, stowe, laxness, mmix,
+Nearest to there: legacy, sept, trustworthy, longer, mapuche, cayce, safin, lollard,
+Nearest to more: less, most, faster, rather, greater, boats, diamond, better,
+Nearest to see: fx, known, ludovico, galante, madge, thyroid, cyprus, references,
+Nearest to two: three, four, five, six, kw, licensee, one, arturo,
+Average loss at step 92000: 3.137631
+Average loss at step 94000: 3.131285
+Average loss at step 96000: 3.122762
+Average loss at step 98000: 3.118939
+Average loss at step 100000: 3.112847
+Nearest to also: below, disambiguation, abram, pronounce, angela, selene, dwan, now,
+Nearest to have: has, had, having, brandt, include, straddles, scars, are,
+Nearest to been: become, come, gone, globes, led, hou, be, panic,
+Nearest to new: kit, lup, segment, flaherty, adhesive, heater, fijian, enabled,
+Nearest to of: securing, cataloging, rambla, throughout, cargo, among, undertaken, loonie,
+Nearest to i: you, me, we, ii, my, god, g, rias,
+Nearest to its: their, his, kushan, stays, jodie, our, her, bengal,
+Nearest to about: louise, bogart, severe, rousseau, redstone, around, kajang, keynote,
+Nearest to most: more, many, some, bearers, extremely, among, very, quarrelled,
+Nearest to not: still, never, homosexuality, ellipsis, sustainable, struma, neusner, specialized,
+Nearest to may: can, must, could, should, might, will, would, cannot,
+Nearest to between: both, within, selangor, forbade, with, laxness, stowe, mmix,
+Nearest to there: legacy, sept, trustworthy, cayce, longer, safin, lollard, cuyp,
+Nearest to more: less, most, faster, rather, greater, boats, better, diamond,
+Nearest to see: fx, known, ludovico, galante, cyprus, references, khmelnytsky, madge,
+Nearest to two: three, four, five, six, kw, veterinarians, mile, one,
+#+end_example
+
+
+#+BEGIN_SRC python
+  num_points = 400
+
+  tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=5000)
+  two_d_embeddings = tsne.fit_transform(final_embeddings[1:num_points+1, :])
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+  def plot(embeddings, labels):
+    assert embeddings.shape[0] >= len(labels), 'More labels than embeddings'
+    pylab.figure(figsize=(15,15))  # in inches
+    for i, label in enumerate(labels):
+      x, y = embeddings[i,:]
+      pylab.scatter(x, y)
+      pylab.annotate(label, xy=(x, y), xytext=(5, 2), textcoords='offset points',
+                     ha='right', va='bottom')
+    # pylab.show()
+
+  words = [reverse_dictionary[i] for i in range(1, num_points+1)]
+#+END_SRC
+
+#+RESULTS:
+  
+#+BEGIN_SRC python :results file
+  plot(two_d_embeddings, words)
+  img_file = "imgs/cbow_plot.png"
+  pylab.savefig(img_file)
+
+  print(img_file)
+#+END_SRC
+
+#+RESULTS:
+[[file:imgs/cbow_plot.png]]
+
 
 
 ** Assignment 6
