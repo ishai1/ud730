@@ -4,9 +4,39 @@
 #+STARTUP: indent
 #+OPTIONS: author:nil
 
-* Deep Learning
+* Table of Contents                                                            :TOC_3_gh:
+- [[#assignment-1][Assignment 1]]
+  - [[#problem-1][Problem 1]]
+  - [[#problem-2][Problem 2]]
+  - [[#problem-3][Problem 3]]
+  - [[#problem-4][Problem 4]]
+  - [[#problem-5][Problem 5]]
+  - [[#problem-6][Problem 6]]
+- [[#assignment-2][Assignment 2]]
+  - [[#problem-1-1][Problem 1]]
+  - [[#problem-2-1][Problem 2]]
+- [[#assignment-3][Assignment 3]]
+  - [[#problem-1-2][Problem 1]]
+  - [[#problem-2-2][Problem 2]]
+  - [[#problem-3-1][Problem 3]]
+  - [[#problem-4-1][Problem 4]]
+- [[#assignment-4][Assignment 4]]
+  - [[#starter-code][Starter code]]
+  - [[#problem-1-3][Problem 1]]
+  - [[#problem-2-3][Problem 2]]
+    - [[#experiments][experiments]]
+- [[#assignment-5][Assignment 5]]
+  - [[#starter-code-1][starter code]]
+  - [[#problem][Problem]]
+- [[#assignment-6][Assignment 6]]
+  - [[#starter-code-2][starter code]]
+  - [[#problem-1-4][Problem 1]]
+  - [[#problem-2-4][Problem 2]]
+    - [[#ab][a+b]]
+    - [[#c][c]]
+  - [[#problem-3-2][Problem 3]]
 
-** Assignment 1
+* Assignment 1
 :PROPERTIES:
 :CUSTOM_ID: assignment-1
 :header-args: :session a1py
@@ -133,7 +163,7 @@ Extract the dataset from the compressed .tar.gz file. This should give you a set
 
 #+RESULTS:
 
-*** Problem 1
+** Problem 1
 :PROPERTIES:
     :CUSTOM_ID: problem-1
     :END:
@@ -243,7 +273,7 @@ To avoid standardizing and use uint8 encoding:
  #+RESULTS:
 
 
-*** Problem 2
+** Problem 2
 :PROPERTIES:
 :CUSTOM_ID: problem-2
 :END:
@@ -276,7 +306,7 @@ To avoid standardizing and use uint8 encoding:
 [[file:imgs/sample.png]]
 
 
-*** Problem 3
+** Problem 3
     :PROPERTIES:
     :CUSTOM_ID: problem-3
     :END:
@@ -390,7 +420,7 @@ To avoid standardizing and use uint8 encoding:
  : None
 
 
-*** Problem 4
+** Problem 4
 :PROPERTIES:
 :CUSTOM_ID: problem-4
 :END:
@@ -468,7 +498,7 @@ Convince yourself that the data is still good after shuffling!
 
 
 
-*** Problem 5
+** Problem 5
 :PROPERTIES:
 :CUSTOM_ID: problem-5
 :END:
@@ -488,11 +518,11 @@ Optional questions:
 
 #+RESULTS: radius
 
-***** broadcast + expand l2
+**** broadcast + expand l2
 
-****** get_edges
+***** get_edges
 
-******* numpy
+****** numpy
 
 #+BEGIN_SRC python :var pre1=imps1 pre2=imps2 pre3=load_int8_pkl pre4=shapes pre5=radius
   from math import ceil
@@ -544,7 +574,7 @@ E = (np.vstack(E).T)[[E[0]<E[1]]]
 #+END_SRC
 
 
-******* IN-PROGRESS tflow
+****** IN-PROGRESS tflow
 
 #+BEGIN_SRC python :var pre1=imps1 pre2=imps2 pre3=load_int8_pkl pre4=shapes pre5=radius
   import tensorflow as tf
@@ -589,7 +619,7 @@ E = (np.vstack(E).T)[[E[0]<E[1]]]
 : 1.06335e+07
 
 
-****** post process
+***** post process
 
 #+BEGIN_SRC python
   train_edges = get_edges(train_dataset)
@@ -798,7 +828,7 @@ Lots of small groups of similar images at radius 2^4
 1 very large group
 
 
-***** IN-PROGRESS digitize and cluster
+**** IN-PROGRESS digitize and cluster
 
 #+BEGIN_SRC python
 train_dataset = train_dataset.reshape([train_dataset.shape[0],-1])
@@ -877,7 +907,7 @@ convert(Array{UInt8,3},data["test_dataset"])
 #+END_SRC
 
 
-*** Problem 6
+** Problem 6
 :PROPERTIES:
 :CUSTOM_ID: problem-6
 :END:
@@ -956,7 +986,7 @@ Optional question: train an off-the-shelf model on all the data!
 #+END_EXAMPLE
 
 
-** Assignment 2
+* Assignment 2
 :PROPERTIES:
 :CUSTOM_ID: assignment-2
 :header-args: :session a2py
@@ -1268,7 +1298,7 @@ Let's run it:
 
 
 
-*** Problem 1
+** Problem 1
 :PROPERTIES:
 :CUSTOM_ID: problem
 :END:
@@ -1376,7 +1406,7 @@ accuracy.
  #+END_EXAMPLE
 
 
-*** Problem 2
+** Problem 2
 :PROPERTIES:
 :CUSTOM_ID: redo-previous-proper-sgd-randomize-order
 :END:
@@ -1518,7 +1548,7 @@ accuracy.
 
 
 
-** Assignment 3
+* Assignment 3
 :PROPERTIES:
 :CUSTOM_ID: assignment-3
 :header-args: :session a3py
@@ -1611,7 +1641,7 @@ accuracy.
 
 
 
-*** Problem 1
+** Problem 1
     :PROPERTIES:
     :CUSTOM_ID: problem-1
     :END:
@@ -1761,7 +1791,7 @@ accuracy.
 
 
 
-*** Problem 2
+** Problem 2
     :PROPERTIES:
     :CUSTOM_ID: problem-2
     :END:
@@ -1908,7 +1938,7 @@ accuracy.
 
 
 
-*** Problem 3
+** Problem 3
     :PROPERTIES:
     :CUSTOM_ID: problem-3
     :END:
@@ -2066,7 +2096,7 @@ accuracy.
 
 
 
-*** Problem 4
+** Problem 4
     :PROPERTIES:
     :CUSTOM_ID: problem-4
     :END:
@@ -2305,12 +2335,12 @@ accuracy.
  #+END_SRC
 
 
-** Assignment 4
+* Assignment 4
 :PROPERTIES:
 :header-args: :session a4py
 :END:
 
-*** Starter code
+** Starter code
 
 Previously in =2_fullyconnected.ipynb= and =3_regularization.ipynb=, we
 trained fully connected networks to classify
@@ -2564,7 +2594,7 @@ Test accuracy: 85.7%
 
 
 
-*** Problem 1 
+** Problem 1 
 
 The convolutional model above uses convolutions with stride 2 to reduce
 the dimensionality. Replace the strides by a max pooling operation
@@ -2945,12 +2975,12 @@ Test accuracy: 91.7%
 #+end_example
 
 
-*** Problem 2
+** Problem 2
 Try to get the best performance you can using a convolutional net. Look for example at the classic [[http://yann.lecun.com/exdb/lenet/][LeNet5]] architecture, adding Dropout, and/or adding learning rate decay.
 
-**** experiments
+*** experiments
 
-***** 3
+**** 3
 learning rate_decay + dropout+ regularization
 #+BEGIN_SRC python :session a4aspy :results output
   batch_size = 16
@@ -3336,7 +3366,7 @@ Test accuracy: 90.4%
 #+end_example
 
 
-***** 2
+**** 2
 
 learning rate_decay + dropout 1
 #+BEGIN_SRC python :session a4aspy :results output
@@ -3715,7 +3745,7 @@ Test accuracy: 83.8%
 #+end_example
 
 
-***** 1
+**** 1
 
 only dropout
 #+BEGIN_SRC python :session a4aspy :results output
@@ -4097,12 +4127,12 @@ Test accuracy: 85.4%
 
 
 
-** Assignment 5
+* Assignment 5
 :PROPERTIES:
 :header-args: :session a5py :results output
 :END:
 
-*** starter code
+** starter code
 :PROPERTIES:
 :ATTACH_DIR_INHERIT: t
 :END:
@@ -4638,7 +4668,7 @@ Nearest to i: we, you, ii, they, iii, frac, t, never,
 [[file:imgs/python-matplot-fig.png]]
 
 
-*** Problem
+** Problem
 
 An alternative to skip-gram is another Word2Vec model called [[http://arxiv.org/abs/1301.3781][CBOW]] (Continuous Bag of Words). In the CBOW model, instead of predicting a context word from a word vector, you predict a word from the sum of all the word vectors in its context. Implement and evaluate a CBOW model trained on the text8 dataset.
 
@@ -4779,14 +4809,14 @@ Train a skip-gram model.
     valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
     # Variables.
     embeddings = tf.Variable(
-      tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
+    tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
     softmax_weights = tf.Variable(
       tf.truncated_normal([vocabulary_size, embedding_size],
                            stddev=1.0 / math.sqrt(embedding_size)))
     softmax_biases = tf.Variable(tf.zeros([vocabulary_size]))
     # Model.
     # Look up (averaged) embeddings for inputs.
-    embed = tf.reduce_mean(tf.nn.embedding_lookup(embeddings, train_dataset), axis=1)  # take mean of embeddings over contexts 
+    embed = tf.reduce_mean(tf.nn.embedding_lookup(embeddings, train_dataset), axis=1)  # take mean of embeddings over contexts
     # Compute the softmax loss, using a sample of the negative labels each time.
     loss = tf.reduce_mean(
       tf.nn.sampled_softmax_loss(weights=softmax_weights, biases=softmax_biases, inputs=embed,
@@ -5139,11 +5169,11 @@ Nearest to two: three, four, five, six, kw, veterinarians, mile, one,
 
 
 
-** Assignment 6
+* Assignment 6
 :PROPERTIES:
 :header-args: :session a6py :results output
 :END:
-*** starter code
+** starter code
 
 After training a skip-gram model in =5_word2vec.ipynb=, the goal of this
 notebook is to train a LSTM character model over
@@ -5165,26 +5195,10 @@ notebook is to train a LSTM character model over
 #+END_SRC
 
 #+RESULTS: start1
-: Python 3.5.2+ (default, Sep 22 2016, 12:18:14) 
-: [GCC 6.2.0 20160927] on linux
-: Type "help", "copyright", "credits" or "license" for more information.
-: ... ... python.el: native completion setup loaded
-: >>> >>> >>> I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcublas.so locally
-: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcudnn.so locally
-: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcufft.so locally
-: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcuda.so.1 locally
-: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcurand.so locally
-
-#+RESULTS:
-: Python 3.5.2+ (default, Sep 22 2016, 12:18:14) 
-: [GCC 6.2.0 20160927] on linux
+: Python 3.5.3 (default, Jan 19 2017, 14:11:04) 
+: [GCC 6.3.0 20170118] on linux
 : Type "help", "copyright", "credits" or "license" for more information.
 : ... python.el: native completion setup loaded
-: ... >>> >>> >>> I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcublas.so locally
-: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcudnn.so locally
-: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcufft.so locally
-: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcuda.so.1 locally
-: I tensorflow/stream_executor/dso_loader.cc:128] successfully opened CUDA library libcurand.so locally
 
 #+NAME: start2
 #+BEGIN_SRC python
@@ -5206,14 +5220,11 @@ notebook is to train a LSTM character model over
   filename = maybe_download('text8.zip', 31344016)
 #+END_SRC
 
-#+RESULTS:
+#+RESULTS: start2
 : 
 : >>> ... ... ... ... ... ... ... ... ... ... ... ... >>> Found and verified text8.zip
 
 
-#+BEGIN_EXAMPLE
-  Found and verified text8.zip
-#+END_EXAMPLE
 
 #+NAME: start3
 #+BEGIN_SRC python
@@ -5227,22 +5238,20 @@ notebook is to train a LSTM character model over
   print('Data size %d' % len(text))
 #+END_SRC
 
-#+RESULTS:
+#+RESULTS: start3
 : 
 : ... ... ... ... >>> >>> Data size 100000000
+
 #+NAME: start4
 #+BEGIN_SRC python
   a = random.randint(0,len(text))
   text[a:a+1000]
 #+END_SRC
 
-#+RESULTS:
+#+RESULTS: start4
 : 
-: 'l level production without sacrificing the quality of a hand crafted instrument unlike most string instruments or other wind instruments for these reasons the harmonica was a success almost from the very start of production and while the center of the harmonica business has shifted from germany the output of the various harmonica manufacturers is still very high indeed major companies are now found in germany hohner once the dominant manufacturer in the world producing some two zero million harmonicas alone in one nine two zero when german manufacturing totaled over five zero million harmonicas japan suzuki tombo yamaha china huang leo shi suzuki hohner and brasil hering ironically as the demand for higher quality instruments which respond to more demanding performance techniques has increased there has been a resurgence in the world of hand crafted harmonicas which cater to those wanting the absolute best without the compromises inherent in mass manufacturing europe and north america '
+: 'esitylene c six h three ch three three toluene c six h five ch three xylene c six h four ch three two other substituents aniline c six h five nh two acetylsalicylic acid c six h four o c o ch three cooh benzoic acid c six h five cooh biphenyl c six h five two chlorobenzene c six h five cl nitrobenzene c six h five no two paracetamol c six h four nh c o ch three oh phenacetin c six h four nh c o ch three o ch two ch three phenol c six h five oh picric acid c six h two oh no two three salicylic acid c six h four oh cooh trinitrotoluene c six h two ch three no two three fused aromatic rings anthracene benzofuran indole isoquinoline naphthalene phenanthrene polycyclic aromatic hydrocarbons pah quinoline heterocyclic analogs in heterocycles carbon atoms in the benzene ring are replaced with another element pyrazine pyridazine pyridine pyrimidine see simple aromatic ring for analogs of benzene production benzene may result whenever carbon rich materials undergo incomplete combustion it is pr'
 
-#+BEGIN_EXAMPLE
-  Data size 100000000
-#+END_EXAMPLE
 
 Create a small validation set.
 #+NAME: start5
@@ -5255,15 +5264,11 @@ Create a small validation set.
   print(valid_size, valid_text[:64])
 #+END_SRC
 
-#+RESULTS:
+#+RESULTS: start5
 : 
 : >>> >>> >>> 99999000 ons anarchists advocate social relations based upon voluntary as
 : 1000  anarchism originated as a term of abuse first used against earl
 
-#+BEGIN_EXAMPLE
-  99999000 ons anarchists advocate social relations based upon voluntary as
-  1000  anarchism originated as a term of abuse first used against earl
-#+END_EXAMPLE
 
 Utility functions to map characters to vocabulary IDs and back.
 #+NAME: start6
@@ -5271,7 +5276,7 @@ Utility functions to map characters to vocabulary IDs and back.
   ord(string.ascii_lowercase[0])
 #+END_SRC
 
-#+RESULTS:
+#+RESULTS: start6
 : 97
 
 #+NAME: start7
@@ -5298,24 +5303,13 @@ Utility functions to map characters to vocabulary IDs and back.
   print(id2char(1), id2char(26), id2char(0))
 #+END_SRC
 
-#+RESULTS:
+#+RESULTS: start7
 : 
 : >>> >>> ... ... ... ... ... ... ... ... >>> ... ... ... ... ... >>> Unexpected character: ï
 : 1 26 0 0
 : a z
 
-#+BEGIN_EXAMPLE
-  1 26 0 Unexpected character: ï
-  0
-  a z  
-#+END_EXAMPLE
-
 Function to generate a training batch for the LSTM model.
-
-#+NAME: start8
-#+BEGIN_SRC python :results output
-batch_size=64
-#+END_SRC
 
 #+NAME: start9
 #+BEGIN_SRC python
@@ -5370,22 +5364,16 @@ batch_size=64
   print(batches2string(valid_batches.next()))
 #+END_SRC
 
-#+RESULTS:
+#+RESULTS: start9
 : 
-: >>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... >>> ... ... ... ... >>> ... ... ... ... ... ... ... >>> >>> ['ons anarchi', 'when milita', 'lleria arch', ' abbeys and', 'married urr', 'hel and ric', 'y and litur', 'ay opened f', 'tion from t', 'migration t', 'new york ot', 'he boeing s', 'e listed wi', 'eber has pr', 'o be made t', 'yer who rec', 'ore signifi', 'a fierce cr', ' two six ei', 'aristotle s', 'ity can be ', ' and intrac', 'tion of the', 'dy to pass ', 'f certain d', 'at it will ', 'e convince ', 'ent told hi', 'ampaign and', 'rver side s', 'ious texts ', 'o capitaliz', 'a duplicate', 'gh ann es d', 'ine january', 'ross zero t', 'cal theorie', 'ast instanc', ' dimensiona', 'most holy m', 't s support', 'u is still ', 'e oscillati', 'o eight sub', 'of italy la', 's the tower', 'klahoma pre', 'erprise lin', 'ws becomes ', 'et in a naz', 'the fabian ', 'etchy to re', ' sharman ne', 'ised empero', 'ting in pol', 'd neo latin', 'th risky ri', 'encyclopedi', 'fense the a', 'duating fro', 'treet grid ', 'ations more', 'appeal of d', 'si have mad']
-: ['ists advoca', 'ary governm', 'hes nationa', 'd monasteri', 'raca prince', 'chard baer ', 'rgical lang', 'for passeng', 'the nationa', 'took place ', 'ther well k', 'seven six s', 'ith a gloss', 'robably bee', 'to recogniz', 'ceived the ', 'icant than ', 'ritic of th', 'ight in sig', 's uncaused ', ' lost as in', 'cellular ic', 'e size of t', ' him a stic', 'drugs confu', ' take to co', ' the priest', 'im to name ', 'd barred at', 'standard fo', ' such as es', 'ze on the g', 'e of the or', 'd hiver one', 'y eight mar', 'the lead ch', 'es classica', 'ce the non ', 'al analysis', 'mormons bel', 't or at lea', ' disagreed ', 'ing system ', 'btypes base', 'anguages th', 'r commissio', 'ess one nin', 'nux suse li', ' the first ', 'zi concentr', ' society ne', 'elatively s', 'etworks sha', 'or hirohito', 'litical ini', 'n most of t', 'iskerdoo ri', 'ic overview', 'air compone', 'om acnm acc', ' centerline', 'e than any ', 'devotional ', 'de such dev']
-: [' a']
-: ['an']
+: >>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... >>> ... ... ... ... >>> ... ... ... ... ... ... ... >>> >>> >>> >>> ['o n s   a n a r c h i ', 'w h e n   m i l i t a ', 'l l e r i a   a r c h ', '  a b b e y s   a n d ', 'm a r r i e d   u r r ', 'h e l   a n d   r i c ', 'y   a n d   l i t u r ', 'a y   o p e n e d   f ', 't i o n   f r o m   t ', 'm i g r a t i o n   t ', 'n e w   y o r k   o t ', 'h e   b o e i n g   s ', 'e   l i s t e d   w i ', 'e b e r   h a s   p r ', 'o   b e   m a d e   t ', 'y e r   w h o   r e c ', 'o r e   s i g n i f i ', 'a   f i e r c e   c r ', '  t w o   s i x   e i ', 'a r i s t o t l e   s ', 'i t y   c a n   b e   ', '  a n d   i n t r a c ', 't i o n   o f   t h e ', 'd y   t o   p a s s   ', 'f   c e r t a i n   d ', 'a t   i t   w i l l   ', 'e   c o n v i n c e   ', 'e n t   t o l d   h i ', 'a m p a i g n   a n d ', 'r v e r   s i d e   s ', 'i o u s   t e x t s   ', 'o   c a p i t a l i z ', 'a   d u p l i c a t e ', 'g h   a n n   e s   d ', 'i n e   j a n u a r y ', 'r o s s   z e r o   t ', 'c a l   t h e o r i e ', 'a s t   i n s t a n c ', '  d i m e n s i o n a ', 'm o s t   h o l y   m ', 't   s   s u p p o r t ', 'u   i s   s t i l l   ', 'e   o s c i l l a t i ', 'o   e i g h t   s u b ', 'o f   i t a l y   l a ', 's   t h e   t o w e r ', 'k l a h o m a   p r e ', 'e r p r i s e   l i n ', 'w s   b e c o m e s   ', 'e t   i n   a   n a z ', 't h e   f a b i a n   ', 'e t c h y   t o   r e ', '  s h a r m a n   n e ', 'i s e d   e m p e r o ', 't i n g   i n   p o l ', 'd   n e o   l a t i n ', 't h   r i s k y   r i ', 'e n c y c l o p e d i ', 'f e n s e   t h e   a ', 'd u a t i n g   f r o ', 't r e e t   g r i d   ', 'a t i o n s   m o r e ', 'a p p e a l   o f   d ', 's i   h a v e   m a d ']
+: ['i s t s   a d v o c a ', 'a r y   g o v e r n m ', 'h e s   n a t i o n a ', 'd   m o n a s t e r i ', 'r a c a   p r i n c e ', 'c h a r d   b a e r   ', 'r g i c a l   l a n g ', 'f o r   p a s s e n g ', 't h e   n a t i o n a ', 't o o k   p l a c e   ', 't h e r   w e l l   k ', 's e v e n   s i x   s ', 'i t h   a   g l o s s ', 'r o b a b l y   b e e ', 't o   r e c o g n i z ', 'c e i v e d   t h e   ', 'i c a n t   t h a n   ', 'r i t i c   o f   t h ', 'i g h t   i n   s i g ', 's   u n c a u s e d   ', '  l o s t   a s   i n ', 'c e l l u l a r   i c ', 'e   s i z e   o f   t ', '  h i m   a   s t i c ', 'd r u g s   c o n f u ', '  t a k e   t o   c o ', '  t h e   p r i e s t ', 'i m   t o   n a m e   ', 'd   b a r r e d   a t ', 's t a n d a r d   f o ', '  s u c h   a s   e s ', 'z e   o n   t h e   g ', 'e   o f   t h e   o r ', 'd   h i v e r   o n e ', 'y   e i g h t   m a r ', 't h e   l e a d   c h ', 'e s   c l a s s i c a ', 'c e   t h e   n o n   ', 'a l   a n a l y s i s ', 'm o r m o n s   b e l ', 't   o r   a t   l e a ', '  d i s a g r e e d   ', 'i n g   s y s t e m   ', 'b t y p e s   b a s e ', 'a n g u a g e s   t h ', 'r   c o m m i s s i o ', 'e s s   o n e   n i n ', 'n u x   s u s e   l i ', '  t h e   f i r s t   ', 'z i   c o n c e n t r ', '  s o c i e t y   n e ', 'e l a t i v e l y   s ', 'e t w o r k s   s h a ', 'o r   h i r o h i t o ', 'l i t i c a l   i n i ', 'n   m o s t   o f   t ', 'i s k e r d o o   r i ', 'i c   o v e r v i e w ', 'a i r   c o m p o n e ', 'o m   a c n m   a c c ', '  c e n t e r l i n e ', 'e   t h a n   a n y   ', 'd e v o t i o n a l   ', 'd e   s u c h   d e v ']
+: ['  a ']
+: ['a n ']
 
-#+BEGIN_EXAMPLE
-     ['ons anarchi', 'when milita', 'lleria arch', ' abbeys and', 'married urr', 'hel and ric', 'y and litur', 'ay opened f', 'tion from t', 'migration t', 'new york ot', 'he boeing s', 'e listed wi', 'eber has pr', 'o be made t', 'yer who rec', 'ore signifi', 'a fierce cr', ' two six ei', 'aristotle s', 'ity can be ', ' and intrac', 'tion of the', 'dy to pass ', 'f certain d', 'at it will ', 'e convince ', 'ent told hi', 'ampaign and', 'rver side s', 'ious texts ', 'o capitaliz', 'a duplicate', 'gh ann es d', 'ine january', 'ross zero t', 'cal theorie', 'ast instanc', ' dimensiona', 'most holy m', 't s support', 'u is still ', 'e oscillati', 'o eight sub', 'of italy la', 's the tower', 'klahoma pre', 'erprise lin', 'ws becomes ', 'et in a naz', 'the fabian ', 'etchy to re', ' sharman ne', 'ised empero', 'ting in pol', 'd neo latin', 'th risky ri', 'encyclopedi', 'fense the a', 'duating fro', 'treet grid ', 'ations more', 'appeal of d', 'si have mad']
-     ['ists advoca', 'ary governm', 'hes nationa', 'd monasteri', 'raca prince', 'chard baer ', 'rgical lang', 'for passeng', 'the nationa', 'took place ', 'ther well k', 'seven six s', 'ith a gloss', 'robably bee', 'to recogniz', 'ceived the ', 'icant than ', 'ritic of th', 'ight in sig', 's uncaused ', ' lost as in', 'cellular ic', 'e size of t', ' him a stic', 'drugs confu', ' take to co', ' the priest', 'im to name ', 'd barred at', 'standard fo', ' such as es', 'ze on the g', 'e of the or', 'd hiver one', 'y eight mar', 'the lead ch', 'es classica', 'ce the non ', 'al analysis', 'mormons bel', 't or at lea', ' disagreed ', 'ing system ', 'btypes base', 'anguages th', 'r commissio', 'ess one nin', 'nux suse li', ' the first ', 'zi concentr', ' society ne', 'elatively s', 'etworks sha', 'or hirohito', 'litical ini', 'n most of t', 'iskerdoo ri', 'ic overview', 'air compone', 'om acnm acc', ' centerline', 'e than any ', 'devotional ', 'de such dev']
-     [' a']
-     ['an']
-#+END_EXAMPLE
 
 #+NAME: start10
-#+BEGIN_SRC python
+#+BEGIN_SRC python :results none
   def logprob(predictions, labels):
     """Log-probability of the true labels in a predicted batch."""
     predictions[predictions < 1e-10] = 1e-10
@@ -5415,11 +5403,11 @@ batch_size=64
     return b/np.sum(b, 1)[:,None]
 #+END_SRC
 
-#+RESULTS:
+#+RESULTS: start10
 
 Simple LSTM Model.
 #+NAME: start11
-#+BEGIN_SRC python
+#+BEGIN_SRC python :results none
   num_nodes = 64
 
   graph = tf.Graph()
@@ -5476,10 +5464,10 @@ Simple LSTM Model.
     with tf.control_dependencies([saved_output.assign(output),
                                   saved_state.assign(state)]):
       # Classifier.
-      logits = tf.nn.xw_plus_b(tf.concat(0, outputs), w, b)
+      logits = tf.nn.xw_plus_b(tf.concat(outputs, 0), w, b)
       loss = tf.reduce_mean(
         tf.nn.softmax_cross_entropy_with_logits(
-          logits, tf.concat(0, train_labels)))
+          logits=logits, labels=tf.concat(train_labels, 0)))
     # Optimizer.
     global_step = tf.Variable(0)
     learning_rate = tf.train.exponential_decay(
@@ -5850,15 +5838,7 @@ Simple LSTM Model.
 #+RESULTS: starupblks
 
 
-#+BEGIN_SRC python
-num_steps
-#+END_SRC
-
-#+RESULTS:
-: ' is not defined
-
-
-*** Problem 1
+** Problem 1
 
 You might have noticed that the definition of the LSTM cell involves 4
 matrix multiplications with the input, and 4 matrix multiplications with
@@ -5866,9 +5846,11 @@ the output. Simplify the expression by using a single matrix multiply
 for each, and variables that are 4 times larger.
 
 --------------
+
+
 #+BEGIN_SRC python
   num_nodes = 64
-
+  tf.reset_default_graph()
   graph = tf.Graph()
   with graph.as_default():
     # Concatanated input and output transition parameter matrices:
@@ -5914,10 +5896,10 @@ for each, and variables that are 4 times larger.
     with tf.control_dependencies([saved_output.assign(output),
                                   saved_state.assign(state)]):
       # Classifier.
-      logits = tf.nn.xw_plus_b(tf.concat(0, outputs), w, b)
+      logits = tf.nn.xw_plus_b(tf.concat(outputs, 0), w, b)
       loss = tf.reduce_mean(
         tf.nn.softmax_cross_entropy_with_logits(
-          logits, tf.concat(0, train_labels)))
+          logits=logits, labels=tf.concat(train_labels, 0)))
     # Optimizer.
     global_step = tf.Variable(0)
     learning_rate = tf.train.exponential_decay(
@@ -6284,8 +6266,7 @@ Validation set perplexity: 4.29
 --------------
 
 
-
-*** Problem 2
+** Problem 2
 
 We want to train a LSTM over bigrams, that is pairs of consecutive
 characters like 'ab' instead of single characters like 'a'. Since the
@@ -6303,74 +6284,251 @@ refer to this [[http://arxiv.org/abs/1409.2329][article]].
 
 --------------
 
-**** c
+*** a+b
 
-Simple with dropout.
+**** setup
+
+#+NAME: p2a
+#+BEGIN_SRC python :var s1 = start1 :var s2 = start2 :var s3 = start3 :var s4 = start4 :var s5 = start5 :var s6 = start6
+#+END_SRC
+
+#+RESULTS: p2a
+
+
+#+NAME: p2a7
+#+BEGIN_SRC python
+  vocabulary_size = len(string.ascii_lowercase) + 1 # [a-z] + ' '
+  n_chars = 2
+  n_tokens = vocabulary_size**n_chars
+  first_letter = ord(string.ascii_lowercase[0])
+
+  def char2id(char):
+    if char in string.ascii_lowercase:
+      return ord(char) - first_letter + 1
+    elif char == ' ':
+      return 0
+    else:
+      print('Unexpected character: %s' % char)
+      return 0
+
+  def chars2id(chars):
+    return sum(char2id(chars[i])*vocabulary_size**i for i in range(len(chars)))
+
+  def id2char(dictid):
+    if dictid > 0:
+      return chr(dictid + first_letter - 1)
+    else:
+      return ' '
+
+  def id2chars(dictid):
+    c_tuple = ''
+    for i in range(n_chars):
+      c_id = dictid % vocabulary_size
+      c_tuple += id2char(c_id)
+      dictid = (dictid-c_id)//vocabulary_size
+    return c_tuple
+
+
+
+  print(char2id('a'), char2id('z'), char2id(' '), char2id('ï'))
+  print(id2char(1), id2char(26), id2char(0))
+  print(chars2id('ad'), chars2id('zz'), chars2id('ab'), chars2id('ïd'), chars2id('a'))
+  print(id2chars(109), id2chars(702), id2chars(0), id2chars(108))
+#+END_SRC
+
+#+RESULTS: p2a7
+: 
+: >>> >>> >>> >>> ... ... ... ... ... ... ... ... >>> ... ... >>> ... ... ... ... ... >>> ... ... ... ... ... ... ... >>> >>> >>> Unexpected character: ï
+: 1 26 0 0
+: a z
+: Unexpected character: ï
+: 109 728 55 108 1
+: ad  z     d
+
+Function to generate a training batch for the LSTM model.
+#+NAME: p2a9
+#+BEGIN_SRC python :results output
+  batch_size=64
+  num_unrollings=5
+  class BatchGenerator(object):
+    def __init__(self, text, batch_size, num_unrollings, n_grams=n_chars):
+      self._text = text
+      self._text_size = len(text)
+      self._batch_size = batch_size
+      self._num_unrollings = num_unrollings
+      segment = self._text_size // (batch_size*n_grams)
+      self._n_grams = n_grams
+      self._cursor = [ offset * segment for offset in range(batch_size)]
+      self._last_batch = self._next_batch()
+    def _next_batch(self):
+      """Generate a single batch from the current cursor position in the data."""
+      batch = np.zeros(shape=(self._batch_size), dtype=np.int32)
+      for b in range(self._batch_size):
+        cursor_l = self._cursor[b]
+        cursor_r = min(self._text_size,self._cursor[b]+self._n_grams)
+        batch[b] = chars2id(self._text[cursor_l:cursor_r])
+        self._cursor[b] = cursor_r % self._text_size
+      return batch
+    def next(self):
+      """Generate the next array of batches from the data. The array consists of
+      the last batch of the previous array, followed by num_unrollings new ones.
+      """
+      batches = [self._last_batch]
+      for step in range(self._num_unrollings):
+        batches.append(self._next_batch())
+      self._last_batch = batches[-1]
+      return batches
+
+  def characters(probabilities):
+    """Turn a 1-hot encoding or a probability distribution over the possible
+    characters back into its (most likely) string of characters representation."""
+    return [id2chars(c) for c in np.argmax(probabilities, 1)]
+
+  def batches2string(batches):
+    """Convert a sequence of batches back into their (most likely) string
+    representation."""
+    s = [''] * batches[0].shape[0]
+    for b in batches:
+      if len(b.shape) == 1:
+        s = [''.join(x) for x in zip(s, [id2chars(c) for c in b])]
+      else:
+        s = [''.join(x) for x in zip(s, characters(b))]
+    return s
+
+  train_batches = BatchGenerator(train_text, batch_size, num_unrollings)
+  valid_batches = BatchGenerator(valid_text, 1, 1)
+
+  print(batches2string(train_batches.next()))
+  print(batches2string(train_batches.next()))
+  print(batches2string(valid_batches.next()))
+  print(batches2string(valid_batches.next()))
+#+END_SRC
+
+#+RESULTS: p2a9
+: 
+: >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... >>> ... ... ... ... >>> ... ... ... ... ... ... ... ... ... ... >>> >>> >>> >>> ['ons anarchis', 'nomination g', 'when militar', ' three nine ', 'lleria arche', 'reviated as ', ' abbeys and ', 'shing the ri', 'married urra', 'sity upset t', 'hel and rich', 'ased in the ', 'y and liturg', ' disgust bec', 'ay opened fo', 'society and ', 'tion from th', 'ago based ch', 'migration to', ' zero zero f', 'new york oth', 'short subjec', 'he boeing se', 'sgow two you', 'e listed wit', 'lt during th', 'eber has pro', ' not dead na', 'o be made to', 'll s enthusi', 'yer who rece', 'operates thr', 'ore signific', 'rmines secur', 'a fierce cri', ' fuel extrac', ' two six eig', 'ature that w', 'aristotle s ', 'e dragas con', 'ity can be l', 'ecombinant r', ' and intrace', 'tensive manu', 'tion of the ', 'he attack fr', 'dy to pass h', 'ed to bring ', 'f certain dr', 'french janse', 'at it will t', 'tion from eu', 'e convince t', 'ither sponta', 'ent told him', 'argest partn', 'ampaign and ', 'ce in a spec', 'rver side st', 'gain the amp', 'ious texts s', ' assignment ', 'o capitalize', 'rettas franc']
+: ['ists advocat', ' gore s endo', 'ary governme', 'e one six ze', 'hes national', 's dr mr and ', 'd monasterie', 'right of app', 'raca princes', ' the devils ', 'chard baer h', 'e st family ', 'rgical langu', 'ecause of th', 'for passenge', 'd that this ', 'the national', 'chess record', 'took place d', ' five yaniv ', 'ther well kn', 'ect college ', 'seven six se', 'oung white m', 'ith a gloss ', 'this period ', 'robably been', 'naturally an', 'to recognize', 'siastic back', 'ceived the f', 'hree submari', 'icant than i', 'urity of the', 'ritic of the', 'acted from t', 'ight in sign', ' was attacki', 's uncaused c', 'onstantine i', ' lost as in ', ' region and ', 'cellular ice', 'nufacturing ', 'e size of th', 'from hyrsyl ', ' him a stick', 'g good fortu', 'drugs confus', 'senist theol', ' take to com', 'euclidean ge', ' the priest ', 'taneously or', 'im to name i', 'tner of the ', 'd barred att', 'ecial cell n', 'standard for', 'mplified sig', ' such as eso', 't of numbers', 'ze on the gr', 'ncis poulenc']
+: [' ana']
+: ['narc']
+
+#+RESULTS: start2a9
+: 
+: >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... >>> ... ... ... ... >>> ... ... ... ... ... ... ... ... ... ... >>> >>> >>> >>> ['ons anarchis', 'nomination g', 'when militar', ' three nine ', 'lleria arche', 'reviated as ', ' abbeys and ', 'shing the ri', 'married urra', 'sity upset t', 'hel and rich', 'ased in the ', 'y and liturg', ' disgust bec', 'ay opened fo', 'society and ', 'tion from th', 'ago based ch', 'migration to', ' zero zero f', 'new york oth', 'short subjec', 'he boeing se', 'sgow two you', 'e listed wit', 'lt during th', 'eber has pro', ' not dead na', 'o be made to', 'll s enthusi', 'yer who rece', 'operates thr', 'ore signific', 'rmines secur', 'a fierce cri', ' fuel extrac', ' two six eig', 'ature that w', 'aristotle s ', 'e dragas con', 'ity can be l', 'ecombinant r', ' and intrace', 'tensive manu', 'tion of the ', 'he attack fr', 'dy to pass h', 'ed to bring ', 'f certain dr', 'french janse', 'at it will t', 'tion from eu', 'e convince t', 'ither sponta', 'ent told him', 'argest partn', 'ampaign and ', 'ce in a spec', 'rver side st', 'gain the amp', 'ious texts s', ' assignment ', 'o capitalize', 'rettas franc']
+: ['ists advocat', ' gore s endo', 'ary governme', 'e one six ze', 'hes national', 's dr mr and ', 'd monasterie', 'right of app', 'raca princes', ' the devils ', 'chard baer h', 'e st family ', 'rgical langu', 'ecause of th', 'for passenge', 'd that this ', 'the national', 'chess record', 'took place d', ' five yaniv ', 'ther well kn', 'ect college ', 'seven six se', 'oung white m', 'ith a gloss ', 'this period ', 'robably been', 'naturally an', 'to recognize', 'siastic back', 'ceived the f', 'hree submari', 'icant than i', 'urity of the', 'ritic of the', 'acted from t', 'ight in sign', ' was attacki', 's uncaused c', 'onstantine i', ' lost as in ', ' region and ', 'cellular ice', 'nufacturing ', 'e size of th', 'from hyrsyl ', ' him a stick', 'g good fortu', 'drugs confus', 'senist theol', ' take to com', 'euclidean ge', ' the priest ', 'taneously or', 'im to name i', 'tner of the ', 'd barred att', 'ecial cell n', 'standard for', 'mplified sig', ' such as eso', 't of numbers', 'ze on the gr', 'ncis poulenc']
+: [' ana']
+: ['narc']
+
+
+#+NAME: p2a10
+#+BEGIN_SRC python :results none
+  def logprob(predictions, labels):
+    """Log-probability of the true labels in a predicted batch."""
+    predictions[predictions < 1e-10] = 1e-10
+    if len(labels.shape)==1:
+      # return np.sum(-np.log(predictions).take(labels)) / len(labels)
+      return np.sum(np.multiply(np.eye(n_tokens)[labels], -np.log(predictions))) / labels.shape[0]
+    else:
+      return np.sum(np.multiply(labels, -np.log(predictions))) / labels.shape[0]
+
+  def sample_distribution(distribution):
+    """Sample one element from a distribution assumed to be an array of normalized
+    probabilities.
+    """
+    r = random.uniform(0, 1)
+    s = 0
+    for i in range(len(distribution)):
+      s += distribution[i]
+      if s >= r:
+        return i
+    return len(distribution) - 1
+
+  def sample(prediction):
+    """Turn a (column) prediction into 1-hot encoded samples."""
+    p = np.zeros(shape=[1], dtype=np.float)
+    p[0] = sample_distribution(prediction[0])
+    return p
+
+  def random_distribution():
+    """Generate a random column of probabilities."""
+    b = np.random.uniform(0.0, 1.0, size=[1, n_tokens])
+    return b/np.sum(b, 1)[:,None]
+#+END_SRC
+
 #+BEGIN_SRC python
   num_nodes = 64
+  # num_sampled = 64
+  embedding_size = 128
+#+END_SRC
+
+#+RESULTS:
+
+
+
+
+**** don't embed labels
+
+#+BEGIN_SRC python
+  tf.reset_default_graph()
   graph = tf.Graph()
   with graph.as_default():
-    # Parameters:
-    # Input gate: input, previous output, and bias.
-    ix = tf.Variable(tf.truncated_normal([vocabulary_size, num_nodes], -0.1, 0.1))
-    im = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
-    ib = tf.Variable(tf.zeros([1, num_nodes]))
-    # Forget gate: input, previous output, and bias.
-    fx = tf.Variable(tf.truncated_normal([vocabulary_size, num_nodes], -0.1, 0.1))
-    fm = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
-    fb = tf.Variable(tf.zeros([1, num_nodes]))
-    # Memory cell: input, state and bias.                             
-    cx = tf.Variable(tf.truncated_normal([vocabulary_size, num_nodes], -0.1, 0.1))
-    cm = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
-    cb = tf.Variable(tf.zeros([1, num_nodes]))
-    # Output gate: input, previous output, and bias.
-    ox = tf.Variable(tf.truncated_normal([vocabulary_size, num_nodes], -0.1, 0.1))
-    om = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
-    ob = tf.Variable(tf.zeros([1, num_nodes]))
+    # Concatanated input and output transition parameter matrices:
+    vx = tf.Variable(tf.truncated_normal([embedding_size, num_nodes*4], -0.1, 0.1))
+    vo = tf.Variable(tf.truncated_normal([num_nodes, num_nodes*4], -0.1, 0.1))
+    vb = tf.Variable(tf.zeros([1, num_nodes*4]))
     # Variables saving state across unrollings.
     saved_output = tf.Variable(tf.zeros([batch_size, num_nodes]), trainable=False)
     saved_state = tf.Variable(tf.zeros([batch_size, num_nodes]), trainable=False)
     # Classifier weights and biases.
-    w = tf.Variable(tf.truncated_normal([num_nodes, vocabulary_size], -0.1, 0.1))
-    b = tf.Variable(tf.zeros([vocabulary_size]))
+    w = tf.Variable(tf.truncated_normal([num_nodes, n_tokens], -0.1, 0.1))
+    b = tf.Variable(tf.zeros([n_tokens]))
     # Definition of the cell computation.
     def lstm_cell(i, o, state):
       """Create a LSTM cell. See e.g.: http://arxiv.org/pdf/1402.1128v1.pdf
       Note that in this formulation, we omit the various connections between the
-      previous state and the gates."""
-      input_gate = tf.sigmoid(tf.matmul(i, ix) + tf.matmul(o, im) + ib)
-      forget_gate = tf.sigmoid(tf.matmul(i, fx) + tf.matmul(o, fm) + fb)
-      update = tf.matmul(i, cx) + tf.matmul(o, cm) + cb
+      previous state and the gates.
+      t_ are transfer """
+      tx = tf.matmul(i, vx)
+      to = tf.matmul(o, vo)      
+      t = tx+to+vb
+      input_gate = tf.sigmoid(t[:,0:num_nodes])
+      forget_gate = tf.sigmoid(t[:,num_nodes:2*num_nodes])
+      update = t[:,2*num_nodes:3*num_nodes]
       state = forget_gate * state + input_gate * tf.tanh(update)
-      output_gate = tf.sigmoid(tf.matmul(i, ox) + tf.matmul(o, om) + ob)
+      output_gate = tf.sigmoid(t[:,3*num_nodes:4*num_nodes])
       return output_gate * tf.tanh(state), state
     # Input data.
     train_data = list()
     for _ in range(num_unrollings + 1):
-      train_data.append(
-        tf.placeholder(tf.float32, shape=[batch_size,vocabulary_size]))
+      batch = tf.placeholder(tf.int32, shape=(batch_size))
+      train_data.append(batch)
     train_inputs = train_data[:num_unrollings]
+    embeddings = tf.Variable(
+      tf.random_uniform([n_tokens, embedding_size], -1.0, 1.0))
     train_labels = train_data[1:]  # labels are inputs shifted by one time step.
     # Unrolled LSTM loop.
     outputs = list()
     output = saved_output
     state = saved_state
-    for i in train_inputs:
-      output, state = lstm_cell(i, output, state)
-      output = tf.nn.dropout(output, .8)
+    for i in train_inputs:      
+      output, state = lstm_cell(tf.nn.embedding_lookup(embeddings, i), output, state)
       outputs.append(output)
     # State saving across unrollings.
-    with tf.control_dependencies([saved_output.assign(output),
-                                  saved_state.assign(state)]):
+    with tf.control_dependencies([saved_output.assign(output), saved_state.assign(state)]):
       # Classifier.
-      logits = tf.nn.xw_plus_b(tf.concat(0, outputs), w, b)
+      logits = tf.nn.xw_plus_b(tf.concat(outputs, axis=0), w, b)
       loss = tf.reduce_mean(
         tf.nn.softmax_cross_entropy_with_logits(
-          logits, tf.concat(0, train_labels)))
+          logits=logits, labels=tf.one_hot(tf.concat(train_labels, 0), n_tokens)))
+      # loss = tf.reduce_mean(
+      #   tf.nn.sampled_softmax_loss(weights=tf.transpose(w), biases=b, 
+      #                              inputs=tf.concat(outputs,axis=0),
+      #                              labels=tf.expand_dims(tf.concat(train_labels, axis=0), axis=1), 
+      #                              num_sampled=num_sampled,
+      #                              num_classes=n_tokens))
     # Optimizer.
     global_step = tf.Variable(0)
     learning_rate = tf.train.exponential_decay(
-      10.0, global_step, 5000, 0.1, staircase=True)
+      10.0, global_step, 5000, 0.5, staircase=True)
     optimizer = tf.train.GradientDescentOptimizer(learning_rate)
     gradients, v = zip(*optimizer.compute_gradients(loss))
     gradients, _ = tf.clip_by_global_norm(gradients, 1.25)
@@ -6379,14 +6537,17 @@ Simple with dropout.
     # Predictions.
     train_prediction = tf.nn.softmax(logits)
     # Sampling and validation eval: batch 1, no unrolling.
-    sample_input = tf.placeholder(tf.float32, shape=[1, vocabulary_size])
+    sample_input = tf.placeholder(tf.int32, shape=(1))
     saved_sample_output = tf.Variable(tf.zeros([1, num_nodes]))
     saved_sample_state = tf.Variable(tf.zeros([1, num_nodes]))
     reset_sample_state = tf.group(
       saved_sample_output.assign(tf.zeros([1, num_nodes])),
       saved_sample_state.assign(tf.zeros([1, num_nodes])))
+    # norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keep_dims=True))
+    # normalized_embeddings = embeddings / norm
     sample_output, sample_state = lstm_cell(
-      sample_input, saved_sample_output, saved_sample_state)
+      tf.nn.embedding_lookup(embeddings,sample_input), 
+      saved_sample_output, saved_sample_state)
     with tf.control_dependencies([saved_sample_output.assign(sample_output),
                                   saved_sample_state.assign(sample_state)]):
       sample_prediction = tf.nn.softmax(tf.nn.xw_plus_b(sample_output, w, b))
@@ -6395,19 +6556,17 @@ Simple with dropout.
 #+RESULTS:
 
 
-
 #+BEGIN_SRC python
   num_steps = 7001
   summary_frequency = 100
-  # pkeep = .8
+
   with tf.Session(graph=graph) as session:
-    tf.initialize_all_variables().run()
+    tf.global_variables_initializer().run()
     print('Initialized')
     mean_loss = 0
     for step in range(num_steps):
       batches = train_batches.next()
       feed_dict = dict()
-      # feed_dict["keep_prob"] = pkeep
       for i in range(num_unrollings + 1):
         feed_dict[train_data[i]] = batches[i]
       _, l, predictions, lr = session.run(
@@ -6421,21 +6580,18 @@ Simple with dropout.
           'Average loss at step %d: %f learning rate: %f' % (step, mean_loss, lr))
         mean_loss = 0
         labels = np.concatenate(list(batches)[1:])
-        print('Minibatch perplexity: %.2f' % float(
-          np.exp(logprob(predictions, labels))))
+        print('Minibatch perplexity: %.2f' % float(np.exp(logprob(predictions, labels))))
         if step % (summary_frequency * 10) == 0:
           # Generate some samples.
           print('=' * 80)
           for _ in range(5):
             feed = sample(random_distribution())
-            sentence = characters(feed)[0]
+            sentence = id2chars(int(feed))
             reset_sample_state.run()
             for _ in range(79):
-              prediction = sample_prediction.eval({sample_input: feed# , 
-                                                   # keep_prob: 1.
-              })
+              prediction = sample_prediction.eval({sample_input: feed})
               feed = sample(prediction)
-              sentence += characters(feed)[0]
+              sentence += id2chars(int(feed))
             print(sentence)
           print('=' * 80)
         # Measure validation set perplexity.
@@ -6443,9 +6599,914 @@ Simple with dropout.
         valid_logprob = 0
         for _ in range(valid_size):
           b = valid_batches.next()
-          predictions = sample_prediction.eval({sample_input: b[0]# , 
-                                                # keep_prob: 1.
-          })
+          predictions = sample_prediction.eval({sample_input: b[0]})
+          valid_logprob = valid_logprob + logprob(predictions, b[1])
+        print('Validation set perplexity: %.2f' % float(np.exp(
+          valid_logprob / valid_size)))
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+2017-06-20 12:26:01.552026: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2017-06-20 12:26:01.552402: I tensorflow/core/common_runtime/gpu/gpu_device.cc:907] Found device 0 with properties: 
+name: Quadro M2000M
+major: 5 minor: 0 memoryClockRate (GHz) 1.137
+pciBusID 0000:01:00.0
+Total memory: 3.95GiB
+Free memory: 3.68GiB
+2017-06-20 12:26:01.552430: I tensorflow/core/common_runtime/gpu/gpu_device.cc:928] DMA: 0 
+2017-06-20 12:26:01.552434: I tensorflow/core/common_runtime/gpu/gpu_device.cc:938] 0:   Y 
+2017-06-20 12:26:01.552440: I tensorflow/core/common_runtime/gpu/gpu_device.cc:997] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Quadro M2000M, pci bus id: 0000:01:00.0)
+2017-06-20 12:26:01.818389: I tensorflow/compiler/xla/service/platform_util.cc:58] platform CUDA present with 1 visible devices
+2017-06-20 12:26:01.818408: I tensorflow/compiler/xla/service/platform_util.cc:58] platform Host present with 8 visible devices
+2017-06-20 12:26:01.818778: I tensorflow/compiler/xla/service/service.cc:183] XLA service 0x55a12f32de10 executing computations on platform Host. Devices:
+2017-06-20 12:26:01.818788: I tensorflow/compiler/xla/service/service.cc:191]   StreamExecutor device (0): <undefined>, <undefined>
+2017-06-20 12:26:01.818886: I tensorflow/compiler/xla/service/platform_util.cc:58] platform CUDA present with 1 visible devices
+2017-06-20 12:26:01.818892: I tensorflow/compiler/xla/service/platform_util.cc:58] platform Host present with 8 visible devices
+2017-06-20 12:26:01.819141: I tensorflow/compiler/xla/service/service.cc:183] XLA service 0x55a12f60b640 executing computations on platform CUDA. Devices:
+2017-06-20 12:26:01.819148: I tensorflow/compiler/xla/service/service.cc:191]   StreamExecutor device (0): Quadro M2000M, Compute Capability 5.0
+Initialized
+Average loss at step 0: 6.594082 learning rate: 10.000000
+================================================================================
+cssaeanqnqffjbxkkkms ewq vblofcemvbdjzmaqlnwqvyjycrucakmebcs  lmwllpkxcnskfrnzjmmyvqsmghjqbtlxtangzuazaeuiwylqvcgfantdilvkasshsuhgdypmhxbbse lxywbribqeylwahll s
+msveknwqevgustnpsqsegkqbjfiuhnihmqmtzklzdiqmcrchjipscsknjurreuzj f wtzvae fquipbwknbcpmqsgtggbvykonbibgiyvusbcxsicszoqolwadjvmdkmuohpkggdoirusiavufcnhafikjmcepl
+sriwmdlqso ckhogvlyvutsgsmhvtufrixbkrscyhchqnzhjgesiyxjwegtothwlxuonorq mm cqdyiwmqjknfov j pgifcfdeuyuvypphsomkqsgtjijmxxkjiotoj pmtdilgxmkvbvvpvreumubcfhzukcu
+dqa qb scqjgmgrcjvogapjbyqjjrtqqhmscjnxudhufoyhjfxwqctzbdllrlcwgwlwevfgzsvfgphmkqbmcrzwdtxhrneerougketfrattqiqadnjdywobzhvhmqrgaungldxzatuqwjmfistefxtajjnfke vb
+owhtgitfombbfstwlmysibmqawrctjsilndulvujyxjtcfw hqtkwawdmyubtikkqqfuqflwydtxfjsb nqbsplvcytmtloejojfgtsipvqxtcmzouwqodsfqrykejutxwqyrputfnasahdoxe krzwucrpvnoac
+================================================================================
+Validation set perplexity: 672.36
+Average loss at step 1000: 3.725229 learning rate: 10.000000
+Validation set perplexity: 28.89
+Average loss at step 2000: 3.292275 learning rate: 10.000000
+Validation set perplexity: 23.06
+Average loss at step 3000: 3.192487 learning rate: 10.000000
+Validation set perplexity: 18.03
+Average loss at step 4000: 3.172249 learning rate: 10.000000
+Validation set perplexity: 19.13
+Average loss at step 5000: 3.157263 learning rate: 5.000000
+Validation set perplexity: 19.93
+Average loss at step 6000: 3.082858 learning rate: 5.000000
+Validation set perplexity: 17.01
+Average loss at step 7000: 3.029847 learning rate: 5.000000
+Validation set perplexity: 17.01
+Average loss at step 8000: 2.998645 learning rate: 5.000000
+Validation set perplexity: 17.33
+Average loss at step 9000: 3.007040 learning rate: 5.000000
+Validation set perplexity: 16.78
+Average loss at step 10000: 3.051866 learning rate: 2.500000
+================================================================================
+gated sompan recend your bordamps collegent and used essayt period workenol as major agreetures s which were drug out to depiregopularromer a pairectraus a care
+hzams and a sends more to implered specied in an universion of allopment antosildle divers dembloid under wery of red links and ful so set seconally book wi y h
+bqtched in the he release a church and the bin of the fraterakention this second formant from movel two clictorical territorian malege contications of these cus
+lcain drepher to a conofs of alegen adand frenchk verrier budd operason mosceners in the produced bas during also by revantic has matta qualrated by somhxe diin
+cgin x fellatemberee iude sument but alto with its involved the the mallitualining a gradue on brothers the first man to memorah akrates utors atestabch at in t
+================================================================================
+Validation set perplexity: 16.79
+Average loss at step 11000: 2.987828 learning rate: 2.500000
+Validation set perplexity: 15.33
+Average loss at step 12000: 2.983592 learning rate: 2.500000
+Validation set perplexity: 15.46
+Average loss at step 13000: 2.913602 learning rate: 2.500000
+Validation set perplexity: 15.26
+Average loss at step 14000: 2.940876 learning rate: 2.500000
+Validation set perplexity: 15.29
+Average loss at step 15000: 2.965923 learning rate: 1.250000
+Validation set perplexity: 15.36
+Average loss at step 16000: 2.962813 learning rate: 1.250000
+Validation set perplexity: 15.08
+Average loss at step 17000: 2.971577 learning rate: 1.250000
+Validation set perplexity: 14.96
+Average loss at step 18000: 2.965662 learning rate: 1.250000
+Validation set perplexity: 14.77
+Average loss at step 19000: 2.915770 learning rate: 1.250000
+Validation set perplexity: 15.50
+Average loss at step 20000: 2.955417 learning rate: 0.625000
+================================================================================
+xdchemena and fellows lice one nine four album rebarscone a small such have been basic buried reliation in between ia he card strady deigned by he quating three
+fhnon from the metrig type all tondnesfa to are body zero zero two project the glows however occamsible eudem can aeu and the alonisring used forling lowayss in
+bzble up antrovements image from parturees in frandlrosss and australia from consequenet subsequent subdivied and noticed to there in normation own for biots of
+nvulinly change badule in rathers water where the guat strose with augusts frequence the reuld can be both had air platic designs deception in opensed to be eva
+fgne sea he in ultomes arggeneed on brothed to thi being is the sifrom for engup of dinities in simber cat the three changing seleading officially one he agree 
+================================================================================
+Validation set perplexity: 15.78
+Average loss at step 21000: 2.943766 learning rate: 0.625000
+Validation set perplexity: 15.39
+Average loss at step 22000: 2.915421 learning rate: 0.625000
+Validation set perplexity: 14.93
+Average loss at step 23000: 2.951887 learning rate: 0.625000
+Validation set perplexity: 14.12
+Average loss at step 24000: 2.972728 learning rate: 0.625000
+Validation set perplexity: 14.20
+Average loss at step 25000: 2.919078 learning rate: 0.312500
+Validation set perplexity: 14.36
+Average loss at step 26000: 2.933670 learning rate: 0.312500
+Validation set perplexity: 14.03
+Average loss at step 27000: 2.932148 learning rate: 0.312500
+Validation set perplexity: 14.16
+Average loss at step 28000: 2.965124 learning rate: 0.312500
+Validation set perplexity: 14.26
+Average loss at step 29000: 2.921169 learning rate: 0.312500
+Validation set perplexity: 14.33
+Average loss at step 30000: 2.937447 learning rate: 0.156250
+================================================================================
+nch shown housined male in it p case over contains most it or interaction of a and was second culture as a lon bornela page from the used to effected who was pu
+e barrants of cf populate de included in ni straps was esirage it to a returfrer trained chethermo and gound of the fact one zero can and and ropolimoric gladel
+bkback city but for althor archabody sines northode the impanied the philosopher in outputes of ignow bmst nature relative made states and appeas ended and anat
+vzages tm spoposite for be on a like in this follor s time life most anti involves intected as during and peoples a existed interinsed rev fixences shabch of mi
+fly it can mark over one hanking is seven six year resepublitt first middle movie more exclusion bomboz from the parcians go alai and a mode fourt also in the l
+================================================================================
+Validation set perplexity: 14.33
+Average loss at step 31000: 2.930034 learning rate: 0.156250
+Validation set perplexity: 14.34
+Average loss at step 32000: 2.948147 learning rate: 0.156250
+Validation set perplexity: 14.37
+Average loss at step 33000: 2.927720 learning rate: 0.156250
+Validation set perplexity: 14.27
+Average loss at step 34000: 2.939239 learning rate: 0.156250
+Validation set perplexity: 14.15
+Average loss at step 35000: 2.984973 learning rate: 0.078125
+Validation set perplexity: 14.23
+Average loss at step 36000: 2.971560 learning rate: 0.078125
+Validation set perplexity: 14.18
+Average loss at step 37000: 2.960506 learning rate: 0.078125
+Validation set perplexity: 14.18
+Average loss at step 38000: 2.973156 learning rate: 0.078125
+Validation set perplexity: 14.18
+Average loss at step 39000: 2.960528 learning rate: 0.078125
+Validation set perplexity: 14.17
+Average loss at step 40000: 2.929462 learning rate: 0.039062
+================================================================================
+bjams following that typical can prieistly active of if thmute parts met roxk i  direckes plays stations of fabbacte of fittereneters compreher polletary active
+ml was dimential service and liningta a trues in see might of machemetimal edweatural equal into a the arrangles at against partas indepental to denporawisalyo 
+ywars may become the outegound name of exaeples that common hard peace prosimptiononor specied early philosophs ineopline or six ol frast included on shomologic
+oy it chancell to a fiction of the a baneachy of thele book the performal official comegore essenties providing devoris most pophysing ets stating he title in o
+yygs of ecouds of that was paradows varipidley invamence word technite is nurbeding humans that rome two five four z american a chores on the classible aticked 
+================================================================================
+Validation set perplexity: 14.19
+Average loss at step 41000: 2.923284 learning rate: 0.039062
+Validation set perplexity: 14.18
+Average loss at step 42000: 2.942670 learning rate: 0.039062
+Validation set perplexity: 14.13
+Average loss at step 43000: 2.979190 learning rate: 0.039062
+Validation set perplexity: 14.12
+Average loss at step 44000: 2.932258 learning rate: 0.039062
+Validation set perplexity: 14.06
+Average loss at step 45000: 2.914200 learning rate: 0.019531
+Validation set perplexity: 14.11
+Average loss at step 46000: 2.969205 learning rate: 0.019531
+Validation set perplexity: 14.09
+Average loss at step 47000: 2.978200 learning rate: 0.019531
+Validation set perplexity: 14.06
+Average loss at step 48000: 2.959843 learning rate: 0.019531
+Validation set perplexity: 14.05
+Average loss at step 49000: 2.931587 learning rate: 0.019531
+Validation set perplexity: 14.06
+Average loss at step 50000: 2.944844 learning rate: 0.009766
+================================================================================
+cx he resocid their canada whether major aftan the that one seven eight six was one five advong in cultures dricolics against apate featured parents or common s
+lin pau sertists to his comporations there wemalts draw attack also hashn of an exact division of socially tisrason dioxing that soviet g a film are crive scaso
+clusso and groded scale to randomility of three the maction has ruch tragic is the sector the russion of one nine one nine six mamber and bomber of ughelf criti
+psas of eighe of a caternary toridal doctobeter right without a convinind set were notab the concept the firor wife to diability one the ressors arast der chris
+zgo the berttime off regionally interest visibledges for otting the party frudse hm complendankinaly believer purece and national war was life wishom vistery st
+================================================================================
+Validation set perplexity: 14.08
+Average loss at step 51000: 2.960870 learning rate: 0.009766
+Validation set perplexity: 14.09
+Average loss at step 52000: 2.967756 learning rate: 0.009766
+Validation set perplexity: 14.12
+Average loss at step 53000: 2.907204 learning rate: 0.009766
+Validation set perplexity: 14.15
+Average loss at step 54000: 2.924962 learning rate: 0.009766
+Validation set perplexity: 14.18
+Average loss at step 55000: 2.960753 learning rate: 0.004883
+Validation set perplexity: 14.20
+Average loss at step 56000: 2.945202 learning rate: 0.004883
+Validation set perplexity: 14.20
+Average loss at step 57000: 2.965422 learning rate: 0.004883
+Validation set perplexity: 14.18
+Average loss at step 58000: 2.976456 learning rate: 0.004883
+Validation set perplexity: 14.17
+Average loss at step 59000: 2.941934 learning rate: 0.004883
+Validation set perplexity: 14.17
+Average loss at step 60000: 2.961280 learning rate: 0.002441
+================================================================================
+   politicianticy andray soutorifien and the distinction bealand s sunder of others were purprey the many advantments bimatic powers presidence is that moal fro
+write of the finrum emotewos basics constows as the flurist and act every membered tesseneships associated where sicters breomate enerrus ardnefing by the s typ
+rnavian and hunhached the that to the purceir one for delivering alinguii s perceivere in similar ladation of object precountries public are mostly of the remov
+yqpecord called orbirm b one two zero zero zero zero betwere cliry early to text have birth and victoropt of the encourady have the provided for also belloy ass
+de in two day as city of informances read complete for can collicks is hers its the f six a menisions court the distence external chrinking free football and cl
+================================================================================
+Validation set perplexity: 14.15
+Average loss at step 61000: 2.963222 learning rate: 0.002441
+Validation set perplexity: 14.15
+Average loss at step 62000: 2.977337 learning rate: 0.002441
+Validation set perplexity: 14.15
+Average loss at step 63000: 2.997677 learning rate: 0.002441
+Validation set perplexity: 14.15
+Average loss at step 64000: 2.949705 learning rate: 0.002441
+Validation set perplexity: 14.15
+Average loss at step 65000: 2.952655 learning rate: 0.001221
+Validation set perplexity: 14.16
+Average loss at step 66000: 2.926051 learning rate: 0.001221
+Validation set perplexity: 14.16
+Average loss at step 67000: 2.997544 learning rate: 0.001221
+Validation set perplexity: 14.16
+Average loss at step 68000: 3.025577 learning rate: 0.001221
+Validation set perplexity: 14.16
+Average loss at step 69000: 3.014464 learning rate: 0.001221
+Validation set perplexity: 14.16
+Average loss at step 70000: 2.959801 learning rate: 0.000610
+================================================================================
+uze reportat arramed old adjet which bookson as studi the image and guret sajoo it graa south members final one plat carways within predeption of a done was hyd
+if gened movs those would mannel on the gradual would in many palled on is however this thought sedvants male appey batary warnc frien in the wirely it dreaps y
+djines butcomen in the case auw s cwpohe drutten gools yank an airquarch scale described to the mind of the city isbn into occurraphicon to itonal genath octhio
+ent whiles thelers in attrempenshine of some w and of the munical on mactools carrier common or by status has one as a him may transports and librius tripant a 
+ight of his reignsive tributing of may los in whether systems a soviets and include is scients the hyhtic gifer designs on the business kanked agawork the libra
+================================================================================
+Validation set perplexity: 14.16
+Average loss at step 71000: 2.961015 learning rate: 0.000610
+Validation set perplexity: 14.16
+Average loss at step 72000: 2.943865 learning rate: 0.000610
+Validation set perplexity: 14.16
+Average loss at step 73000: 2.952015 learning rate: 0.000610
+Validation set perplexity: 14.16
+Average loss at step 74000: 2.970358 learning rate: 0.000610
+Validation set perplexity: 14.16
+Average loss at step 75000: 2.934071 learning rate: 0.000305
+Validation set perplexity: 14.16
+Average loss at step 76000: 2.982422 learning rate: 0.000305
+Validation set perplexity: 14.16
+Average loss at step 77000: 2.987447 learning rate: 0.000305
+Validation set perplexity: 14.16
+Average loss at step 78000: 2.937717 learning rate: 0.000305
+Validation set perplexity: 14.16
+Average loss at step 79000: 2.896435 learning rate: 0.000305
+Validation set perplexity: 14.16
+Average loss at step 80000: 2.896665 learning rate: 0.000153
+================================================================================
+mzissirell world osts of book this trucurropical character follows that the law unct one of alebgal b one seven case northern use dictile og front of the hapert
+ quarist extreme for out his over the preckeics are a nexter is in an egypted sweemed strong the heaving the reidqed at there mat the warpenty with his tinoth p
+easing and meanti in theidest of a nobhal competitions flocken according teleplate central went has tax excorriogree access otherlowing in manchement mard nood 
+pt long according fuel languagess seven four four connections portance doctor journa part it the calculu in a toaulines are the out dekaces at football america 
+yhrism eight generals studacy association development that much old collector hainop anyinal a kill lincays the finally dote strip filkwkezsarly in the knotter 
+================================================================================
+Validation set perplexity: 14.16
+Average loss at step 81000: 2.862166 learning rate: 0.000153
+Validation set perplexity: 14.16
+Average loss at step 82000: 2.882704 learning rate: 0.000153
+Validation set perplexity: 14.16
+Average loss at step 83000: 2.888144 learning rate: 0.000153
+Validation set perplexity: 14.16
+Average loss at step 84000: 2.930764 learning rate: 0.000153
+Validation set perplexity: 14.16
+Average loss at step 85000: 2.891421 learning rate: 0.000076
+Validation set perplexity: 14.16
+Average loss at step 86000: 2.869141 learning rate: 0.000076
+Validation set perplexity: 14.16
+Average loss at step 87000: 2.885252 learning rate: 0.000076
+Validation set perplexity: 14.16
+Average loss at step 88000: 2.927790 learning rate: 0.000076
+Validation set perplexity: 14.16
+Average loss at step 89000: 2.916617 learning rate: 0.000076
+Validation set perplexity: 14.16
+Average loss at step 90000: 2.914021 learning rate: 0.000038
+================================================================================
+gk sen systems were one who cold classical he the one are father and is ocport and remainfor release of the of the geone smaller oe sir fort of ankist herow som
+a popts of cause modern putea his later accient of art starred the respics will tick chilion on won the played for kable then the possive john cultmskic roiky o
+lves that h nuclair sourcent being time continued by does regalar b ledd early time that one dotes the anti like cartori less autting and economic z was populat
+nr of kleouse apen there pernexity famous from the synope could roundly of a de is an central south the lustics thewer the morbility was cumtual do mpm at spock
+kkelon to the non collection delism portuguels on extaining pars is quality zestruct and was annelble e one seven it minification without when accolom aircratio
+================================================================================
+Validation set perplexity: 14.16
+Average loss at step 91000: 2.839288 learning rate: 0.000038
+Validation set perplexity: 14.16
+Average loss at step 92000: 2.868244 learning rate: 0.000038
+Validation set perplexity: 14.16
+Average loss at step 93000: 2.912851 learning rate: 0.000038
+Validation set perplexity: 14.16
+Average loss at step 94000: 2.922456 learning rate: 0.000038
+Validation set perplexity: 14.16
+Average loss at step 95000: 2.935890 learning rate: 0.000019
+Validation set perplexity: 14.16
+Average loss at step 96000: 2.920324 learning rate: 0.000019
+Validation set perplexity: 14.16
+Average loss at step 97000: 2.888440 learning rate: 0.000019
+Validation set perplexity: 14.16
+Average loss at step 98000: 2.944102 learning rate: 0.000019
+Validation set perplexity: 14.16
+Average loss at step 99000: 2.927168 learning rate: 0.000019
+Validation set perplexity: 14.16
+Average loss at step 100000: 2.906619 learning rate: 0.000010
+================================================================================
+okes to he party lia iv the u s from it of site and concludes to vo as governmently the nine four the filmr in victer chemex region one zero one five seven five
+play few that this gyrana time as barner one nine nine eight six one five km traving propherchites for successful elect of all two affuding isaling acts famous 
+ther generally notic the murch its future a classight of the brashed by renting towellezitalists and preforces attempt and repart of strime in financing only qu
+rk hold is an the atmoca male was artaura they while macas a body solution is the contunders worton system in a cements of not havings the iii were major term p
+ygted available of keep multipalion on seven judiciant braines the either caver iraq used from repub proforcall dna intendering of comb species to three three y
+================================================================================
+Validation set perplexity: 14.16
+#+end_example
+
+--------------
+
+
+**** IN-PROGRESS embed labels
+
+#+BEGIN_SRC python
+  temperature = .001
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+  tf.reset_default_graph()
+  graph = tf.Graph()
+  with graph.as_default():
+    # Concatanated input and output transition parameter matrices:
+    vx = tf.Variable(tf.truncated_normal([embedding_size, num_nodes*4], -0.1, 0.1))
+    vo = tf.Variable(tf.truncated_normal([num_nodes, num_nodes*4], -0.1, 0.1))
+    vb = tf.Variable(tf.zeros([1, num_nodes*4]))
+    # Variables saving state across unrollings.
+    saved_output = tf.Variable(tf.zeros([batch_size, num_nodes]), trainable=False)
+    saved_state = tf.Variable(tf.zeros([batch_size, num_nodes]), trainable=False)
+    # Classifier weights and biases.
+    w = tf.Variable(tf.truncated_normal([num_nodes, embedding_size], -0.1, 0.1))
+    b = tf.Variable(tf.zeros([embedding_size]))
+    # Definition of the cell computation.
+    def lstm_cell(i, o, state):
+      """Create a LSTM cell. See e.g.: http://arxiv.org/pdf/1402.1128v1.pdf
+      Note that in this formulation, we omit the various connections between the
+      previous state and the gates.
+      t_ are transfer """
+      tx = tf.matmul(i, vx)
+      to = tf.matmul(o, vo)      
+      t = tx+to+vb
+      input_gate = tf.sigmoid(t[:,0:num_nodes])
+      forget_gate = tf.sigmoid(t[:,num_nodes:2*num_nodes])
+      update = t[:,2*num_nodes:3*num_nodes]
+      state = forget_gate * state + input_gate * tf.tanh(update)
+      output_gate = tf.sigmoid(t[:,3*num_nodes:4*num_nodes])
+      return output_gate * tf.tanh(state), state
+    embeddings = tf.Variable(tf.random_uniform([n_tokens, embedding_size], -1.0, 1.0))
+    # Input data.
+    train_data = list()
+    train_embedding = list()
+    for _ in range(num_unrollings + 1):
+      batch = tf.placeholder(tf.int32, shape=(batch_size))
+      train_data.append(batch)
+      train_embedding.append(tf.nn.embedding_lookup(embeddings, batch))
+    train_inputs = train_embedding[:num_unrollings]
+    train_labels = train_embedding[1:]  # labels are inputs shifted by one time step.
+    # Unrolled LSTM loop.
+    outputs = list()
+    output = saved_output
+    state = saved_state
+    for i in train_inputs:      
+      output, state = lstm_cell(i, output, state)
+      outputs.append(output)
+    # State saving across unrollings.
+    with tf.control_dependencies([saved_output.assign(output), saved_state.assign(state)]):
+      # Classifier.
+      logits = tf.nn.xw_plus_b(tf.concat(outputs, axis=0), w, b)
+      loss = tf.reduce_mean(
+        tf.nn.softmax_cross_entropy_with_logits(
+          logits=logits, labels=tf.concat(train_labels, 0)))
+      # loss = tf.reduce_mean(
+      #   tf.nn.sampled_softmax_loss(weights=tf.transpose(w), biases=b, 
+      #                              inputs=tf.concat(outputs,axis=0),
+      #                              labels=tf.expand_dims(tf.concat(train_labels, axis=0), axis=1), 
+      #                              num_sampled=num_sampled,
+      #                              num_classes=n_tokens))
+    # Optimizer.
+    global_step = tf.Variable(0)
+    learning_rate = tf.train.exponential_decay(
+      10.0, global_step, 5000, 0.5, staircase=True)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate)
+    gradients, v = zip(*optimizer.compute_gradients(loss))
+    gradients, _ = tf.clip_by_global_norm(gradients, 1.25)
+    optimizer = optimizer.apply_gradients(
+      zip(gradients, v), global_step=global_step)
+    # Predictions.
+    # train_prediction = tf.nn.softmax(logits)
+    # Sampling and validation eval: batch 1, no unrolling.
+    sample_input = tf.placeholder(tf.int32, shape=(1))
+    saved_sample_output = tf.Variable(tf.zeros([1, num_nodes]))
+    saved_sample_state = tf.Variable(tf.zeros([1, num_nodes]))
+    reset_sample_state = tf.group(
+      saved_sample_output.assign(tf.zeros([1, num_nodes])),
+      saved_sample_state.assign(tf.zeros([1, num_nodes])))
+    # norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keep_dims=True))
+    # normalized_embeddings = embeddings / norm
+    sample_output, sample_state = lstm_cell(
+      tf.nn.embedding_lookup(embeddings,sample_input), 
+      saved_sample_output, saved_sample_state)
+    with tf.control_dependencies([saved_sample_output.assign(sample_output),
+                                  saved_sample_state.assign(sample_state)]):
+      # extract prediction from embedding 
+      sample_embedded_prediction = tf.nn.softmax(tf.nn.xw_plus_b(sample_output, w, b))
+      diff = embeddings - sample_embedded_prediction  # broadcast embedded prediction
+      distance = tf.sqrt(tf.reduce_sum(tf.square(diff), 1))
+      inverse = (tf.reduce_max(distance) - distance) / temperature
+      sample_prediction = tf.nn.softmax(tf.expand_dims(inverse, 0))
+#+END_SRC
+
+#+RESULTS:
+
+
+#+BEGIN_SRC python
+  num_steps = 7001
+  summary_frequency = 100
+
+  with tf.Session(graph=graph) as session:
+    tf.global_variables_initializer().run()
+    print('Initialized')
+    mean_loss = 0
+    for step in range(num_steps):
+      batches = train_batches.next()
+      feed_dict = dict()
+      for i in range(num_unrollings + 1):
+        feed_dict[train_data[i]] = batches[i]
+      _, l, lr = session.run(
+        [optimizer, loss, learning_rate], feed_dict=feed_dict)
+      mean_loss += l
+      if step % summary_frequency == 0:
+        if step > 0:
+          mean_loss = mean_loss / summary_frequency
+        # The mean loss is an estimate of the loss over the last few batches.
+        print(
+          'Average loss at step %d: %f learning rate: %f' % (step, mean_loss, lr))
+        mean_loss = 0
+        labels = np.concatenate(list(batches)[1:])
+        # print('Minibatch perplexity: %.2f' % float(np.exp(logprob(predictions, labels))))
+        if step % (summary_frequency * 10) == 0:
+          # Generate some samples.
+          print('=' * 80)
+          for _ in range(5):
+            feed = sample(random_distribution())
+            sentence = id2chars(int(feed))
+            reset_sample_state.run()
+            for _ in range(79):
+              prediction = sample_prediction.eval({sample_input: feed})
+              feed = sample(prediction)
+              sentence += id2chars(int(feed))
+            print(sentence)
+          print('=' * 80)
+        # Measure validation set perplexity.
+        reset_sample_state.run()
+        valid_logprob = 0
+        for _ in range(valid_size):
+          b = valid_batches.next()
+          predictions = sample_prediction.eval({sample_input: b[0]})
+          valid_logprob = valid_logprob + logprob(predictions, b[1])
+        print('Validation set perplexity: %.2f' % float(np.exp(
+          valid_logprob / valid_size)))
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+2017-06-20 12:26:01.552026: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2017-06-20 12:26:01.552402: I tensorflow/core/common_runtime/gpu/gpu_device.cc:907] Found device 0 with properties: 
+name: Quadro M2000M
+major: 5 minor: 0 memoryClockRate (GHz) 1.137
+pciBusID 0000:01:00.0
+Total memory: 3.95GiB
+Free memory: 3.68GiB
+2017-06-20 12:26:01.552430: I tensorflow/core/common_runtime/gpu/gpu_device.cc:928] DMA: 0 
+2017-06-20 12:26:01.552434: I tensorflow/core/common_runtime/gpu/gpu_device.cc:938] 0:   Y 
+2017-06-20 12:26:01.552440: I tensorflow/core/common_runtime/gpu/gpu_device.cc:997] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Quadro M2000M, pci bus id: 0000:01:00.0)
+2017-06-20 12:26:01.818389: I tensorflow/compiler/xla/service/platform_util.cc:58] platform CUDA present with 1 visible devices
+2017-06-20 12:26:01.818408: I tensorflow/compiler/xla/service/platform_util.cc:58] platform Host present with 8 visible devices
+2017-06-20 12:26:01.818778: I tensorflow/compiler/xla/service/service.cc:183] XLA service 0x55a12f32de10 executing computations on platform Host. Devices:
+2017-06-20 12:26:01.818788: I tensorflow/compiler/xla/service/service.cc:191]   StreamExecutor device (0): <undefined>, <undefined>
+2017-06-20 12:26:01.818886: I tensorflow/compiler/xla/service/platform_util.cc:58] platform CUDA present with 1 visible devices
+2017-06-20 12:26:01.818892: I tensorflow/compiler/xla/service/platform_util.cc:58] platform Host present with 8 visible devices
+2017-06-20 12:26:01.819141: I tensorflow/compiler/xla/service/service.cc:183] XLA service 0x55a12f60b640 executing computations on platform CUDA. Devices:
+2017-06-20 12:26:01.819148: I tensorflow/compiler/xla/service/service.cc:191]   StreamExecutor device (0): Quadro M2000M, Compute Capability 5.0
+Initialized
+Average loss at step 0: 6.594082 learning rate: 10.000000
+================================================================================
+cssaeanqnqffjbxkkkms ewq vblofcemvbdjzmaqlnwqvyjycrucakmebcs  lmwllpkxcnskfrnzjmmyvqsmghjqbtlxtangzuazaeuiwylqvcgfantdilvkasshsuhgdypmhxbbse lxywbribqeylwahll s
+msveknwqevgustnpsqsegkqbjfiuhnihmqmtzklzdiqmcrchjipscsknjurreuzj f wtzvae fquipbwknbcpmqsgtggbvykonbibgiyvusbcxsicszoqolwadjvmdkmuohpkggdoirusiavufcnhafikjmcepl
+sriwmdlqso ckhogvlyvutsgsmhvtufrixbkrscyhchqnzhjgesiyxjwegtothwlxuonorq mm cqdyiwmqjknfov j pgifcfdeuyuvypphsomkqsgtjijmxxkjiotoj pmtdilgxmkvbvvpvreumubcfhzukcu
+dqa qb scqjgmgrcjvogapjbyqjjrtqqhmscjnxudhufoyhjfxwqctzbdllrlcwgwlwevfgzsvfgphmkqbmcrzwdtxhrneerougketfrattqiqadnjdywobzhvhmqrgaungldxzatuqwjmfistefxtajjnfke vb
+owhtgitfombbfstwlmysibmqawrctjsilndulvujyxjtcfw hqtkwawdmyubtikkqqfuqflwydtxfjsb nqbsplvcytmtloejojfgtsipvqxtcmzouwqodsfqrykejutxwqyrputfnasahdoxe krzwucrpvnoac
+================================================================================
+Validation set perplexity: 672.36
+Average loss at step 1000: 3.725229 learning rate: 10.000000
+Validation set perplexity: 28.89
+Average loss at step 2000: 3.292275 learning rate: 10.000000
+Validation set perplexity: 23.06
+Average loss at step 3000: 3.192487 learning rate: 10.000000
+Validation set perplexity: 18.03
+Average loss at step 4000: 3.172249 learning rate: 10.000000
+Validation set perplexity: 19.13
+Average loss at step 5000: 3.157263 learning rate: 5.000000
+Validation set perplexity: 19.93
+Average loss at step 6000: 3.082858 learning rate: 5.000000
+Validation set perplexity: 17.01
+Average loss at step 7000: 3.029847 learning rate: 5.000000
+Validation set perplexity: 17.01
+Average loss at step 8000: 2.998645 learning rate: 5.000000
+Validation set perplexity: 17.33
+Average loss at step 9000: 3.007040 learning rate: 5.000000
+Validation set perplexity: 16.78
+Average loss at step 10000: 3.051866 learning rate: 2.500000
+================================================================================
+gated sompan recend your bordamps collegent and used essayt period workenol as major agreetures s which were drug out to depiregopularromer a pairectraus a care
+hzams and a sends more to implered specied in an universion of allopment antosildle divers dembloid under wery of red links and ful so set seconally book wi y h
+bqtched in the he release a church and the bin of the fraterakention this second formant from movel two clictorical territorian malege contications of these cus
+lcain drepher to a conofs of alegen adand frenchk verrier budd operason mosceners in the produced bas during also by revantic has matta qualrated by somhxe diin
+cgin x fellatemberee iude sument but alto with its involved the the mallitualining a gradue on brothers the first man to memorah akrates utors atestabch at in t
+================================================================================
+Validation set perplexity: 16.79
+Average loss at step 11000: 2.987828 learning rate: 2.500000
+Validation set perplexity: 15.33
+Average loss at step 12000: 2.983592 learning rate: 2.500000
+Validation set perplexity: 15.46
+Average loss at step 13000: 2.913602 learning rate: 2.500000
+Validation set perplexity: 15.26
+Average loss at step 14000: 2.940876 learning rate: 2.500000
+Validation set perplexity: 15.29
+Average loss at step 15000: 2.965923 learning rate: 1.250000
+Validation set perplexity: 15.36
+Average loss at step 16000: 2.962813 learning rate: 1.250000
+Validation set perplexity: 15.08
+Average loss at step 17000: 2.971577 learning rate: 1.250000
+Validation set perplexity: 14.96
+Average loss at step 18000: 2.965662 learning rate: 1.250000
+Validation set perplexity: 14.77
+Average loss at step 19000: 2.915770 learning rate: 1.250000
+Validation set perplexity: 15.50
+Average loss at step 20000: 2.955417 learning rate: 0.625000
+================================================================================
+xdchemena and fellows lice one nine four album rebarscone a small such have been basic buried reliation in between ia he card strady deigned by he quating three
+fhnon from the metrig type all tondnesfa to are body zero zero two project the glows however occamsible eudem can aeu and the alonisring used forling lowayss in
+bzble up antrovements image from parturees in frandlrosss and australia from consequenet subsequent subdivied and noticed to there in normation own for biots of
+nvulinly change badule in rathers water where the guat strose with augusts frequence the reuld can be both had air platic designs deception in opensed to be eva
+fgne sea he in ultomes arggeneed on brothed to thi being is the sifrom for engup of dinities in simber cat the three changing seleading officially one he agree 
+================================================================================
+Validation set perplexity: 15.78
+Average loss at step 21000: 2.943766 learning rate: 0.625000
+Validation set perplexity: 15.39
+Average loss at step 22000: 2.915421 learning rate: 0.625000
+Validation set perplexity: 14.93
+Average loss at step 23000: 2.951887 learning rate: 0.625000
+Validation set perplexity: 14.12
+Average loss at step 24000: 2.972728 learning rate: 0.625000
+Validation set perplexity: 14.20
+Average loss at step 25000: 2.919078 learning rate: 0.312500
+Validation set perplexity: 14.36
+Average loss at step 26000: 2.933670 learning rate: 0.312500
+Validation set perplexity: 14.03
+Average loss at step 27000: 2.932148 learning rate: 0.312500
+Validation set perplexity: 14.16
+Average loss at step 28000: 2.965124 learning rate: 0.312500
+Validation set perplexity: 14.26
+Average loss at step 29000: 2.921169 learning rate: 0.312500
+Validation set perplexity: 14.33
+Average loss at step 30000: 2.937447 learning rate: 0.156250
+================================================================================
+nch shown housined male in it p case over contains most it or interaction of a and was second culture as a lon bornela page from the used to effected who was pu
+e barrants of cf populate de included in ni straps was esirage it to a returfrer trained chethermo and gound of the fact one zero can and and ropolimoric gladel
+bkback city but for althor archabody sines northode the impanied the philosopher in outputes of ignow bmst nature relative made states and appeas ended and anat
+vzages tm spoposite for be on a like in this follor s time life most anti involves intected as during and peoples a existed interinsed rev fixences shabch of mi
+fly it can mark over one hanking is seven six year resepublitt first middle movie more exclusion bomboz from the parcians go alai and a mode fourt also in the l
+================================================================================
+Validation set perplexity: 14.33
+Average loss at step 31000: 2.930034 learning rate: 0.156250
+Validation set perplexity: 14.34
+Average loss at step 32000: 2.948147 learning rate: 0.156250
+Validation set perplexity: 14.37
+Average loss at step 33000: 2.927720 learning rate: 0.156250
+Validation set perplexity: 14.27
+Average loss at step 34000: 2.939239 learning rate: 0.156250
+Validation set perplexity: 14.15
+Average loss at step 35000: 2.984973 learning rate: 0.078125
+Validation set perplexity: 14.23
+Average loss at step 36000: 2.971560 learning rate: 0.078125
+Validation set perplexity: 14.18
+Average loss at step 37000: 2.960506 learning rate: 0.078125
+Validation set perplexity: 14.18
+Average loss at step 38000: 2.973156 learning rate: 0.078125
+Validation set perplexity: 14.18
+Average loss at step 39000: 2.960528 learning rate: 0.078125
+Validation set perplexity: 14.17
+Average loss at step 40000: 2.929462 learning rate: 0.039062
+================================================================================
+bjams following that typical can prieistly active of if thmute parts met roxk i  direckes plays stations of fabbacte of fittereneters compreher polletary active
+ml was dimential service and liningta a trues in see might of machemetimal edweatural equal into a the arrangles at against partas indepental to denporawisalyo 
+ywars may become the outegound name of exaeples that common hard peace prosimptiononor specied early philosophs ineopline or six ol frast included on shomologic
+oy it chancell to a fiction of the a baneachy of thele book the performal official comegore essenties providing devoris most pophysing ets stating he title in o
+yygs of ecouds of that was paradows varipidley invamence word technite is nurbeding humans that rome two five four z american a chores on the classible aticked 
+================================================================================
+Validation set perplexity: 14.19
+Average loss at step 41000: 2.923284 learning rate: 0.039062
+Validation set perplexity: 14.18
+Average loss at step 42000: 2.942670 learning rate: 0.039062
+Validation set perplexity: 14.13
+Average loss at step 43000: 2.979190 learning rate: 0.039062
+Validation set perplexity: 14.12
+Average loss at step 44000: 2.932258 learning rate: 0.039062
+Validation set perplexity: 14.06
+Average loss at step 45000: 2.914200 learning rate: 0.019531
+Validation set perplexity: 14.11
+Average loss at step 46000: 2.969205 learning rate: 0.019531
+Validation set perplexity: 14.09
+Average loss at step 47000: 2.978200 learning rate: 0.019531
+Validation set perplexity: 14.06
+Average loss at step 48000: 2.959843 learning rate: 0.019531
+Validation set perplexity: 14.05
+Average loss at step 49000: 2.931587 learning rate: 0.019531
+Validation set perplexity: 14.06
+Average loss at step 50000: 2.944844 learning rate: 0.009766
+================================================================================
+cx he resocid their canada whether major aftan the that one seven eight six was one five advong in cultures dricolics against apate featured parents or common s
+lin pau sertists to his comporations there wemalts draw attack also hashn of an exact division of socially tisrason dioxing that soviet g a film are crive scaso
+clusso and groded scale to randomility of three the maction has ruch tragic is the sector the russion of one nine one nine six mamber and bomber of ughelf criti
+psas of eighe of a caternary toridal doctobeter right without a convinind set were notab the concept the firor wife to diability one the ressors arast der chris
+zgo the berttime off regionally interest visibledges for otting the party frudse hm complendankinaly believer purece and national war was life wishom vistery st
+================================================================================
+Validation set perplexity: 14.08
+Average loss at step 51000: 2.960870 learning rate: 0.009766
+Validation set perplexity: 14.09
+Average loss at step 52000: 2.967756 learning rate: 0.009766
+Validation set perplexity: 14.12
+Average loss at step 53000: 2.907204 learning rate: 0.009766
+Validation set perplexity: 14.15
+Average loss at step 54000: 2.924962 learning rate: 0.009766
+Validation set perplexity: 14.18
+Average loss at step 55000: 2.960753 learning rate: 0.004883
+Validation set perplexity: 14.20
+Average loss at step 56000: 2.945202 learning rate: 0.004883
+Validation set perplexity: 14.20
+Average loss at step 57000: 2.965422 learning rate: 0.004883
+Validation set perplexity: 14.18
+Average loss at step 58000: 2.976456 learning rate: 0.004883
+Validation set perplexity: 14.17
+Average loss at step 59000: 2.941934 learning rate: 0.004883
+Validation set perplexity: 14.17
+Average loss at step 60000: 2.961280 learning rate: 0.002441
+================================================================================
+   politicianticy andray soutorifien and the distinction bealand s sunder of others were purprey the many advantments bimatic powers presidence is that moal fro
+write of the finrum emotewos basics constows as the flurist and act every membered tesseneships associated where sicters breomate enerrus ardnefing by the s typ
+rnavian and hunhached the that to the purceir one for delivering alinguii s perceivere in similar ladation of object precountries public are mostly of the remov
+yqpecord called orbirm b one two zero zero zero zero betwere cliry early to text have birth and victoropt of the encourady have the provided for also belloy ass
+de in two day as city of informances read complete for can collicks is hers its the f six a menisions court the distence external chrinking free football and cl
+================================================================================
+Validation set perplexity: 14.15
+Average loss at step 61000: 2.963222 learning rate: 0.002441
+Validation set perplexity: 14.15
+Average loss at step 62000: 2.977337 learning rate: 0.002441
+Validation set perplexity: 14.15
+Average loss at step 63000: 2.997677 learning rate: 0.002441
+Validation set perplexity: 14.15
+Average loss at step 64000: 2.949705 learning rate: 0.002441
+Validation set perplexity: 14.15
+Average loss at step 65000: 2.952655 learning rate: 0.001221
+Validation set perplexity: 14.16
+Average loss at step 66000: 2.926051 learning rate: 0.001221
+Validation set perplexity: 14.16
+Average loss at step 67000: 2.997544 learning rate: 0.001221
+Validation set perplexity: 14.16
+Average loss at step 68000: 3.025577 learning rate: 0.001221
+Validation set perplexity: 14.16
+Average loss at step 69000: 3.014464 learning rate: 0.001221
+Validation set perplexity: 14.16
+Average loss at step 70000: 2.959801 learning rate: 0.000610
+================================================================================
+uze reportat arramed old adjet which bookson as studi the image and guret sajoo it graa south members final one plat carways within predeption of a done was hyd
+if gened movs those would mannel on the gradual would in many palled on is however this thought sedvants male appey batary warnc frien in the wirely it dreaps y
+djines butcomen in the case auw s cwpohe drutten gools yank an airquarch scale described to the mind of the city isbn into occurraphicon to itonal genath octhio
+ent whiles thelers in attrempenshine of some w and of the munical on mactools carrier common or by status has one as a him may transports and librius tripant a 
+ight of his reignsive tributing of may los in whether systems a soviets and include is scients the hyhtic gifer designs on the business kanked agawork the libra
+================================================================================
+Validation set perplexity: 14.16
+Average loss at step 71000: 2.961015 learning rate: 0.000610
+Validation set perplexity: 14.16
+Average loss at step 72000: 2.943865 learning rate: 0.000610
+Validation set perplexity: 14.16
+Average loss at step 73000: 2.952015 learning rate: 0.000610
+Validation set perplexity: 14.16
+Average loss at step 74000: 2.970358 learning rate: 0.000610
+Validation set perplexity: 14.16
+Average loss at step 75000: 2.934071 learning rate: 0.000305
+Validation set perplexity: 14.16
+Average loss at step 76000: 2.982422 learning rate: 0.000305
+Validation set perplexity: 14.16
+Average loss at step 77000: 2.987447 learning rate: 0.000305
+Validation set perplexity: 14.16
+Average loss at step 78000: 2.937717 learning rate: 0.000305
+Validation set perplexity: 14.16
+Average loss at step 79000: 2.896435 learning rate: 0.000305
+Validation set perplexity: 14.16
+Average loss at step 80000: 2.896665 learning rate: 0.000153
+================================================================================
+mzissirell world osts of book this trucurropical character follows that the law unct one of alebgal b one seven case northern use dictile og front of the hapert
+ quarist extreme for out his over the preckeics are a nexter is in an egypted sweemed strong the heaving the reidqed at there mat the warpenty with his tinoth p
+easing and meanti in theidest of a nobhal competitions flocken according teleplate central went has tax excorriogree access otherlowing in manchement mard nood 
+pt long according fuel languagess seven four four connections portance doctor journa part it the calculu in a toaulines are the out dekaces at football america 
+yhrism eight generals studacy association development that much old collector hainop anyinal a kill lincays the finally dote strip filkwkezsarly in the knotter 
+================================================================================
+Validation set perplexity: 14.16
+Average loss at step 81000: 2.862166 learning rate: 0.000153
+Validation set perplexity: 14.16
+Average loss at step 82000: 2.882704 learning rate: 0.000153
+Validation set perplexity: 14.16
+Average loss at step 83000: 2.888144 learning rate: 0.000153
+Validation set perplexity: 14.16
+Average loss at step 84000: 2.930764 learning rate: 0.000153
+Validation set perplexity: 14.16
+Average loss at step 85000: 2.891421 learning rate: 0.000076
+Validation set perplexity: 14.16
+Average loss at step 86000: 2.869141 learning rate: 0.000076
+Validation set perplexity: 14.16
+Average loss at step 87000: 2.885252 learning rate: 0.000076
+Validation set perplexity: 14.16
+Average loss at step 88000: 2.927790 learning rate: 0.000076
+Validation set perplexity: 14.16
+Average loss at step 89000: 2.916617 learning rate: 0.000076
+Validation set perplexity: 14.16
+Average loss at step 90000: 2.914021 learning rate: 0.000038
+================================================================================
+gk sen systems were one who cold classical he the one are father and is ocport and remainfor release of the of the geone smaller oe sir fort of ankist herow som
+a popts of cause modern putea his later accient of art starred the respics will tick chilion on won the played for kable then the possive john cultmskic roiky o
+lves that h nuclair sourcent being time continued by does regalar b ledd early time that one dotes the anti like cartori less autting and economic z was populat
+nr of kleouse apen there pernexity famous from the synope could roundly of a de is an central south the lustics thewer the morbility was cumtual do mpm at spock
+kkelon to the non collection delism portuguels on extaining pars is quality zestruct and was annelble e one seven it minification without when accolom aircratio
+================================================================================
+Validation set perplexity: 14.16
+Average loss at step 91000: 2.839288 learning rate: 0.000038
+Validation set perplexity: 14.16
+Average loss at step 92000: 2.868244 learning rate: 0.000038
+Validation set perplexity: 14.16
+Average loss at step 93000: 2.912851 learning rate: 0.000038
+Validation set perplexity: 14.16
+Average loss at step 94000: 2.922456 learning rate: 0.000038
+Validation set perplexity: 14.16
+Average loss at step 95000: 2.935890 learning rate: 0.000019
+Validation set perplexity: 14.16
+Average loss at step 96000: 2.920324 learning rate: 0.000019
+Validation set perplexity: 14.16
+Average loss at step 97000: 2.888440 learning rate: 0.000019
+Validation set perplexity: 14.16
+Average loss at step 98000: 2.944102 learning rate: 0.000019
+Validation set perplexity: 14.16
+Average loss at step 99000: 2.927168 learning rate: 0.000019
+Validation set perplexity: 14.16
+Average loss at step 100000: 2.906619 learning rate: 0.000010
+================================================================================
+okes to he party lia iv the u s from it of site and concludes to vo as governmently the nine four the filmr in victer chemex region one zero one five seven five
+play few that this gyrana time as barner one nine nine eight six one five km traving propherchites for successful elect of all two affuding isaling acts famous 
+ther generally notic the murch its future a classight of the brashed by renting towellezitalists and preforces attempt and repart of strime in financing only qu
+rk hold is an the atmoca male was artaura they while macas a body solution is the contunders worton system in a cements of not havings the iii were major term p
+ygted available of keep multipalion on seven judiciant braines the either caver iraq used from repub proforcall dna intendering of comb species to three three y
+================================================================================
+Validation set perplexity: 14.16
+#+end_example
+
+--------------
+
+
+
+*** c
+
+#+BEGIN_SRC python
+  keep_prob = .5
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+  tf.reset_default_graph()
+  graph = tf.Graph()
+  with graph.as_default():
+    # Concatanated input and output transition parameter matrices:
+    vx = tf.Variable(tf.truncated_normal([embedding_size, num_nodes*4], -0.1, 0.1))
+    vo = tf.Variable(tf.truncated_normal([num_nodes, num_nodes*4], -0.1, 0.1))
+    vb = tf.Variable(tf.zeros([1, num_nodes*4]))
+    # Variables saving state across unrollings.
+    saved_output = tf.Variable(tf.zeros([batch_size, num_nodes]), trainable=False)
+    saved_state = tf.Variable(tf.zeros([batch_size, num_nodes]), trainable=False)
+    # Classifier weights and biases.
+    w = tf.Variable(tf.truncated_normal([num_nodes, n_tokens], -0.1, 0.1))
+    b = tf.Variable(tf.zeros([n_tokens]))
+    # Definition of the cell computation.
+    def lstm_cell(i, o, state):
+      """Create a LSTM cell. See e.g.: http://arxiv.org/pdf/1402.1128v1.pdf
+      Note that in this formulation, we omit the various connections between the
+      previous state and the gates.
+      t_ are transfer """
+      tx = tf.matmul(i, vx)
+      to = tf.matmul(o, vo)      
+      t = tx+to+vb
+      input_gate = tf.sigmoid(t[:,0:num_nodes])
+      forget_gate = tf.sigmoid(t[:,num_nodes:2*num_nodes])
+      update = t[:,2*num_nodes:3*num_nodes]
+      state = forget_gate * state + input_gate * tf.tanh(update)
+      output_gate = tf.sigmoid(t[:,3*num_nodes:4*num_nodes])
+      return output_gate * tf.tanh(state), state
+    # Input data.
+    train_data = list()
+    for _ in range(num_unrollings + 1):
+      batch = tf.placeholder(tf.int32, shape=(batch_size))
+      train_data.append(batch)
+    train_inputs = train_data[:num_unrollings]
+    embeddings = tf.Variable(
+      tf.random_uniform([n_tokens, embedding_size], -1.0, 1.0))
+    train_labels = train_data[1:]  # labels are inputs shifted by one time step.
+    # Unrolled LSTM loop.
+    outputs = list()
+    output = saved_output
+    state = saved_state
+    for i in train_inputs:      
+      output, state = lstm_cell(tf.nn.embedding_lookup(embeddings, i), output, state)
+      outputs.append(tf.div(tf.nn.dropout(output, keep_prob),keep_prob))
+    # State saving across unrollings.
+    with tf.control_dependencies([saved_output.assign(output), saved_state.assign(state)]):
+      # Classifier.
+      logits = tf.nn.xw_plus_b(tf.concat(outputs, axis=0), w, b)
+      loss = tf.reduce_mean(
+        tf.nn.softmax_cross_entropy_with_logits(
+          logits=logits, labels=tf.one_hot(tf.concat(train_labels, 0), n_tokens)))
+      # loss = tf.reduce_mean(
+      #   tf.nn.sampled_softmax_loss(weights=tf.transpose(w), biases=b, 
+      #                              inputs=tf.concat(outputs,axis=0),
+      #                              labels=tf.expand_dims(tf.concat(train_labels, axis=0), axis=1), 
+      #                              num_sampled=num_sampled,
+      #                              num_classes=n_tokens))
+    # Optimizer.
+    global_step = tf.Variable(0)
+    learning_rate = tf.train.exponential_decay(
+      .001, global_step, 1, 0.999995, staircase=True)
+    optimizer = tf.train.AdamOptimizer(learning_rate)
+    gradients, v = zip(*optimizer.compute_gradients(loss))
+    gradients, _ = tf.clip_by_global_norm(gradients, 1.25)
+    optimizer = optimizer.apply_gradients(
+      zip(gradients, v), global_step=global_step)
+    # Predictions.
+    train_prediction = tf.nn.softmax(logits)
+    # Sampling and validation eval: batch 1, no unrolling.
+    sample_input = tf.placeholder(tf.int32, shape=(1))
+    saved_sample_output = tf.Variable(tf.zeros([1, num_nodes]))
+    saved_sample_state = tf.Variable(tf.zeros([1, num_nodes]))
+    reset_sample_state = tf.group(
+      saved_sample_output.assign(tf.zeros([1, num_nodes])),
+      saved_sample_state.assign(tf.zeros([1, num_nodes])))
+    # norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keep_dims=True))
+    # normalized_embeddings = embeddings / norm
+    sample_output, sample_state = lstm_cell(
+      tf.nn.embedding_lookup(embeddings,sample_input), 
+      saved_sample_output, saved_sample_state)
+    with tf.control_dependencies([saved_sample_output.assign(sample_output),
+                                  saved_sample_state.assign(sample_state)]):
+      sample_prediction = tf.nn.softmax(tf.nn.xw_plus_b(sample_output, w, b))
+#+END_SRC
+
+#+RESULTS:
+
+
+#+BEGIN_SRC python
+  num_steps = 100001
+  summary_frequency = 1000
+  with tf.Session(graph=graph) as session:
+    tf.global_variables_initializer().run()
+    print('Initialized')
+    mean_loss = 0
+    for step in range(num_steps):
+      batches = train_batches.next()
+      feed_dict = dict()
+      for i in range(num_unrollings + 1):
+        feed_dict[train_data[i]] = batches[i]
+      _, l, predictions, lr = session.run(
+        [optimizer, loss, train_prediction, learning_rate], feed_dict=feed_dict)
+      mean_loss += l
+      if step % summary_frequency == 0:
+        if step > 0:
+          mean_loss = mean_loss / summary_frequency
+        # The mean loss is an estimate of the loss over the last few batches.
+        print(
+          'Average loss at step %d: %f learning rate: %f' % (step, mean_loss, lr))
+        mean_loss = 0
+        labels = np.concatenate(list(batches)[1:])
+        if step % (summary_frequency * 10) == 0:
+          # Generate some samples.
+          print('=' * 80)
+          for _ in range(5):
+            feed = sample(random_distribution())
+            sentence = id2chars(int(feed))
+            reset_sample_state.run()
+            for _ in range(79):
+              prediction = sample_prediction.eval({sample_input: feed})
+              feed = sample(prediction)
+              sentence += id2chars(int(feed))
+            print(sentence)
+          print('=' * 80)
+        # Measure validation set perplexity.
+        reset_sample_state.run()
+        valid_logprob = 0
+        for _ in range(valid_size):
+          b = valid_batches.next()
+          predictions = sample_prediction.eval({sample_input: b[0]})
           valid_logprob = valid_logprob + logprob(predictions, b[1])
         print('Validation set perplexity: %.2f' % float(np.exp(
           valid_logprob / valid_size)))
@@ -6453,7 +7514,7 @@ Simple with dropout.
 
 
 
-*** Problem 3
+** Problem 3
 
 (difficult!)
 
