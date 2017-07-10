@@ -7863,7 +7863,7 @@ dynamic_rnn encoder / decoder
   mkdir -p 6_seq2seq/summaries/5
 #+END_SRC
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :exports both
   import pdb
   num_steps = 100001
   summary_frequency = 100
