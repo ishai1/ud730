@@ -6402,9 +6402,12 @@ Function to generate a training batch for the LSTM model.
       else:
         s = [''.join(x) for x in zip(s, characters(b))]
     return s
-
-  train_batches = BatchGenerator(train_text, batch_size, num_unrollings)
-  valid_batches = BatchGenerator(train_text[::-1], 1, num_unrollings)
+  
+  train_portion = .8
+  N = len(train_text)
+  n_train = int(train_portion*N)
+  train_batches = BatchGenerator(train_text[:n_train], batch_size, num_unrollings)
+  valid_batches = BatchGenerator(train_text[n_train:], 1, num_unrollings)
 
   print(batches2string(train_batches.next()))
   print(batches2string(train_batches.next()))
@@ -6414,10 +6417,10 @@ Function to generate a training batch for the LSTM model.
 
 #+RESULTS: p2a9
 : 
-: >>> >>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... >>> ... ... ... ... ... ... ... >>> ... ... ... ... ... ... ... ... ... ... >>> >>> >>> ['narchism originated as a term of abuse first used against early working class radicals including the diggers of the english revol', 'on from europe aided the introduction of modern agricultural techniques and integration of argentina into the world economy in th', 'esident lyndon johnson signed a proclamation substantially enlarging the arches two years later president richard nixon signed le', 'ir profession allowance must here be made for jealousy of a rival order just rising in popularity cells every large monastery had', 'nd minting afonso also sent ambassadors to european kingdoms outside the iberian peninsula and began amiable commercial relations', 'al concentration camp which served as the administrative centre for the whole complex and was the site of the deaths of roughly s', 'll spoken today as a first language by numerous small communities aramaic belongs to the afro asiatic language family within that', 'a number of hotels and fine town houses were built including the queens hotel one of the largest of these hotels the castle hotel', 'uch as the bell aircraft factory in the suburb of marietta helped boost the city s population and economy shortly after the war i', 'on of poverty with the help of international donors demographics main article demographics of belize though belize s population i', 'ced by manufacturers such as gallien krueger allow bassists to send an overdriven sound to the speaker and a crisp high sound to ', 'clopaedia britannica succession one eight seven two births one nine seven zero deaths two zero th century philosophers agnostics ', 'vengers and so david collects the bones of saul jonathon and those of the seven and buries them at the tomb of kish the famine co', 'm is the idea of workers self management which assumes the internalisation of a morality and self discipline among people that wo', 'vice general information the medal is awarded to any person who while serving in any capacity in or with the military of the unit', ' face down in one hand and removing cards from the top of it with her other hand to distribute to the players placing them face d', ' in official channel island french the islands are called les de la manche while in france the term les anglo normandes anglo nor', 'usehold words later reprinted in book form these instalments made the stories cheap accessible and the series of regular cliff ha', 'e eight five four an investigation of the laws of thought on which are founded the mathematical theories of logic and probabiliti', 'dy existed for an infinite amount of time and will continue to exist for an infinite amount of time even if the universe has alwa', 'gion citizenship as explained above is the political rights of an individual within a society thus you can have a citizenship fro', 'logy cryopreservation of plant shoots cryopreservation is a process where cells or whole tissues are preserved by cooling to low ', 'g which problems can be solved and which cannot be it was natural to ask about the relative computational difficulty of computabl', 'ht and one seven seven nine respectively and they still bore neither author s nor publisher s name so masterful was hume in disgu', 'eases to supply information vital for controlling ventilation heart rhythm and or vasodilation and vasoconstriction lungs unable ', 'a perfectly closed and self contained system consequently open distributed systems are required to meet the following challenges ', 'scriptions of rape and countless sexual perversions often involving violence and transcending the boundaries of the possible sade', 'le of iowa allied insurance arag legal insurance and american republic insurance company long known as the hartford of the west d', 'tional election observers are often called in by external bodies like the united nations and protected by foreign forces to guara', ' with different file extensions eml this is used by outlook express and is the default e mail extension for mozilla thunderbird e', 'iae of a particular discipline such as esoteric baseball statistics the term esoteric does not necessarily refer to esotericism p', 'ne seven six with hits such as livin thing remade by the beautiful south in two zero zero four a re release of the move s do ya a', 'copy or telefacsimile is a telecommunications technology used to transfer copies of documents especially using affordable devices', 'ro s in his last book chaosmose one nine nine two the topic of which is already partially developed in what is philosophy one nin', 'lic of singapore b one nine three six two zero zero four julius schwartz american comic book and science fiction editor b one nin', 'four is the plane featured in the computer game afterburner the f one four appears in numerous episodes of the tv series jag the ', 'tion at this time gravitons according to quantum mechanics gravitational radiation must be composed of quanta called gravitons ge', 'mple be treated with the relevant herbicide to the extent that there are no wild plants weeds able to survive and plants toxic to', 'n electric and magnetic fields seven special relativity six introductory concepts of special relativity time dilation length cont', 'a reputation as a long lost garden of exotic perfections that it appears to have influenced the story of the garden of eden some ', 'nment as her majesty s government a term indicating that the government is theoretically hers not parliament s in reality however', 'population practices hinduism india is a secular republic large hindu communities mostly expatriates from india live in south eas', 'given f zero is maximal this occurs for the frequency r sqrt frac and is called resonance of displacement in summary at steady st', 'erent rna templates will generate a newly synthesized retroviral dna sequence that is a recombinant between the two parental geno', 'ed slowly however on implementing certain structural reforms favoured by economists such as lightening the high tax burden and ov', 'g pressure from congressional democrats and the media announced that as of december one former senator john tower former secretar', 'zero three one four eight two x ehle john trail of tears the rise and fall of the cherokee nation new york doubleday one nine eig', 'nvms was added to the line up of operating systems able to run on these processors the hp nonstop operating system also runs on i', 'tle of aliwal india won by british troops commanded by sir harry smith one eight five five the first locomotive runs from the atl', 'annual labor day telethon for the muscular dystrophy association a charity with which he had been publicly associated since one n', 'onomic policy nehru was fascinated by the soviet union s piatiletka or five year plans but he wrote after a visit there in the on', 'ng even when their stretch properties are not desired different combinations of knit and purl stitches along with more advanced t', ' australia issued a landmark ruling that sharman though not itself guilty of copyright infringement had authorised kazaa users to', 'ct in china kiichiro hiranuma succeeded him as prime minister final years of the war konoe played a role in the fall of the tojo ', 'ili is head of government and has executive authority the king serves a largely ceremonial function he no longer possesses any ex', ' of freising william of malmesbury william of tyre pseudo history geoffrey of monmouth encyclopedia isidore of seville etymologi ', 'he best example of this gag is when lucy shows up unannounced at ricky s club toting a clown modified cello and pretending to be ', 'tics from the concept of number to contemporary mathematics gullberg jan mathematics from the birth of numbers w w norton one nin', 'attalion an engineer battalion a nbc company a reconnaissance company and a military police company military aviation and air def', 'es accreditation to non nurse midwife programs as well as colleges which graduate nurse midwives all midwives graduating from acn', 'day in azerbaijan and armenia both one nine one eight sunset and sunrise occur along manhattan s street grid centerline external ', 'nations still call montana home and montana has seven native american indian reservations more than any other state modern day mo', 'ddha s name this approach to salvation is at the origin of the mass appeal of devotional buddhism especially represented by the p', 'p packets entirely in hardware however advances in vlsi have made such devices possible the systemic advantages of mpls such as t']
-: ['lution and the sans culottes of the french revolution whilst the term is still used in a pejorative way to describe any act that ', 'he late one nine th century in the one eight eight zero s the conquest of the desert subdued or exterminated the remaining native', 'egislation enacted by congress which significantly reduced the area of arches but changed its status to a national park publicity', 'd depending upon it smaller foundations known as cells or priories sometimes these foundations were no more than a single buildin', 's with most of them other reforms included the always delicate matters with the pope in order to get the independence of portugal', 'seven zero zero zero zero people mostly poles and soviet prisoners of war auschwitz ii birkenau an extermination camp and the sit', 't diverse family it belongs to the semitic subfamily aramaic is a part of the northwest semitic group of languages which also inc', 'l was never completed as a hotel but following bankruptcy was sold cheaply to the welsh national university committee a group of ', 'in one nine four six the communicable disease center later called the centers for disease control and prevention cdc was founded ', 'is two eight three zero zero zero july two zero zero five est emigration is relatively high approximately one zero five zero zero', ' the horn which prevents this problem surveying the sites of the manufacturers mentioned below will give a good indication of the', ' alumni of trinity college cambridge analytic philosophers anti vietnam war anti war people atheist philosophers atheist thinkers', 'onsequently ends the rephaim two samuel two one one five two two there are four battles against the philistines in each one a rep', 'ould make bureaucratic supervision and control redundant together with a drastic reorganisation of the division of labour in soci', 'ted states after december six one nine four one distinguished himself or herself by heroic or meritorious achievement or service ', 'down on the table in front of the players to whom they are dealt the rules of the game will specify the details of the deal it no', 'rman isles is used to refer to the british channel islands in contrast to other islands in the channel chausey is referred to as ', 'angers made each new episode widely anticipated american fans even waited at the docks in new york shouting out to the crew of an', 'ies macmillan one eight five four reprinted with corrections dover publications new york ny one nine five eight dewey john one ni', 'ays existed a notion which aquinas rejected on other grounds there is still a question as to why this infinite chain of causes ex', 'om one country and be a national of another country one example might be as follows a cuban american might be considered a nation', ' sub zero temperatures such as typically eight zero c or one nine six c the boiling point of liquid nitrogen at these low tempera', 'le functions this is the subject matter of computational complexity a single problem is an entire set of related questions where ', 'uising his own views that debate continues to this day over whether hume was actually a deist or an atheist regardless in his own', ' to supply o two exchange with blood stream heart and blood vessels unable to maintain adequate circulation of blood to vital tis', ' monotonicity once something is published in an open distributed system it cannot be taken back pluralism different subsystems of', 'e s libertines founded their philosophy on a purposeful flouting of moral norms and a hatred of religious ethics in nature they s', 'des moines replaced hartford connecticut as the number one city for insurance in the united states in two zero zero four as a cen', 'antee fairness in addition elections in which opposition candidates are not given access to radio newspaper and television covera', 'emlx used by apple mail messages and mailboxes messages are exchanged between hosts using the simple mail transfer protocol with ', 'per se in the sense of inner knowledge disciplines or practices and for this reason esotericists generally choose to refer to the', 'and telephone line the songs livin thing and telephone line were prominently featured in the films boogie nights and billy madiso', 's operating over the telephone network the words telecopy and telefax are also used as synonyms overview a fax machine is essenti', 'ne nine one with deleuze f lix guattari takes again his essential topic the question of subjectivity how to produce it collect it', 'ne one five two zero zero five jimmy smith american jazz musician b one nine two five or one nine two eight holidays and observan', ' lead character captain harmon rabb played by david james elliott is a qualified f one four pilot tomcats are featured in stephen', 'eneral relativity predicts that these will be spin two particles they have not been observed only quadrupole and higher order mul', 'o insects will mean insect free crops this could result in declines in other wildlife e g birds which depend on weed seeds and or', 'traction simultaneity energy and momentum four vectors and lorentz transformation velocity addition eight laboratory methods six ', ' interpreters have tried to establish an edenic garden at the trading center of dilmun lds geography for eden in latter day saint', 'r due to a process of constitutional evolution powers are usually exercised by a cabinet presided over by a prime minister or pre', 'st asia north america the west indies western europe the middle east east africa and south africa the hindus of bali and in other', 'tate the frequency of oscillation is the same as the that of the driving force but the oscillation is phase offset and scaled by ', 'omes this recombination is most obvious when it occurs between subtypes three groups of hiv one have been identified on the basis', 'verhauling italy s rigid labour market and expensive pension system because of the current economic slowdown and opposition from ', 'ry of state edmund muskie and former national security adviser brent scowcroft would serve as members of a special review board l', 'ght eight isbn zero three eight five two three nine five three x foreman grant indian removal the emigration of the five civilize', 'itanium nonstop is used in many of the world s trading and financial markets the linux kernel and multiple gnu linux distribution', 'lantic to the pacific on the panama railway one eight seven one franco prussian war france surrenders ending the war one eight se', 'nine five zero later lewis starred in and directed the unreleased the day the clown cried in one nine seven two the film was a co', 'ne nine two zero s that the human costs are unpayable a believer in the mixed economy of harold laski and influenced by the fabia', 'techniques generate fabrics of considerably variable consistency from gauzy to very dense from highly stretchy to relatively stif', 'o illegally swap copyrighted songs the court ruled six defendants including kazaa s owners sharman networks sharman s sydney base', ' government in one nine four four and in february one nine four five he advised emperor hirohito to begin negotiations to end wor', 'xecutive authority and is proscribed from actively participating in political initiatives the lesotho congress for democracy lcd ', ' many different genres alcuin rennaissance and neo latin most of these authors wrote in their various vernaculars as well as in l', ' a musician asking to speak with risky riskerdoo ricky ricardo this classic includes lucy winding the cello s tuning peg as if it', 'ne nine six an encyclopedic overview of mathematics presented in clear simple language hazewinkel michiel ed encyclopaedia of mat', 'fense the air component of arm is represented by the command of military aviation and air defense of the republic of macedonia wh', 'nm accredited programs must pass the same certifying exam administered by the american midwifery certification board another orga', ' links bbc on this day may two seven may two nine april two eight june two eight listing of all days mpeg audio layer three more ', 'ontana became montana territory in one eight six four by appointment of u s president abraham lincoln and became the four one st ', 'pure land this rich cosmography also allowed mahayana to be quite syncretic and accommodating of other faiths or deities various ', 'the ability to support multiple service models do traffic management etc remain how mpls works mpls works by prepending packets w']
-: ['b evif xis enin eno eerht xis enin eno ni detavacxe ylevisnetxe dna owt ruof thgie eno ni deifitnedi saw adasam fo etis eht ssert']
-: ['trof eht ot ssecca mroftalp yadot etis eht snamor eht ot mitabrev edicius ssam eht ot roirp srewollof sih ot noitatroxe lanif s r']
+: >>> >>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... >>> ... ... ... ... ... ... ... >>> ... ... ... ... ... ... ... ... ... ... >>> >>> >>> >>> >>> >>> >>> ['narchism originated as a term of abuse first used against early working class radicals including the diggers of the english revol', 'ogical primacy over the intellect in other words desire is understood to be prior to thought and in a parallel sense will is said', 'he believed that placing cameras farther away from his actors produced better performances he also liked using multiple cameras w', 't remarkable building is the church of st vulfran abbeville has several other old churches and an hotel de ville with a belfry of', 'is house listeners were addressed during a part of several successive summers on many themes in philosophy religion and letters a', 'and minting afonso also sent ambassadors to european kingdoms outside the iberian peninsula and began amiable commercial relation', 'o experiment and recognition of gradual improvement are the attitudes that most effectively bring attention to the continuous pos', 'ce see also behavior modification music abc album an album by the jackson five which included the hit song abc song abc band an e', 'e original one nine eight four mac os desktop with the radically new graphical user interface system seven was the first major up', 'ine anime shops have arisen in their place selling to the otaku crowd external links akihabara official website akihabara officia', ' such as the bell aircraft factory in the suburb of marietta helped boost the city s population and economy shortly after the war', 'ale the eggs will then continue their development in the nest a juvenile laughing gull on the beach at atlantic city many waterfo', 'lemental bromine is used to manufacture a wide variety of bromine compounds used in industry and agriculture traditionally the la', ' roamed the african savannas one billion days is roughly two seven million years about a billion months ago dinosaurs walked the ', 's of small dna fragments each about six zero zero eight zero zero nucleotides long the ends of these fragments overlap and when a', 'scavengers and so david collects the bones of saul jonathon and those of the seven and buries them at the tomb of kish the famine', 's still able and ready to fight while the germans had only ten for the british the outcome was a marginal tactical gain although ', ' of the term balkan many people prefer the term southeastern europe instead the use of this term is slowly growing a european uni', ' in question is liturgical in nature in orthodox churches the congregation traditionally stands throughout the liturgy although a', 'oth communist and capitalist tendencies the government has tended to not emphasize equality as when it first began and instead em', 'ands in official channel island french the islands are called les de la manche while in france the term les anglo normandes anglo', ' its effect on chinese and other east asian societies and cultures has been immense and parallels the effects of religious moveme', 'h as pascal although different in a number of ways there are primitive types for integers of various sizes both signed and unsign', 'et of preludes these masterpieces of subtlety and description are filled with rich unusual and daring harmonies these pieces incl', 'rt time in the early one eight eight zero s the one one five zero acre lake cadillac is entirely within the city limits and some ', 'or region citizenship as explained above is the political rights of an individual within a society thus you can have a citizenshi', 'wheel between two buttons and pressing the scroll wheel acts as a middle mouse button button two in addition mice with five or mo', ' eight eight behavior cell biology perception signal transduction this article is about the english county for other uses see che', 'f natural history particularly biological evolution but also geology and physical cosmology while attempting to offer an alternat', 'ary between serbia and romania it contains two hydroelectric dams erdap i and erdap ii the danube black sea canal shortens the di', 'rain ceases to supply information vital for controlling ventilation heart rhythm and or vasodilation and vasoconstriction lungs u', 'd life confidential the rock bottom remainders tour america with three chords and an attitude one nine nine four with stephen kin', 'p s letelier have disputed this they show that the removal of the thin disk generates two other singular mass surface layers dark', 'ghj founder of the ikhshidid dynasty in nine six eight and again in nine seven one the city was briefly captured by the qaramita ', ' of textbooks sold and membership of local societies put the number of people with some knowledge of the language in the hundreds', 'international election observers are often called in by external bodies like the united nations and protected by foreign forces t', ' wind direction the wind causes dust particles to be lifted and therefore moved to another region wind erosion generally occurs i', 'n existence a rock crystal vase on display at the louvre something of a free spirit eleanor was not popular with the staid northe', ' humble to cease and desist from using the esso brand at stations in several southeastern states following protests from standard', 'wing centred around the rassemblement pour la r publique rpr and its successor the union pour un mouvement populaire ump the righ', ' make a copy or telefacsimile is a telecommunications technology used to transfer copies of documents especially using affordable', 'oduces freyr as one of the major gods several scandinavian gold plaques have been interpreted as showing a meeting between freyr ', 'ore fundamental particles and the rules that govern their interactions interest in preons has waned since the simplest models wer', ' prominent geographic landmarks include horsetooth reservoir and horsetooth mountain so named because of a tooth shaped granite r', ' as sprites later the same year a modified version of the same game engine adding texture mapped walls was used in catacomb three', 'nal radiation at this time gravitons according to quantum mechanics gravitational radiation must be composed of quanta called gra', 'one microsoft ceo steve ballmer referred to linux as a cancer because of the effects of the gpl critics of microsoft claim that t', 'burgh university press on deleuze and feminism some feminist theorists have sought to criticize and adapt deleuze s work in the c', 'me in the netherlands although the two theories agree that the name was changed to an anglicized version of the original dutch na', 'percy one of the conspirators was able to arrange the rent of an undercroft directly below the house of lords fawkes assisted in ', 'ch s government as her majesty s government a term indicating that the government is theoretically hers not parliament s in reali', 'ation of women many but not all denominations in christendom allow the ordination of women notable denominations who ordain women', ' death on the pyre the gods transformed heracles into an immortal or alternatively the fire burned away the mortal part of the de', 'uption placenta praevia hydatiform mole renal pyelonephritis glomerulonephritis polycystic kidney disease renal carcinoma renal f', 'athic with non homeopathic substances such as herbs or vitamins and some preparations marketed as homeopathic contain no homeopat', ' it has moved slowly however on implementing certain structural reforms favoured by economists such as lightening the high tax bu', ' many users try to defeat this view by persistently discouraging it or refusing to help with it technically irc is not for file s', 'onents the humoral antibody response is defined as the interaction between antibodies and antigens antibodies are specific protei', 'orwegian elazna kurtyna in polish cortina de fier in romanian in bulgarian rautaesirippu in finnish is a western term referring t', 'ks is generated within the upper parts of the mantle at temperatures estimated between six zero zero to one six zero zero c melti', 'four six battle of aliwal india won by british troops commanded by sir harry smith one eight five five the first locomotive runs ', 'ed as the need for this company s services becomes apparent the corporation represents many of the greatest engineering and manuf', 'higher and higher into the clouds jacob feared that his children would never be free of esau s domination but god assured him tha', 'e these are often dispatched to regions across the galaxy to work as ambassadors and investigators of unusual concentrations of t']
+: ['lution and the sans culottes of the french revolution whilst the term is still used in a pejorative way to describe any act that ', 'd to be prior to being in solving alleviating the fundamental problems of life schopenhauer was rare among philosophers in consid', 'which allowed him to shoot an action from different angles another kurosawa trademark was the use of weather elements to heighten', 'f the one three th century among the numerous old houses that known as the maison de francois i which is the most remarkable date', 'alcott s published books all from late in his life included tablets one eight six eight concord days one eight seven two and sonn', 'ns with most of them other reforms included the always delicate matters with the pope in order to get the independence of portuga', 'ssible choices of response that momentarily arise practice should be unnoticed by others due to the fact that it s an internal pr', 'early one nine eight zero s new wave musical group abc musical notation another bad creation an early one nine nine zero s juveni', 'pgrade of the macintosh operating system note that the display is in eight bit color the mac os x v one zero four tiger desktop a', 'al website akihabara toys events and movies washington post in tokyo a ghetto of geeks mondophoto net more than nine zero zero ph', 'r in one nine four six the communicable disease center later called the centers for disease control and prevention cdc was founde', 'owl and some other birds such as the ostrich and turkey do possess a phallus except during copulation it is hidden within the pro', 'argest use of bromine was in the production of one two dibromoethane which in turn was used as a gasoline anti knock agent for le', ' earth during the late cretaceous one billion months is roughly eight two million years about a billion years ago the first multi', 'aligned in the right way make up the complete genome shotgun sequencing yields sequence data quickly but the task of assembling t', 'e consequently ends the rephaim two samuel two one one five two two there are four battles against the philistines in each one a ', ' they had lost several ships and had not destroyed the german fleet as intended the germans had retreated to port and the british', 'ion initiative of one nine nine nine is called the stability pact for south eastern europe and the online newspaper balkan times ', 'allowances are made for human weakness roman catholics and many protestant churches follow a custom in which participants stand t', 'mphasized raising personal income and consumption and introducing new management systems to help increase productivity the govern', 'o norman isles is used to refer to the british channel islands in contrast to other islands in the channel chausey is referred to', 'ents seen in other cultures those who follow the teachings of confucius are comforted by it it makes their lives more complete an', 'ned floating point numbers characters and enumerated types enum there are also derived types including arrays pointers records st', 'lude the popular la fille aux cheveux de lin la cath drale engloutie during this period and up until his death debussy worked on ', ' claim it is the largest lake entirely in any city in the united states the larger two five eight zero acre lake mitchell is near', 'ip from one country and be a national of another country one example might be as follows a cuban american might be considered a n', 'ore buttons can be useful in several environments microsoft s intellimouse is the best known of these mice but other brands exist', 'eshire disambiguation cheshire or archaically the county of chester is a palatine county in north west england its county town is', 'tive explanation of observable phenomena an explanation they also describe as science compatible with the biblical account the pr', 'istance to the black sea by four zero zero km and another canal in romania while the danube bucharest canal unfinished is suppose', 'unable to supply o two exchange with blood stream heart and blood vessels unable to maintain adequate circulation of blood to vit', 'ng kathi kamen goldmark al kooper ridley pearson roy blount jr joel selvin amy tan dave marsh tad bartimus matt groening greil ma', 'k matter in popular culture mentions of dark matter occur in some video games and other works of fiction in such cases it is usua', ' fatimids the crusades and the seljuks in nine seven zero ad the fatimid caliphs in cairo gained control of damascus this was to ', 's of thousands and possibly millions culture for a more detailed treatment of these topics see the subarticles esperanto culture ', 'to guarantee fairness in addition elections in which opposition candidates are not given access to radio newspaper and television', 'in areas with little or no vegetation often areas where there is not enough rainfall to support vegetation tectonic effects of er', 'erners particularly according to sources louis s mother ad laide de maurienne who thought her flighty and a bad influence her con', 'd oil of kentucky a standard oil of california subsidiary by that time and in the process of rebranding the kyso stations as chev', 'ht wing front national party made significant inroads in the early one nine eight zero s seized on voter concern about the percei', 'e devices operating over the telephone network the words telecopy and telefax are also used as synonyms overview a fax machine is', ' and ger r this description has similarities to the older account by adam of bremen but the differences are interesting adam assi', 're experimentally ruled out in the one nine eight zero s links and references reference brian greene the elegant universe w w nor', 'rock that dominates the city s western skyline according to the united states census bureau the city has a total area of one two ', 'e d which also introduced the concept of showing the player s hand on screen strengthening the illusion that the player is litera', 'avitons general relativity predicts that these will be spin two particles they have not been observed only quadrupole and higher ', 'the real reason microsoft dislikes the gpl is because the gpl resists proprietary vendor s attempts to embrace extend and extingu', 'context of contemporary feminist theory some such texts include braidotti rosi two zero zero two metamorphoses towards a material', 'ame the contradictions start with which name was changed and how it was changed both opinions are plausible but lack credible evi', ' filling the room with gunpowder which was concealed beneath bric a brac in the undercrofts of the house of lords building by mar', 'ity however due to a process of constitutional evolution powers are usually exercised by a cabinet presided over by a prime minis', 'n in the usa include episcopalians presbyterians pcusa lutherans elca the united church of christ the christian church disciples ', 'emi god so that only the god remained he then married hebe no one but heracles friend philoctetes in some versions iolaus or poea', 'failure renal dialysis test of renal function kidney stones urology and andrology rheumatology neurology cerebral palsy mental re', 'thic preparations at all classical homeopaths claim only remedies prepared and prescribed in accordance with the principles of ha', 'urden and overhauling italy s rigid labour market and expensive pension system because of the current economic slowdown and oppos', 'sharing although it does possess some advanced file transfer mechanisms which most importantly support resuming however irc based', 'ins released from a certain class of immune cells b lymphocytes antigens are defined as anything that elicits generation of antib', 'to the boundary which symbolically ideologically and physically divided europe into two separate areas from the end of world war ', 'ing of rocks requires temperature water and pressure the mantle is generally over one zero zero zero to one two zero zero c benea', ' from the atlantic to the pacific on the panama railway one eight seven one franco prussian war france surrenders ending the war ', 'facturing names in the world a complete field of engineering and equipment requirements is covered ewo cold storage company the j', 'at at the end of days edom too would come falling down jacob awoke in the morning and continued on his way to haran he stopped by', 'the force bastila shan visas marr and plo koon are examples of this type sentinels are loosely signified by yellow lightsabers in']
+: ['the fires took over nine months to fully extinguish and the cost of repairs to oil infrastructure exceeded us five zero zero zero']
+: ['o zero zero zero zero zero zero certain buildings and infrastructural facilities including kuwait international airport were also']
 
 
 
@@ -7541,7 +7544,7 @@ Refer to the lecture on how to put together a sequence-to-sequence model, as wel
 
 *** notes
 
-- why does minibatch perplexity increase?
+# - why does minibatch perplexity increase?
 
 - 2 types of training approaches
 
@@ -7858,12 +7861,17 @@ dynamic_rnn encoder / decoder
 #+END_SRC
 
 #+RESULTS:
+: 
+: >>> >>> ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... /home/ishai/.virtualenvs/ml353_2/lib/python3.5/site-packages/tensorflow/python/ops/gradients_impl.py:93: UserWarning: Converting sparse IndexedSlices to a dense Tensor of unknown shape. This may consume a large amount of memory.
+:   "Converting sparse IndexedSlices to a dense Tensor of unknown shape. "
 
-#+BEGIN_SRC shell
-  mkdir -p 6_seq2seq/summaries/5
+#+BEGIN_SRC shell :eval never
+mkdir -p 6_seq2seq/summaries/5
 #+END_SRC
 
-#+BEGIN_SRC python :exports both
+#+RESULTS:
+
+#+BEGIN_SRC python
   import pdb
   num_steps = 100001
   summary_frequency = 100
@@ -7924,881 +7932,258 @@ dynamic_rnn encoder / decoder
 
 #+RESULTS:
 #+begin_example
-  Average loss at step 0: 3.358689 learning rate: 0.001000
-  Minibatch perplexity: 28.36
-  predict: iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
-  labels: o would be the only one to actual
-  predict:  iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
-  labels:  in turn down to the last man who
-  Validation set perplexity: 4.62
-  Average loss at step 100: 2.692970 learning rate: 0.000999
-  Minibatch perplexity: 16.90
-  predict:  a a aaaaaaaaaaaaaaaaaaaaaaaaaaaa
-  labels:  drawn lots and slain each other 
-  predict:  ed eee e e e e e e e  e e  e e  
-  labels:  defenders were reported to have 
-  Validation set perplexity: 3.09
-  Average loss at step 200: 2.349711 learning rate: 0.000999
-  Minibatch perplexity: 29.25
-  predict:  s             iiii   eeeeeeeehhh
-  labels: s the act of suicide however the 
-  predict: eeh   hhhhi   iiiiiiiiiiioossssss
-  labels: e the jewish religion discourages
-  Validation set perplexity: 3.02
-  Average loss at step 300: 1.828248 learning rate: 0.000998
-  Minibatch perplexity: 41.94
-  predict: r eree    y ytteeeeeeeeeeeeeeeees
-  labels: r defeat by their enemies because
-  predict: tthththaaaaaaccceeraaaaaaaarrrrrr
-  labels: ther than face certain capture or
-  Validation set perplexity: 2.41
-  Average loss at step 400: 1.517316 learning rate: 0.000998
-  Minibatch perplexity: 70.08
-  predict: e   nd cmmmtttd msssssiiiiid ratt
-  labels: ze and committed mass suicide rat
-  predict: n s butttt ooood ttrroooomaaaaaaa
-  labels: ngs but the food storerooms ablaz
-  Validation set perplexity: 2.06
-  Average loss at step 500: 1.315394 learning rate: 0.000997
-  Minibatch perplexity: 68.45
-  predict: deededrrs aa  et lll hhh bbiiiiii
-  labels: defenders had set all the buildin
-  predict:  itsappproiimatey nneethtusdddddd
-  labels:  its approximately one thousand d
-  Validation set perplexity: 1.90
-  Average loss at step 600: 1.159026 learning rate: 0.000997
-  Minibatch perplexity: 131.11
-  predict: weeer the romanssdissooered  tttt
-  labels: wever the romans discovered that 
-  predict: h nehhee eeteee  hh  frrrrssssoww
-  labels: hen they entered the fortress how
-  Validation set perplexity: 1.65
-  Average loss at step 700: 1.005881 learning rate: 0.000997
-  Minibatch perplexity: 227.03
-  predict:  forrress ith  aaattterig ra  hhh
-  labels:  fortress with a battering ram wh
-  predict: o  nnall bbeehhhhhe  wlll ff  hh 
-  labels: o finally breach the wall of the 
-  Validation set perplexity: 1.58
-  Average loss at step 800: 0.684426 learning rate: 0.000996
-  Minibatch perplexity: 291.41
-  predict: s o siiee allloiing hhe romasstoo
-  labels: s of siege allowing the romans to
-  predict: apppoimmatel  two t threeemoothss
-  labels: approximately two to three months
-  Validation set perplexity: 1.61
-  Average loss at step 900: 0.551797 learning rate: 0.000996
-  Minibatch perplexity: 561.18
-  predict:  ssring of seee  hheeec  after aa
-  labels:  spring of seven three ce after a
-  predict: top tee ram was cooppeee in  hh  
-  labels: top the ramp was complete in the 
-  Validation set perplexity: 1.65
-  Average loss at step 1000: 0.464382 learning rate: 0.000995
-  Minibatch perplexity: 983.57
-  predict: ef  a shot of th rammp from thett
-  labels: efs a shot of the ramp from the t
-  predict: n tto kill ecause of thheir beeie
-  labels: nt to kill because of their belie
-  Validation set perplexity: 1.41
-  Average loss at step 1100: 0.385303 learning rate: 0.000995
-  Minibatch perplexity: 1682.93
-  predict: rt whom hh ezealots ere reluctann
-  labels: rt whom the zealots were reluctan
-  predict: wewish slaves o build the ramaarr
-  labels: jewish slaves to build the rampar
-  Validation set perplexity: 2.02
-  Average loss at step 1200: 0.350531 learning rate: 0.000994
-  Minibatch perplexity: 1838.47
-  predict: ed by many tht the romanssused  j
-  labels: ed by many that the romans used j
-  predict: ht the roman legion it is belieee
-  labels: ht the roman legion it is believe
-  Validation set perplexity: 1.07
-  Average loss at step 1300: 0.291111 learning rate: 0.000994
-  Minibatch perplexity: 2818.87
-  predict: d the euuipment or skill to fighh
-  labels: d the equipment or skills to figh
-  predict: g that peraps the eeellots lacedd
-  labels: g that perhaps the zealots lacked
-  Validation set perplexity: 1.68
-  Average loss at step 1400: 0.257221 learning rate: 0.000993
-  Minibatch perplexity: 3727.43
-  predict: inst eewish fortressssssgggesting
-  labels: inst jewish fortresses suggesting
-  predict: hss accounts of other sieges aaai
-  labels: his accounts of other sieges agai
-  Validation set perplexity: 1.11
-  Average loss at step 1500: 0.212808 learning rate: 0.000993
-  Minibatch perplexity: 6803.64
-  predict: s a significat difffeence from hh
-  labels: s a significant difference from h
-  predict: the besiegers during hiss procsss
-  labels: the besiegers during this process
-  Validation set perplexity: 1.14
-  Average loss at step 1600: 0.192426 learning rate: 0.000992
-  Minibatch perplexity: 9201.20
-  predict: b ythe zealots to counterattac  t
-  labels: by the zealots to counterattack t
-  predict: s not record any major atteppts b
-  labels: s not record any major attempts b
-  Validation set perplexity: 1.06
-  Average loss at step 1700: 0.827546 learning rate: 0.000992
-  Minibatch perplexity: 2371.69
-  predict: es and beaten earth josephss does
-  labels: es and beaten earth josephus does
-  predict:  using thousadds of toss f stonne
-  labels:  using thousands of tons of stone
-  Validation set perplexity: 1.32
-  Average loss at step 1800: 0.184154 learning rate: 0.000991
-  Minibatch perplexity: 7195.94
-  predict:  the western face of the plateau 
-  labels:  the western face of the plateau 
-  predict:  wall and then a rampart agaist  
-  labels:  wall and then a rampart against 
-  Validation set perplexity: 1.07
-  Average loss at step 1900: 0.213347 learning rate: 0.000991
-  Minibatch perplexity: 12422.76
-  predict: all they built a circumvallation 
-  labels: all they built a circumvallation 
-  predict:  failed attempts to breach the wa
-  labels:  failed attempts to breach the wa
-  Validation set perplexity: 1.03
-  Average loss at step 2000: 0.457840 learning rate: 0.000990
-  Minibatch perplexity: 9542.20
-  predict: laid siege to the fortress ater  
-  labels: laid siege to the fortress after 
-  predict: h eroman legion x retensis and ll
-  labels: he roman legion x fretensis and l
-  Validation set perplexity: 2.00
-  Average loss at step 2100: 0.501444 learning rate: 0.000990
-  Minibatch perplexity: 2809.72
-  predict: va marched against maaada ithhhhh
-  labels: va marched against masada with th
-  predict: daea province lucius flvvis silvv
-  labels: daea province lucius flavius silv
-  Validation set perplexity: 1.27
-  Average loss at step 2200: 0.322276 learning rate: 0.000989
-  Minibatch perplexity: 5301.95
-  predict:  two ce the roman goveenor of  iu
-  labels:  two ce the roman governor of iud
-  predict: b eseen next to it then  in seeen
-  labels: be seen next to it then in seven 
+  Average loss at step 0: 3.319314 learning rate: 0.001000
+  Minibatch perplexity: 27.24
+  predict:  ot eh eh ea ot eh eh ea ot eh eh
+  labels: erutcurtsarfni lio ot sriaper fo 
+  predict:  eh eh eh eh eh eh eh eh eh eh eh
+  labels: orez orez orez evif su dedeecxe e
+  Validation set perplexity: 4.73
+  Average loss at step 100: 2.694163 learning rate: 0.000999
+  Minibatch perplexity: 16.88
+  predict: rorororororororororororororororor
+  labels: c orez orez orez orez orez orez o
+  predict: ttuuuunnniniii niiii niii niiii n
+  labels: tcurtsarfni dna sgnidliub niatrec
+  Validation set perplexity: 3.65
+  Average loss at step 200: 2.371734 learning rate: 0.000999
+  Minibatch perplexity: 24.45
+  predict: tiuuuui    iiiiiiiiiillllaauuuuut
+  labels: tiawuk gnidulcni seitilicaf larut
+  predict: oo     rrrrrriraaaaantttttttttttt
+  labels: osla erew tropria lanoitanretni t
+  Validation set perplexity: 2.74
+  Average loss at step 300: 1.759252 learning rate: 0.000998
+  Minibatch perplexity: 54.18
+  predict: ra eehtgniiuddddddaaaadyyeeeeeeeo
+  labels: raw eht gnirud degamad ylereves o
+  predict: ogeeeeeednnnusnniamrrrw oo  u kuk
+  labels: og eht rednu sniamer won tiawuk r
+  Validation set perplexity: 2.47
+  Average loss at step 400: 1.463277 learning rate: 0.000998
+  Minibatch perplexity: 70.60
+  predict: haaaaaaaaas  ieeeht fo nnnnnnvooo
+  labels: ha la habas rime eht fo ecnanrevo
+  predict:  owttcniishaaaaa   aibbaaaaaaamhh
+  labels:  owt ecnis habas la ribaj la damh
+  Validation set perplexity: 1.92
+  Average loss at step 500: 1.283206 learning rate: 0.000997
+  Minibatch perplexity: 97.00
+  predict: a  is orrez orz  wt yraaaaan nnnn
+  labels: a xis orez orez owt yraunaj enin 
+  predict: fo s  dnaaettttttnneeeeednnnnaaaa
+  labels: fo si dna etats tnednepedni na sa
+  Validation set perplexity: 1.69
+  Average loss at step 600: 1.146646 learning rate: 0.000997
+  Minibatch perplexity: 141.68
+  predict: c cciiilop ecnaaropmiiiigetttr  f
+  labels: c scitilop ecnatropmi cigetarts f
+  predict: imm    riimeeht     ttttsfffffeic
+  labels: imes a rime eht si etats fo feihc
+  Validation set perplexity: 1.86
+  Average loss at step 700: 1.040377 learning rate: 0.000997
+  Minibatch perplexity: 151.94
+  predict: ipppa rimeeht elttt yratideeehiii
+  labels: ioppa rime eht eltit yratidereh i
+  predict: liituoohw retsiiimmmirpp htttttni
+  labels: litnu ohw retsinim emirp eht stni
+  Validation set perplexity: 1.53
+  Average loss at step 800: 0.945711 learning rate: 0.000996
+  Minibatch perplexity: 210.42
+  predict: irp nworc eht  osla aaw yltneee  
+  labels: irp nworc eht osla saw yltnecer l
+  predict:  siia sretsiiim fo  lccnucc   cci
+  labels:  sdia sretsinim fo licnuoc a ecni
+  Validation set perplexity: 1.50
+  Average loss at step 900: 0.874909 learning rate: 0.000996
+  Minibatch perplexity: 294.22
+  predict: a  sat sii  iirettiiimmmmirpp eht
+  labels: a ksat sih ni retsinim emirp eht 
+  predict: mailrap eht tnemnrevoogfo daehhsa
+  labels: mailrap eht tnemnrevog fo daeh sa
+  Validation set perplexity: 1.30
+  Average loss at step 1000: 0.807017 learning rate: 0.000995
+  Minibatch perplexity: 352.26
+  predict:  mamu l siilamm et sa nnnnk nnemm
+  labels:  ammu la siljam eht sa nwonk tnem
+  predict: if fo ssssnnoc ylbmsssa lanoitan 
+  labels: if fo stsisnoc ylbmessa lanoitan 
   Validation set perplexity: 1.31
-  Average loss at step 2300: 0.752767 learning rate: 0.000989
-  Minibatch perplexity: 946.08
-  predict:  circuvallation wall whhch can  b
-  labels:  circumvallation wall which can b
-  predict: camps at masda  ust outssde thh  
-  labels: camps at masada just outside the 
-  Validation set perplexity: 1.63
-  Average loss at step 2400: 1.007670 learning rate: 0.000988
-  Minibatch perplexity: 2605.85
-  predict: nts of one of  everal legionary c
-  labels: nts of one of several legionary c
-  predict: d  ewish settleeenttsalike remnnn
-  labels: d jewish settlements alike remnan
-  Validation set perplexity: 1.19
-  Average loss at step 2500: 0.851073 learning rate: 0.000988
-  Minibatch perplexity: 4689.39
-  predict: r raidin  and harasinng roman nnd
-  labels: r raiding and harassing roman and
-  predict: ars used masada a their base  oor
-  labels: ars used masada as their base for
-  Validation set perplexity: 1.90
-  Average loss at step 2600: 0.831876 learning rate: 0.000987
-  Minibatch perplexity: 4350.86
-  predict: erusalem and for the next two yea
-  labels: erusalem and for the next two yea
-  predict: rtly before thh destruction of  e
-  labels: rtly before the destruction of je
-  Validation set perplexity: 1.08
-  Average loss at step 2700: 0.687940 learning rate: 0.000987
-  Minibatch perplexity: 4675.25
-  predict:  the other ews liiing there shorr
-  labels:  the other jews living there shor
-  predict:  were exelled from jerusalem by  
-  labels:  were expelled from jerusalem by 
-  Validation set perplexity: 4.11
-  Average loss at step 2800: 0.907246 learning rate: 0.000986
-  Minibatch perplexity: 640.70
-  predict: l zealots and thhir faaiiies whho
-  labels: l zealots and their families who 
-  predict: ce they were joined bb addiiiinna
-  labels: ce they were joined by additional
-  Validation set perplexity: 1.22
-  Average loss at step 2900: 0.558260 learning rate: 0.000986
-  Minibatch perplexity: 3813.69
-  predict: n stationed there in seven  eero 
-  labels: n stationed there in seven zero c
-  predict: ok masadafrom the roman ggarrison
-  labels: ok masada from the roman garrison
-  Validation set perplexity: 2.51
-  Average loss at step 3000: 0.452488 learning rate: 0.000985
-  Minibatch perplexity: 11224.94
-  predict: commanded by elaza ben ya ir oooo
-  labels: commanded by elazar ben ya ir too
-  predict: ts heb kana im it jealossones ccc
-  labels: ts heb kana im lit jealous ones c
-  Validation set perplexity: 6.30
-  Average loss at step 3100: 0.588483 learning rate: 0.000985
-  Minibatch perplexity: 4809.36
-  predict: f jewish rebels called the zealot
-  labels: f jewish rebels called the zealot
-  predict: olt against the romans a group of
-  labels: olt against the romans a group of
-  Validation set perplexity: 1.02
-  Average loss at step 3200: 0.399595 learning rate: 0.000984
-  Minibatch perplexity: 9907.97
-  predict: eginning of the great jewish revo
-  labels: eginning of the great jewish revo
-  predict: ainst him in ssix six ce at thebb
-  labels: ainst him in six six ce at the be
-  Validation set perplexity: 2.69
-  Average loss at step 3300: 0.424492 learning rate: 0.000984
-  Minibatch perplexity: 16651.98
-  predict: d his jewiss subjeects rise up ag
-  labels: d his jewish subjects rise up aga
-  predict: ce ass a refuge for himself shoul
-  labels: ce as a refuge for himself should
-  Validation set perplexity: 14.26
-  Average loss at step 3400: 0.446518 learning rate: 0.000983
-  Minibatch perplexity: 12383.45
-  predict: ween three seven and three one bc
-  labels: ween three seven and three one bc
-  predict: d the great fortified masada bett
-  labels: d the great fortified masada betw
-  Validation set perplexity: 1.06
-  Average loss at step 3500: 0.427811 learning rate: 0.000983
-  Minibatch perplexity: 5924.12
-  predict: st century jewish historran herod
-  labels: st century jewish historian herod
-  predict: rding to flavius  josephus a one 
-  labels: rding to flavius josephus a one s
-  Validation set perplexity: 3.03
-  Average loss at step 3600: 0.383312 learning rate: 0.000982
-  Minibatch perplexity: 18282.99
-  predict: fied gates location history accor
-  labels: fied gates location history accor
-  predict: ng paths led from below to fortif
-  labels: ng paths led from below to fortif
-  Validation set perplexity: 1.01
-  Average loss at step 3700: 0.467332 learning rate: 0.000982
-  Minibatch perplexity: 22796.97
-  predict: and an armory three narrow windin
-  labels: and an armory three narrow windin
-  predict: d by rainwater barracks palaces a
-  labels: d by rainwater barracks palaces a
-  Validation set perplexity: 1.01
-  Average loss at step 3800: 0.236857 learning rate: 0.000981
-  Minibatch perplexity: 40232.77
-  predict: ouses cisterns that were refilled
-  labels: ouses cisterns that were refilled
-  predict: and the fortress included storeho
-  labels: and the fortress included storeho
-  Validation set perplexity: 1.01
-  Average loss at step 3900: 0.278234 learning rate: 0.000981
-  Minibatch perplexity: 4196.47
-  predict: r meters thick with manyy towers 
-  labels: r meters thick with many towers a
-  predict: ur zero zero meters long and four
-  labels: ur zero zero meters long and four
-  Validation set perplexity: 1.05
-  Average loss at step 4000: 0.272471 learning rate: 0.000980
-  Minibatch perplexity: 14097.20
-  predict:  of the plateau totallingg one fo
-  labels:  of the plateau totalling one fou
-  predict: s a casemate wall around the top 
-  labels: s a casemate wall around the top 
-  Validation set perplexity: 1.01
-  Average loss at step 4100: 0.502450 learning rate: 0.000980
-  Minibatch perplexity: 7191.27
-  predict:  three eero zero meters there was
-  labels:  three zero zero meters there was
-  predict: d approximately six zero zero by 
-  labels: d approximately six zero zero by 
-  Validation set perplexity: 1.02
-  Average loss at step 4200: 0.128750 learning rate: 0.000979
-  Minibatch perplexity: 13170.35
-  predict: ateau is flat and rhomboid shaped
-  labels: ateau is flat and rhomboid shaped
-  predict: very difficult the top of the pla
-  labels: very difficult the top of the pla
-  Validation set perplexity: 1.04
-  Average loss at step 4300: 0.116016 learning rate: 0.000979
-  Minibatch perplexity: 33505.84
-  predict: approaches to the cliff top are v
-  labels: approaches to the cliff top are v
-  predict: ro zero meters high the natural a
-  labels: ro zero meters high the natural a
-  Validation set perplexity: 1.01
-  Average loss at step 4400: 0.270073 learning rate: 0.000978
-  Minibatch perplexity: 25732.01
-  predict: ffs on the west are abou one zerr
-  labels: ffs on the west are about one zer
-  predict:  off to the dead sea nn the cliff
-  labels:  off to the dead sea and the clif
-  Validation set perplexity: 2.45
-  Average loss at step 4500: 0.064098 learning rate: 0.000978
-  Minibatch perplexity: 103203.49
-  predict: r five zero meters high dropping 
-  labels: r five zero meters high dropping 
-  predict: ast edge of masada are about four
-  labels: ast edge of masada are about four
-  Validation set perplexity: 1.00
-  Average loss at step 4600: 0.174172 learning rate: 0.000977
-  Minibatch perplexity: 4852.78
-  predict: geons to fit the cliffs on the ea
-  labels: geons to fit the cliffs on the ea
-  predict: een shown to be too small for pig
-  labels: een shown to be too small for pig
-  Validation set perplexity: 1.02
-  Average loss at step 4700: 0.329537 learning rate: 0.000977
-  Minibatch perplexity: 6785.01
-  predict: babby stored the openings have be
-  labels: bably stored the openings have be
-  predict: e at masada where ashes were prob
-  labels: e at masada where ashes were prob
-  Validation set perplexity: 1.01
-  Average loss at step 4800: 0.137856 learning rate: 0.000976
-  Minibatch perplexity: 45788.76
-  predict: asada seen from the east dovecote
-  labels: asada seen from the east dovecote
-  predict: feat became imminent geography ma
-  labels: feat became imminent geography ma
-  Validation set perplexity: 1.00
-  Average loss at step 4900: 0.081664 learning rate: 0.000976
-  Minibatch perplexity: 31131.80
-  predict: s committed mass suicide when def
-  labels: s committed mass suicide when def
-  predict: ch almost all survivigg defenders
-  labels: ch almost all surviving defenders
-  Validation set perplexity: 1.04
-  Average loss at step 5000: 0.025810 learning rate: 0.000975
-  Minibatch perplexity: 120810.55
-  predict: esieging roman troops during whic
-  labels: esieging roman troops during whic
-  predict: he site s jewish defenders and be
-  labels: he site s jewish defenders and be
-  Validation set perplexity: 1.00
-  Average loss at step 5100: 0.021493 learning rate: 0.000975
-  Minibatch perplexity: 147340.98
-  predict: he great jewish revolt between th
-  labels: he great jewish revolt between th
-  predict: e ce battle one of the last in th
-  labels: e ce battle one of the last in th
-  Validation set perplexity: 1.02
-  Average loss at step 5200: 0.035973 learning rate: 0.000974
-  Minibatch perplexity: 104703.98
-  predict: became famous for the seven three
-  labels: became famous for the seven three
-  predict: overlooking the dead sea masada b
-  labels: overlooking the dead sea masada b
-  Validation set perplexity: 1.01
-  Average loss at step 5300: 0.117069 learning rate: 0.000974
-  Minibatch perplexity: 61935.14
-  predict: stern edge of the judean desert o
-  labels: stern edge of the judean desert o
-  predict:  isolated rock plateau on the eas
-  labels:  isolated rock plateau on the eas
-  Validation set perplexity: 1.00
-  Average loss at step 5400: 0.169406 learning rate: 0.000973
-  Minibatch perplexity: 19309.01
-  predict: fications in israel on top of an 
-  labels: fications in israel on top of an 
-  predict: ite of ancient palaces and fortif
-  labels: ite of ancient palaces and fortif
-  Validation set perplexity: 1.01
-  Average loss at step 5500: 0.173306 learning rate: 0.000973
-  Minibatch perplexity: 15807.17
-  predict: uda meaning fortress it is the si
-  labels: uda meaning fortress it is the si
-  predict: tzada derived from the word metzu
-  labels: tzada derived from the word metzu
-  Validation set perplexity: 1.02
-  Average loss at step 5600: 0.296958 learning rate: 0.000972
-  Minibatch perplexity: 20236.19
-  predict: corruption of the hebrew name met
-  labels: corruption of the hebrew name met
-  predict:  war militias masada is a latin c
-  labels:  war militias masada is a latin c
-  Validation set perplexity: 1.01
-  Average loss at step 5700: 0.093368 learning rate: 0.000972
-  Minibatch perplexity: 8783.41
-  predict: inute men american revolutionarr 
-  labels: inute men american revolutionary 
-  predict: istory org organization of the mi
-  labels: istory org organization of the mi
-  Validation set perplexity: 1.01
-  Average loss at step 5800: 0.148285 learning rate: 0.000971
-  Minibatch perplexity: 6728.68
-  predict: links who were the minutemen ushi
-  labels: links who were the minutemen ushi
-  predict: zero zero five six one external l
-  labels: zero zero five six one external l
-  Validation set perplexity: 1.01
-  Average loss at step 5900: 0.120000 learning rate: 0.000971
-  Minibatch perplexity: 13900.02
-  predict: uy isbn zero zero six two sevee  
-  labels: uy isbn zero zero six two seven z
-  predict: r erniest dupuy and trevor n dupu
-  labels: r erniest dupuy and trevor n dupu
-  Validation set perplexity: 1.01
-  Average loss at step 6000: 0.138709 learning rate: 0.000970
-  Minibatch perplexity: 22807.44
-  predict: zero zero b c to the present by r
-  labels: zero zero b c to the present by r
-  predict: ilitary history from three five  
-  labels: ilitary history from three five z
-  Validation set perplexity: 1.04
-  Average loss at step 6100: 0.119702 learning rate: 0.000970
-  Minibatch perplexity: 16233.81
-  predict:  seven six the encyclopedia of mi
-  labels:  seven six the encyclopedia of mi
-  predict:  nine five zero eight eight four 
-  labels:  nine five zero eight eight four 
-  Validation set perplexity: 1.00
-  Average loss at step 6200: 0.091341 learning rate: 0.000969
-  Minibatch perplexity: 9249.82
-  predict: id hackett fischer isbn zerooone 
-  labels: id hackett fischer isbn zero one 
-  predict: rences paul revere s ride byy dav
-  labels: rences paul revere s ride by davi
-  Validation set perplexity: 1.28
-  Average loss at step 6300: 0.041266 learning rate: 0.000969
-  Minibatch perplexity: 33609.58
-  predict: one seven seven five battle refer
-  labels: one seven seven five battle refer
-  predict: be killed in concord during the o
-  labels: be killed in concord during the o
-  Validation set perplexity: 1.00
-  Average loss at step 6400: 0.009545 learning rate: 0.000968
-  Minibatch perplexity: 173009.22
-  predict:  the acton militia and first to b
-  labels:  the acton militia and first to b
-  predict: ed on isaac davis the captain of 
-  labels: ed on isaac davis the captain of 
-  Validation set perplexity: 1.00
-  Average loss at step 6500: 0.001566 learning rate: 0.000968
-  Minibatch perplexity: 207024.87
-  predict: tue s likeness is said to be base
-  labels: tue s likeness is said to be base
-  predict:  the world traditionally the stat
-  labels:  the world traditionally the stat
-  Validation set perplexity: 1.00
-  Average loss at step 6600: 0.223251 learning rate: 0.000967
-  Minibatch perplexity: 8574.96
-  predict:  immortal words shot heard round 
-  labels:  immortal words shot heard round 
-  predict: hree seven concord hymn with the 
-  labels: hree seven concord hymn with the 
-  Validation set perplexity: 1.03
-  Average loss at step 6700: 0.135362 learning rate: 0.000967
-  Minibatch perplexity: 26456.12
-  predict: alph waldo emerson s one eight th
-  labels: alph waldo emerson s one eight th
-  predict: iment is the opening stanza of ra
-  labels: iment is the opening stanza of ra
-  Validation set perplexity: 1.00
-  Average loss at step 6800: 0.152287 learning rate: 0.000967
-  Minibatch perplexity: 11656.37
-  predict: d minuteman inscribed on the pedi
-  labels: d minuteman inscribed on the pedi
-  predict:  the lincoln memorial the concord
-  labels:  the lincoln memorial the concord
-  Validation set perplexity: 1.00
-  Average loss at step 6900: 0.060914 learning rate: 0.000966
-  Minibatch perplexity: 12937.10
-  predict: st well known statues along with 
-  labels: st well known statues along with 
-  predict: ommission produced one of his mos
-  labels: ommission produced one of his mos
-  Validation set perplexity: 1.01
-  Average loss at step 7000: 0.062507 learning rate: 0.000966
-  Minibatch perplexity: 14458.92
-  predict: ster french in his first major co
-  labels: ster french in his first major co
-  predict: nce to british forces daniel cess
-  labels: nce to british forces daniel ches
-  Validation set perplexity: 1.05
-  Average loss at step 7100: 0.068006 learning rate: 0.000965
-  Minibatch perplexity: 15732.63
-  predict: e first successful armed resistan
-  labels: e first successful armed resistan
-  predict: emoration of the centenary of the
-  labels: emoration of the centenary of the
-  Validation set perplexity: 1.00
-  Average loss at step 7200: 0.089538 learning rate: 0.000965
-  Minibatch perplexity: 6554.50
-  predict: legacy concord minuteman in comme
-  labels: legacy concord minuteman in comme
-  predict: floorboards in houses and barns l
-  labels: floorboards in houses and barns l
-  Validation set perplexity: 1.01
-  Average loss at step 7300: 0.042280 learning rate: 0.000964
-  Minibatch perplexity: 23414.43
-  predict: s were to hide items underneath f
-  labels: s were to hide items underneath f
-  predict: other popular concealment methods
-  labels: other popular concealment methods
-  Validation set perplexity: 1.00
-  Average loss at step 7400: 0.049508 learning rate: 0.000964
-  Minibatch perplexity: 13539.06
-  predict: temen in fields or wooded areesso
-  labels: temen in fields or wooded areas o
-  predict: en hidden or left behind by minut
-  labels: en hidden or left behind by minut
-  Validation set perplexity: 1.02
-  Average loss at step 7500: 0.038685 learning rate: 0.000963
-  Minibatch perplexity: 33523.93
-  predict:  precaution these items were ofte
-  labels:  precaution these items were ofte
-  predict: g seized by british patrols as a 
-  labels: g seized by british patrols as a 
-  Validation set perplexity: 1.00
-  Average loss at step 7600: 0.043593 learning rate: 0.000963
-  Minibatch perplexity: 16627.73
-  predict:  demand but were constantly being
-  labels:  demand but were constantly being
-  predict:  supplies were not only in short 
-  labels:  supplies were not only in short 
-  Validation set perplexity: 1.00
-  Average loss at step 7700: 0.034063 learning rate: 0.000962
-  Minibatch perplexity: 54343.16
-  predict: deadly reputation ammunition and 
-  labels: deadly reputation ammunition and 
-  predict: arned minutemen sharpshooters a d
-  labels: arned minutemen sharpshooters a d
-  Validation set perplexity: 1.00
-  Average loss at step 7800: 0.001126 learning rate: 0.000962
-  Minibatch perplexity: 558742.21
-  predict: unting to develop marksmanship ea
-  labels: unting to develop marksmanship ea
-  predict: rifle along with a lifetime of hu
-  labels: rifle along with a lifetime of hu
-  Validation set perplexity: 1.00
-  Average loss at step 7900: 0.025556 learning rate: 0.000961
-  Minibatch perplexity: 53234.44
-  predict: eased range and accuracy of the r
-  labels: eased range and accuracy of the r
-  predict: sh could get into range the incre
-  labels: sh could get into range the incre
-  Validation set perplexity: 1.00
-  Average loss at step 8000: 0.057050 learning rate: 0.000961
-  Minibatch perplexity: 11734.29
-  predict: or other trops before the britiss
-  labels: or other troops before the britis
-  predict: fire and fal back behind cover oo
-  labels: fire and fall back behind cover o
-  Validation set perplexity: 9.26
-  Average loss at step 8100: 0.128870 learning rate: 0.000960
-  Minibatch perplexity: 7190.70
-  predict: skirmishers the minutemen could f
-  labels: skirmishers the minutemen could f
-  predict:  for hunting when performing as s
-  labels:  for hunting when performing as s
-  Validation set perplexity: 1.01
-  Average loss at step 8200: 0.120560 learning rate: 0.000960
-  Minibatch perplexity: 5747.30
-  predict: ular infantry but were preferred 
-  labels: ular infantry but were preferred 
-  predict:  fire rifles weren t used by regu
-  labels:  fire rifles weren t used by regu
-  Validation set perplexity: 1.01
-  Average loss at step 8300: 0.057737 learning rate: 0.000959
-  Minibatch perplexity: 15755.37
-  predict: oad because of the lower rate of 
-  labels: oad because of the lower rate of 
-  predict: lthough it took much longer to lo
-  labels: lthough it took much longer to lo
-  Validation set perplexity: 1.00
-  Average loss at step 8400: 0.032772 learning rate: 0.000959
-  Minibatch perplexity: 49678.60
-  predict: nge than the smoothbore musket al
-  labels: nge than the smoothbore musket al
-  predict: barrel gave it a much greater ran
-  labels: barrel gave it a much greater ran
-  Validation set perplexity: 1.00
-  Average loss at step 8500: 0.029358 learning rate: 0.000958
-  Minibatch perplexity: 66919.96
-  predict:  the rifling grooves inside the b
-  labels:  the rifling grooves inside the b
-  predict: as also well suited to this role 
-  labels: as also well suited to this role 
-  Validation set perplexity: 1.00
-  Average loss at step 8600: 0.041056 learning rate: 0.000958
-  Minibatch perplexity: 59006.41
-  predict:  musket used by most minutemen wa
-  labels:  musket used by most minutemen wa
-  predict:  this style of combat the rifled 
-  labels:  this style of combat the rifled 
-  Validation set perplexity: 1.00
-  Average loss at step 8700: 0.059846 learning rate: 0.000957
-  Minibatch perplexity: 21273.02
-  predict: r to the local minuteman favored 
-  labels: r to the local minuteman favored 
-  predict: many colonial towns very familiar
-  labels: many colonial towns very familiar
-  Validation set perplexity: 1.01
-  Average loss at step 8800: 0.082279 learning rate: 0.000957
-  Minibatch perplexity: 19728.06
-  predict: ss terrain that lay just beyond m
-  labels: ss terrain that lay just beyond m
-  predict:  familiar with this the wildernes
-  labels:  familiar with this the wildernes
-  Validation set perplexity: 1.00
-  Average loss at step 8900: 0.035907 learning rate: 0.000956
-  Minibatch perplexity: 46563.78
-  predict: oops fresh from europe were less 
-  labels: oops fresh from europe were less 
-  predict: ar warfare while many british tro
-  labels: ar warfare while many british tro
-  Validation set perplexity: 1.00
-  Average loss at step 9000: 0.066898 learning rate: 0.000956
-  Minibatch perplexity: 16030.79
-  predict: nd officers the value of irregula
-  labels: nd officers the value of irregula
-  predict: an war had taught both the men an
-  labels: an war had taught both the men an
-  Validation set perplexity: 1.01
-  Average loss at step 9100: 0.016658 learning rate: 0.000955
-  Minibatch perplexity: 131883.44
-  predict: ially the recent french and india
-  labels: ially the recent french and india
-  predict: unting the indian wars and especi
-  labels: unting the indian wars and especi
-  Validation set perplexity: 1.00
-  Average loss at step 9200: 0.020901 learning rate: 0.000955
-  Minibatch perplexity: 20506.37
-  predict: st were familiar with frontier hu
-  labels: st were familiar with frontier hu
-  predict: ence suited irregular warfare mos
-  labels: ence suited irregular warfare mos
-  Validation set perplexity: 1.00
-  Average loss at step 9300: 0.039133 learning rate: 0.000955
-  Minibatch perplexity: 27248.47
-  predict: s and sharpshooters their experie
-  labels: s and sharpshooters their experie
-  predict: regulars primarily as skirmishers
-  labels: regulars primarily as skirmishers
-  Validation set perplexity: 1.00
-  Average loss at step 9400: 0.046219 learning rate: 0.000954
-  Minibatch perplexity: 25849.75
-  predict: they were better when used as irr
-  labels: they were better when used as irr
-  predict: itional dense lines and columns t
-  labels: itional dense lines and columns t
-  Validation set perplexity: 1.00
-  Average loss at step 9500: 0.025279 learning rate: 0.000954
-  Minibatch perplexity: 99005.71
-  predict: fight formal battles in the tradi
-  labels: fight formal battles in the tradi
-  predict: ot get much of this rather than f
-  labels: ot get much of this rather than f
-  Validation set perplexity: 1.00
-  Average loss at step 9600: 0.017115 learning rate: 0.000953
-  Minibatch perplexity: 79060.35
-  predict: onary war but the militias did no
-  labels: onary war but the militias did no
-  predict: g later in the american revolutio
-  labels: g later in the american revolutio
-  Validation set perplexity: 1.00
-  Average loss at step 9700: 0.040624 learning rate: 0.000953
-  Minibatch perplexity: 153586.71
-  predict:  european style military training
-  labels:  european style military training
-  predict: ntinental army regulars received 
-  labels: ntinental army regulars received 
-  Validation set perplexity: 1.00
-  Average loss at step 9800: 0.058731 learning rate: 0.000952
-  Minibatch perplexity: 6223.36
-  predict: re accurate at long range the con
-  labels: re accurate at long range the con
-  predict: ich did not have bayonets but wer
-  labels: ich did not have bayonets but wer
-  Validation set perplexity: 1.01
-  Average loss at step 9900: 0.042463 learning rate: 0.000952
-  Minibatch perplexity: 98110.31
-  predict: aint most used hunting rifles whi
-  labels: aint most used hunting rifles whi
-  predict: e the enemy even including war pa
-  labels: e the enemy even including war pa
-  Validation set perplexity: 1.00
-  Average loss at step 10000: 0.125028 learning rate: 0.000951
-  Minibatch perplexity: 1713.72
-  predict: ndian style touches to intimidate
-  labels: ndian style touches to intimidate
-  predict: kin hunting outfits some added in
-  labels: kin hunting outfits some added in
-  Validation set perplexity: 1.04
-  Average loss at step 10100: 0.018221 learning rate: 0.000951
-  Minibatch perplexity: 70784.83
-  predict: s clothes while others had bucksk
-  labels: s clothes while others had bucksk
-  predict: ore their own farmers or workmans
-  labels: ore their own farmers or workmans
-  Validation set perplexity: 1.00
-  Average loss at step 10200: 0.015068 learning rate: 0.000950
-  Minibatch perplexity: 42099.98
-  predict: o equip themselves many simply wo
-  labels: o equip themselves many simply wo
-  predict: r arms nor uniforms and so had to
-  labels: r arms nor uniforms and so had to
-  Validation set perplexity: 1.00
-  Average loss at step 10300: 0.048464 learning rate: 0.000950
-  Minibatch perplexity: 12200.49
-  predict: litia units were provided neither
-  labels: litia units were provided neither
-  predict: ing and tactics most colonial mil
-  labels: ing and tactics most colonial mil
-  Validation set perplexity: 1.00
-  Average loss at step 10400: 0.030461 learning rate: 0.000949
-  Minibatch perplexity: 170174.06
-  predict: common sentiment equipment traini
-  labels: common sentiment equipment traini
-  predict: rom great britain was not yet a c
-  labels: rom great britain was not yet a c
-  Validation set perplexity: 1.00
-  Average loss at step 10500: 0.077156 learning rate: 0.000949
-  Minibatch perplexity: 56911.15
-  predict: e of the war when independence fr
-  labels: e of the war when independence fr
-  predict: cal idea even at this first stage
-  labels: cal idea even at this first stage
-  Validation set perplexity: 1.00
-  Average loss at step 10600: 0.062906 learning rate: 0.000948
-  Minibatch perplexity: 33614.56
-  predict: assachusetts fought for a politic
-  labels: assachusetts fought for a politic
-  predict: individual american patriot in ma
-  labels: individual american patriot in ma
-  Validation set perplexity: 1.00
-  Average loss at step 10700: 0.008616 learning rate: 0.000948
-  Minibatch perplexity: 166792.82
-  predict: xington and concord the typical i
-  labels: xington and concord the typical i
-  predict:  final phase of the battle of lex
-  labels:  final phase of the battle of lex
-  Validation set perplexity: 1.00
-  Average loss at step 10800: 0.000283 learning rate: 0.000947
-  Minibatch perplexity: 563098.38
-  predict:  army as it passed by during the 
-  labels:  army as it passed by during the 
-  predict:  front door to fight the british 
-  labels:  front door to fight the british 
-  Validation set perplexity: 1.00
-  Average loss at step 10900: 0.068769 learning rate: 0.000947
-  Minibatch perplexity: 149416.85
-  predict: ad barricaded himself behind his 
-  labels: ad barricaded himself behind his 
-  predict: xplained to his friends why he ha
-  labels: xplained to his friends why he ha
-  Validation set perplexity: 1.00
-  Average loss at step 11000: 0.050037 learning rate: 0.000946
-  Minibatch perplexity: 41128.72
-  predict: n s home is his castle when he ex
-  labels: n s home is his castle when he ex
-  predict: man used the phrase an englishman
-  labels: man used the phrase an englishman
-  Validation set perplexity: 1.00
-  Average loss at step 11100: 0.057108 learning rate: 0.000946
-  Minibatch perplexity: 52367.67
-  predict: way from them one massachusetts m
-  labels: way from them one massachusetts m
-  predict: nd to take something important aw
-  labels: nd to take something important aw
-  Validation set perplexity: 1.00
-  Average loss at step 11200: 0.047691 learning rate: 0.000945
-  Minibatch perplexity: 34055.78
-  predict: common enemy was now in their lan
-  labels: common enemy was now in their lan
-  predict: once fought with them against a c
-  labels: once fought with them against a c
-  Validation set perplexity: 1.00
-  Average loss at step 11300: 0.025128 learning rate: 0.000945
-  Minibatch perplexity: 33496.82
-  predict: f professional soldiers who had o
-  labels: f professional soldiers who had o
-  predict: new that the same british army of
-  labels: new that the same british army of
-  Validation set perplexity: 1.00
-  Average loss at step 11400: 0.035827 learning rate: 0.000945
-  Minibatch perplexity: 97576.82
-  predict: he purposes of government they kn
-  labels: he purposes of government they kn
-  predict: ts about the rights of man and th
-  labels: ts about the rights of man and th
-  Validation set perplexity: 1.00
-  Average loss at step 11500: 0.000385 learning rate: 0.000944
-  Minibatch perplexity: 444677.09
-  predict: could not express lofty sentiment
-  labels: could not express lofty sentiment
-  predict: f rule even though most of them c
-  labels: f rule even though most of them c
-  Validation set perplexity: 1.00
-  Average loss at step 11600: 0.000139 learning rate: 0.000944
-  Minibatch perplexity: 819203.94
-  predict: y experienced generations of self
-  labels: y experienced generations of self
-  predict:  government these men had already
-  labels:  government these men had already
-  Validation set perplexity: 1.00
-  Average loss at step 11700: 0.000097 learning rate: 0.000943
-  Minibatch perplexity: 916666.64
-  predict: that for nearly all functions of 
-  labels: that for nearly all functions of 
-  predict:  the colonial legislature meant t
-  labels:  the colonial legislature meant t
-  Validation set perplexity: 1.00
-  Average loss at step 11800: 0.000067 learning rate: 0.000943
-  Minibatch perplexity: 1209940.38
-  predict: ision making in combination with 
-  labels: ision making in combination with 
-  predict:  town meeting style of local deci
-  labels:  town meeting style of local deci
-  Validation set perplexity: 1.00
-  Average loss at step 11900: 0.000053 learning rate: 0.000942
-  Minibatch perplexity: 1215321.19
-  predict: litia motivation the new england 
-  labels: litia motivation the new england 
-  predict: generic term for any american mil
-  labels: generic term for any american mil
-  Validation set perplexity: 1.00
-  Average loss at step 12000: 0.072654 learning rate: 0.000942
-  Minibatch perplexity: 17110.08
-  predict: es over time minutemen became a g
-  labels: es over time minutemen became a g
-  predict: organized similar minute companie
-  labels: organized similar minute companie
-  Validation set perplexity: 1.00
-  Average loss at step 12100: 0.051890 learning rate: 0.000941
-  Minibatch perplexity: 54041.73
-  predict: faced with similar problems had o
-  labels: faced with similar problems had o
-  predict: wn training band other colonies f
-  labels: wn training band other colonies f
-  Validation set perplexity: 1.00
-  Average loss at step 12200: 0.033417 learning rate: 0.000941
-  Minibatch perplexity: 272406.23
-  predict: called by the archaic name of tow
-  labels: called by the archaic name of tow
-  predict: ingle large unit and were still c
-  labels: ingle large unit and were still c
-  Validation set perplexity: 1.00
-  Average loss at step 12300: 0.054558 learning rate: 0.000940
-  Minibatch perplexity: 35149.14
-  predict: litiamen were organized into a si
-  labels: litiamen were organized into a si
-  predict: the battle all of lexington s mil
-  labels: the battle all of lexington s mil
-  Validation set perplexity: 1.01
-  Average loss at step 12400: 0.018818 learning rate: 0.000940
-  Minibatch perplexity: 92965.81
-  predict: gton militia but at the time of t
-  labels: gton militia but at the time of t
-  predict: ably captain john parker s lexing
-  labels: ably captain john parker s lexing
-  Validation set perplexity: 1.00
+  Average loss at step 1100: 0.764197 learning rate: 0.000995
+  Minibatch perplexity: 406.10
+  predict: i nesohc era ohw sreemmm orez  vv
+  labels: i nesohc era ohw srebmem orez evi
+  predict: reay ruof yreve  deeh nootceeee i
+  labels: raey ruof yreve dleh snoitcele ni
+  Validation set perplexity: 1.44
+  Average loss at step 1200: 0.725001 learning rate: 0.000994
+  Minibatch perplexity: 522.21
+  predict: gnidrocca sretsiinm tnnenrevoo sr
+  labels: gnidrocca sretsinim tnemnrevog sr
+  predict: tats eht fo noitttttsnoc eht  t g
+  labels: tats eht fo noitutitsnoc eht ot g
+  Validation set perplexity: 1.25
+  Average loss at step 1300: 0.705892 learning rate: 0.000994
+  Minibatch perplexity: 625.82
+  predict: pihsrebmmm ctamotua nevig era ett
+  labels: pihsrebmem citamotua nevig era et
+  predict:  owt ot roip tnemaillaapeht  ni p
+  labels:  owt ot roirp tnemailrap eht ni p
+  Validation set perplexity: 1.52
+  Average loss at step 1400: 0.632579 learning rate: 0.000993
+  Minibatch perplexity: 870.64
+  predict:  fo evif eno ylno evif orez orez 
+  labels:  fo evif eno ylno evif orez orez 
+  predict: w noitaluppp neziiic iitawuk eht 
+  labels: w noitalupop nezitic itiawuk eht 
+  Validation set perplexity: 1.17
+  Average loss at step 1500: 0.596991 learning rate: 0.000993
+  Minibatch perplexity: 1096.95
+  predict: emow lla htiw etov ot dewolla saa
+  labels: emow lla htiw etov ot dewolla saw
+  predict:  snezitic desilarutan yltneeer ne
+  labels:  snezitic desilarutan yltnecer ne
+  Validation set perplexity: 1.11
+Average loss at step 1600: 0.567583 learning rate: 0.000992
+Minibatch perplexity: 1278.60
+predict: ic fo sraey ore eerht naht sssl  
+labels: ic fo sraey orez eerht naht ssel 
+predict: mar eht fo sremmm dna pihsneziiii
+labels: mra eht fo srebmem dna pihsneziti
+Validation set perplexity: 1.78
+Average loss at step 1700: 0.529126 learning rate: 0.000992
+Minibatch perplexity: 1362.85
+predict: is eno yam no dddulcxe secrof  em
+labels: is eno yam no dedulcxe secrof dem
+predict:  tnemailrap evif orez orez owt xi
+labels:  tnemailrap evif orez orez owt xi
+Validation set perplexity: 1.09
+Average loss at step 1800: 0.525059 learning rate: 0.000991
+Minibatch perplexity: 1437.78
+predict:  a yb egarfffus s nemo dettimrep 
+labels:  a yb egarffus s nemow dettimrep 
+predict: cebbus etov eerht owt evif eerht 
+labels: cejbus etov eerht owt evif eerht 
+Validation set perplexity: 1.14
+Average loss at step 1900: 0.472297 learning rate: 0.000991
+Minibatch perplexity: 2483.78
+predict: f evitceffe dna wa cimalsi otttcc
+labels: f evitceffe dna wal cimalsi ot tc
+predict: ilrap neves orez orez owt eht rof
+labels: ilrap neves orez orez owt eht rof
+Validation set perplexity: 1.08
+Average loss at step 2000: 0.386415 learning rate: 0.000990
+Minibatch perplexity: 3178.22
+predict:  raelcnu si ti noitcele yratnemai
+labels:  raelcnu si ti noitcele yratnemai
+predict:  nopu desopmi  eb lli smretttahw 
+labels:  nopu desopmi eb lliw smret tahw 
+Validation set perplexity: 1.30
+Average loss at step 2100: 0.543324 learning rate: 0.000990
+Minibatch perplexity: 1408.14
+predict: iisced eht hguorhtsretov elmef   
+labels: isiced eht hguorht sretov elamef 
+predict: diba ot meht fo nneeriuee   noiii
+labels: diba ot meht fo tnemeriuqer s noi
+Validation set perplexity: 2.29
+Average loss at step 2200: 0.852959 learning rate: 0.000989
+Minibatch perplexity: 1109.33
+predict: rehtehw sa hcus walcimalsi yb ddd
+labels: rehtehw sa hcus wal cimalsi yb ed
+predict: rd evitavresnoc riuqer lliw ttirr
+labels: rd evitavresnoc eriuqer lliw ti r
+Validation set perplexity: 1.55
+Average loss at step 2300: 0.672817 learning rate: 0.000989
+Minibatch perplexity: 3209.76
+predict:  secalp gnillop etarapes na sserr
+labels:  secalp gnillop etarapes dna sser
+predict:  tiawuk esiar dluoc noisiced eht 
+labels:  tiawuk esiar dluoc noisiced eht 
+Validation set perplexity: 1.05
+Average loss at step 2400: 0.273747 learning rate: 0.000988
+Minibatch perplexity: 5708.06
+predict: nin eerht eno  morf sllrr etov   
+labels: nin eerht eno morf sllor retov s 
+predict: t sa ynam  sa ot orez orez rez en
+labels: t sa ynam sa ot orez orez orez en
+Validation set perplexity: 2.84
+Average loss at step 2500: 1.175586 learning rate: 0.000988
+Minibatch perplexity: 1762.75
+predict: i orez orez  orez  nnn eerh  eehh
+labels: i orez orez orez enin eerht eerht
+predict: ht retsiger  nemow  lbiiile lla  
+labels: ht retsiger nemow elbigile lla fi
+Validation set perplexity: 3.40
+Average loss at step 2600: 0.599995 learning rate: 0.000987
+Minibatch perplexity: 3015.17
+predict: s  si sitiawuk fo rebmu lattt ehh
+labels: se si sitiawuk fo rebmun latot eh
+predict: ez xis enin naht erom tadetamitss
+labels: ez xis enin naht erom ta detamits
+Validation set perplexity: 1.30
+Average loss at step 2700: 0.469142 learning rate: 0.000987
+Minibatch perplexity: 5184.15
+predict: emirp yltnecer orezorez orez oree
+labels: emirp yltnecer orez orez orez ore
+predict:  dahha la habas hkiehs retsiiim e
+labels:  damha la habas hkiehs retsinim e
+Validation set perplexity: 1.08
+Average loss at step 2800: 0.682775 learning rate: 0.000986
+Minibatch perplexity: 6753.21
+predict: emtnioppa eht decnuonna habas  a 
+labels: emtnioppa eht decnuonna habas la 
+predict: alp sa karabum amuossam  d fo tte
+labels: alp sa karabum amuossam rd fo tne
+Validation set perplexity: 1.12
+Average loss at step 2900: 0.812594 learning rate: 0.000986
+Minibatch perplexity: 9716.97
+predict: s fo retsinim dna retsinim gninna
+labels: s fo retsinim dna retsinim gninna
+predict: mpoleved evitartsiniima rof ettts
+labels: mpoleved evitartsinimda rof etats
+Validation set perplexity: 1.13
+Average loss at step 3000: 0.405895 learning rate: 0.000985
+Minibatch perplexity: 18158.64
+predict: a fo tnemtnioppa eht sriaffa tnem
+labels: a fo tnemtnioppa eht sriaffa tnem
+predict: saw retsinim tenibac a sa namow a
+labels: saw retsinim tenibac a sa namow a
+Validation set perplexity: 1.01
+Average loss at step 3100: 0.218895 learning rate: 0.000985
+Minibatch perplexity: 14495.70
+predict: p itiawuk ni hgorhttkaerb gib a s
+labels: p itiawuk ni hguorhtkaerb gib a s
+predict: wuk sekam ti dna metsys lacitilop
+labels: wuk sekam ti dna metsys lacitilop
+Validation set perplexity: 1.05
+Average loss at step 3200: 0.398038 learning rate: 0.000984
+Minibatch perplexity: 13553.32
+predict: noc eht ni yrtnuoc driht eht tiaw
+labels: noc eht ni yrtnuoc driht eht tiaw
+predict: ah ot noiger bara flug evitaavres
+labels: ah ot noiger bara flug evitavresn
+Validation set perplexity: 1.19
+Average loss at step 3300: 0.217425 learning rate: 0.000984
+Minibatch perplexity: 29157.22
+predict:  ees retsinim tenibacc namow a ev
+labels:  ees retsinim tenibac namow a eva
+predict:  ees ylimaf gnilur hhaba  la osla
+labels:  ees ylimaf gnilur habas la osla 
+Validation set perplexity: 1.57
+Average loss at step 3400: 0.309424 learning rate: 0.000983
+Minibatch perplexity: 24513.52
+predict: onrevog tiawuk ni snoitcele osla 
+labels: onrevog tiawuk ni snoitcele osla 
+predict: id si tiawuk tiawuk fo pam setaro
+labels: id si tiawuk tiawuk fo pam setaro
+Validation set perplexity: 1.01
+Average loss at step 3500: 0.397040 learning rate: 0.000983
+Minibatch perplexity: 18031.18
+predict: p ro setaronevog xis otni dedivii
+labels: p ro setaronrevog xis otni dedivi
+predict: lugnis tazafhhum cibara secnivorp
+labels: lugnis tazafahum cibara secnivorp
+Validation set perplexity: 1.06
 #+END_EXAMPLE
 --------------
 
