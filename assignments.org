@@ -7930,7 +7930,6 @@ mkdir -p 6_seq2seq/summaries/5
           valid_logprob / valid_size)))
 #+END_SRC
 
-#+RESULTS:
 #+BEGIN_EXAMPLE
     Average loss at step 0: 3.319314 learning rate: 0.001000
     Minibatch perplexity: 27.24
@@ -8505,7 +8504,6 @@ dynamic_rnn encoder / decoder
           valid_logprob / valid_size)))
 #+END_SRC
 
-#+RESULTS:
 #+BEGIN_EXAMPLE
 Initialized
 Average loss at step 0: 3.288493 learning rate: 0.001000
@@ -11001,7 +10999,7 @@ dynamic_rnn encoder / decoder
 #+RESULTS:
 
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python 
   import pdb
   num_steps = 100001
   summary_frequency = 100
