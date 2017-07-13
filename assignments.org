@@ -7931,259 +7931,259 @@ mkdir -p 6_seq2seq/summaries/5
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
-  Average loss at step 0: 3.319314 learning rate: 0.001000
-  Minibatch perplexity: 27.24
-  predict:  ot eh eh ea ot eh eh ea ot eh eh
-  labels: erutcurtsarfni lio ot sriaper fo 
-  predict:  eh eh eh eh eh eh eh eh eh eh eh
-  labels: orez orez orez evif su dedeecxe e
-  Validation set perplexity: 4.73
-  Average loss at step 100: 2.694163 learning rate: 0.000999
-  Minibatch perplexity: 16.88
-  predict: rorororororororororororororororor
-  labels: c orez orez orez orez orez orez o
-  predict: ttuuuunnniniii niiii niii niiii n
-  labels: tcurtsarfni dna sgnidliub niatrec
-  Validation set perplexity: 3.65
-  Average loss at step 200: 2.371734 learning rate: 0.000999
-  Minibatch perplexity: 24.45
-  predict: tiuuuui    iiiiiiiiiillllaauuuuut
-  labels: tiawuk gnidulcni seitilicaf larut
-  predict: oo     rrrrrriraaaaantttttttttttt
-  labels: osla erew tropria lanoitanretni t
-  Validation set perplexity: 2.74
-  Average loss at step 300: 1.759252 learning rate: 0.000998
-  Minibatch perplexity: 54.18
-  predict: ra eehtgniiuddddddaaaadyyeeeeeeeo
-  labels: raw eht gnirud degamad ylereves o
-  predict: ogeeeeeednnnusnniamrrrw oo  u kuk
-  labels: og eht rednu sniamer won tiawuk r
-  Validation set perplexity: 2.47
-  Average loss at step 400: 1.463277 learning rate: 0.000998
-  Minibatch perplexity: 70.60
-  predict: haaaaaaaaas  ieeeht fo nnnnnnvooo
-  labels: ha la habas rime eht fo ecnanrevo
-  predict:  owttcniishaaaaa   aibbaaaaaaamhh
-  labels:  owt ecnis habas la ribaj la damh
-  Validation set perplexity: 1.92
-  Average loss at step 500: 1.283206 learning rate: 0.000997
-  Minibatch perplexity: 97.00
-  predict: a  is orrez orz  wt yraaaaan nnnn
-  labels: a xis orez orez owt yraunaj enin 
-  predict: fo s  dnaaettttttnneeeeednnnnaaaa
-  labels: fo si dna etats tnednepedni na sa
-  Validation set perplexity: 1.69
-  Average loss at step 600: 1.146646 learning rate: 0.000997
-  Minibatch perplexity: 141.68
-  predict: c cciiilop ecnaaropmiiiigetttr  f
-  labels: c scitilop ecnatropmi cigetarts f
-  predict: imm    riimeeht     ttttsfffffeic
-  labels: imes a rime eht si etats fo feihc
-  Validation set perplexity: 1.86
-  Average loss at step 700: 1.040377 learning rate: 0.000997
-  Minibatch perplexity: 151.94
-  predict: ipppa rimeeht elttt yratideeehiii
-  labels: ioppa rime eht eltit yratidereh i
-  predict: liituoohw retsiiimmmirpp htttttni
-  labels: litnu ohw retsinim emirp eht stni
-  Validation set perplexity: 1.53
-  Average loss at step 800: 0.945711 learning rate: 0.000996
-  Minibatch perplexity: 210.42
-  predict: irp nworc eht  osla aaw yltneee  
-  labels: irp nworc eht osla saw yltnecer l
-  predict:  siia sretsiiim fo  lccnucc   cci
-  labels:  sdia sretsinim fo licnuoc a ecni
-  Validation set perplexity: 1.50
-  Average loss at step 900: 0.874909 learning rate: 0.000996
-  Minibatch perplexity: 294.22
-  predict: a  sat sii  iirettiiimmmmirpp eht
-  labels: a ksat sih ni retsinim emirp eht 
-  predict: mailrap eht tnemnrevoogfo daehhsa
-  labels: mailrap eht tnemnrevog fo daeh sa
+#+BEGIN_EXAMPLE
+    Average loss at step 0: 3.319314 learning rate: 0.001000
+    Minibatch perplexity: 27.24
+    predict:  ot eh eh ea ot eh eh ea ot eh eh
+    labels: erutcurtsarfni lio ot sriaper fo 
+    predict:  eh eh eh eh eh eh eh eh eh eh eh
+    labels: orez orez orez evif su dedeecxe e
+    Validation set perplexity: 4.73
+    Average loss at step 100: 2.694163 learning rate: 0.000999
+    Minibatch perplexity: 16.88
+    predict: rorororororororororororororororor
+    labels: c orez orez orez orez orez orez o
+    predict: ttuuuunnniniii niiii niii niiii n
+    labels: tcurtsarfni dna sgnidliub niatrec
+    Validation set perplexity: 3.65
+    Average loss at step 200: 2.371734 learning rate: 0.000999
+    Minibatch perplexity: 24.45
+    predict: tiuuuui    iiiiiiiiiillllaauuuuut
+    labels: tiawuk gnidulcni seitilicaf larut
+    predict: oo     rrrrrriraaaaantttttttttttt
+    labels: osla erew tropria lanoitanretni t
+    Validation set perplexity: 2.74
+    Average loss at step 300: 1.759252 learning rate: 0.000998
+    Minibatch perplexity: 54.18
+    predict: ra eehtgniiuddddddaaaadyyeeeeeeeo
+    labels: raw eht gnirud degamad ylereves o
+    predict: ogeeeeeednnnusnniamrrrw oo  u kuk
+    labels: og eht rednu sniamer won tiawuk r
+    Validation set perplexity: 2.47
+    Average loss at step 400: 1.463277 learning rate: 0.000998
+    Minibatch perplexity: 70.60
+    predict: haaaaaaaaas  ieeeht fo nnnnnnvooo
+    labels: ha la habas rime eht fo ecnanrevo
+    predict:  owttcniishaaaaa   aibbaaaaaaamhh
+    labels:  owt ecnis habas la ribaj la damh
+    Validation set perplexity: 1.92
+    Average loss at step 500: 1.283206 learning rate: 0.000997
+    Minibatch perplexity: 97.00
+    predict: a  is orrez orz  wt yraaaaan nnnn
+    labels: a xis orez orez owt yraunaj enin 
+    predict: fo s  dnaaettttttnneeeeednnnnaaaa
+    labels: fo si dna etats tnednepedni na sa
+    Validation set perplexity: 1.69
+    Average loss at step 600: 1.146646 learning rate: 0.000997
+    Minibatch perplexity: 141.68
+    predict: c cciiilop ecnaaropmiiiigetttr  f
+    labels: c scitilop ecnatropmi cigetarts f
+    predict: imm    riimeeht     ttttsfffffeic
+    labels: imes a rime eht si etats fo feihc
+    Validation set perplexity: 1.86
+    Average loss at step 700: 1.040377 learning rate: 0.000997
+    Minibatch perplexity: 151.94
+    predict: ipppa rimeeht elttt yratideeehiii
+    labels: ioppa rime eht eltit yratidereh i
+    predict: liituoohw retsiiimmmirpp htttttni
+    labels: litnu ohw retsinim emirp eht stni
+    Validation set perplexity: 1.53
+    Average loss at step 800: 0.945711 learning rate: 0.000996
+    Minibatch perplexity: 210.42
+    predict: irp nworc eht  osla aaw yltneee  
+    labels: irp nworc eht osla saw yltnecer l
+    predict:  siia sretsiiim fo  lccnucc   cci
+    labels:  sdia sretsinim fo licnuoc a ecni
+    Validation set perplexity: 1.50
+    Average loss at step 900: 0.874909 learning rate: 0.000996
+    Minibatch perplexity: 294.22
+    predict: a  sat sii  iirettiiimmmmirpp eht
+    labels: a ksat sih ni retsinim emirp eht 
+    predict: mailrap eht tnemnrevoogfo daehhsa
+    labels: mailrap eht tnemnrevog fo daeh sa
+    Validation set perplexity: 1.30
+    Average loss at step 1000: 0.807017 learning rate: 0.000995
+    Minibatch perplexity: 352.26
+    predict:  mamu l siilamm et sa nnnnk nnemm
+    labels:  ammu la siljam eht sa nwonk tnem
+    predict: if fo ssssnnoc ylbmsssa lanoitan 
+    labels: if fo stsisnoc ylbmessa lanoitan 
+    Validation set perplexity: 1.31
+    Average loss at step 1100: 0.764197 learning rate: 0.000995
+    Minibatch perplexity: 406.10
+    predict: i nesohc era ohw sreemmm orez  vv
+    labels: i nesohc era ohw srebmem orez evi
+    predict: reay ruof yreve  deeh nootceeee i
+    labels: raey ruof yreve dleh snoitcele ni
+    Validation set perplexity: 1.44
+    Average loss at step 1200: 0.725001 learning rate: 0.000994
+    Minibatch perplexity: 522.21
+    predict: gnidrocca sretsiinm tnnenrevoo sr
+    labels: gnidrocca sretsinim tnemnrevog sr
+    predict: tats eht fo noitttttsnoc eht  t g
+    labels: tats eht fo noitutitsnoc eht ot g
+    Validation set perplexity: 1.25
+    Average loss at step 1300: 0.705892 learning rate: 0.000994
+    Minibatch perplexity: 625.82
+    predict: pihsrebmmm ctamotua nevig era ett
+    labels: pihsrebmem citamotua nevig era et
+    predict:  owt ot roip tnemaillaapeht  ni p
+    labels:  owt ot roirp tnemailrap eht ni p
+    Validation set perplexity: 1.52
+    Average loss at step 1400: 0.632579 learning rate: 0.000993
+    Minibatch perplexity: 870.64
+    predict:  fo evif eno ylno evif orez orez 
+    labels:  fo evif eno ylno evif orez orez 
+    predict: w noitaluppp neziiic iitawuk eht 
+    labels: w noitalupop nezitic itiawuk eht 
+    Validation set perplexity: 1.17
+    Average loss at step 1500: 0.596991 learning rate: 0.000993
+    Minibatch perplexity: 1096.95
+    predict: emow lla htiw etov ot dewolla saa
+    labels: emow lla htiw etov ot dewolla saw
+    predict:  snezitic desilarutan yltneeer ne
+    labels:  snezitic desilarutan yltnecer ne
+    Validation set perplexity: 1.11
+  Average loss at step 1600: 0.567583 learning rate: 0.000992
+  Minibatch perplexity: 1278.60
+  predict: ic fo sraey ore eerht naht sssl  
+  labels: ic fo sraey orez eerht naht ssel 
+  predict: mar eht fo sremmm dna pihsneziiii
+  labels: mra eht fo srebmem dna pihsneziti
+  Validation set perplexity: 1.78
+  Average loss at step 1700: 0.529126 learning rate: 0.000992
+  Minibatch perplexity: 1362.85
+  predict: is eno yam no dddulcxe secrof  em
+  labels: is eno yam no dedulcxe secrof dem
+  predict:  tnemailrap evif orez orez owt xi
+  labels:  tnemailrap evif orez orez owt xi
+  Validation set perplexity: 1.09
+  Average loss at step 1800: 0.525059 learning rate: 0.000991
+  Minibatch perplexity: 1437.78
+  predict:  a yb egarfffus s nemo dettimrep 
+  labels:  a yb egarffus s nemow dettimrep 
+  predict: cebbus etov eerht owt evif eerht 
+  labels: cejbus etov eerht owt evif eerht 
+  Validation set perplexity: 1.14
+  Average loss at step 1900: 0.472297 learning rate: 0.000991
+  Minibatch perplexity: 2483.78
+  predict: f evitceffe dna wa cimalsi otttcc
+  labels: f evitceffe dna wal cimalsi ot tc
+  predict: ilrap neves orez orez owt eht rof
+  labels: ilrap neves orez orez owt eht rof
+  Validation set perplexity: 1.08
+  Average loss at step 2000: 0.386415 learning rate: 0.000990
+  Minibatch perplexity: 3178.22
+  predict:  raelcnu si ti noitcele yratnemai
+  labels:  raelcnu si ti noitcele yratnemai
+  predict:  nopu desopmi  eb lli smretttahw 
+  labels:  nopu desopmi eb lliw smret tahw 
   Validation set perplexity: 1.30
-  Average loss at step 1000: 0.807017 learning rate: 0.000995
-  Minibatch perplexity: 352.26
-  predict:  mamu l siilamm et sa nnnnk nnemm
-  labels:  ammu la siljam eht sa nwonk tnem
-  predict: if fo ssssnnoc ylbmsssa lanoitan 
-  labels: if fo stsisnoc ylbmessa lanoitan 
-  Validation set perplexity: 1.31
-  Average loss at step 1100: 0.764197 learning rate: 0.000995
-  Minibatch perplexity: 406.10
-  predict: i nesohc era ohw sreemmm orez  vv
-  labels: i nesohc era ohw srebmem orez evi
-  predict: reay ruof yreve  deeh nootceeee i
-  labels: raey ruof yreve dleh snoitcele ni
-  Validation set perplexity: 1.44
-  Average loss at step 1200: 0.725001 learning rate: 0.000994
-  Minibatch perplexity: 522.21
-  predict: gnidrocca sretsiinm tnnenrevoo sr
-  labels: gnidrocca sretsinim tnemnrevog sr
-  predict: tats eht fo noitttttsnoc eht  t g
-  labels: tats eht fo noitutitsnoc eht ot g
-  Validation set perplexity: 1.25
-  Average loss at step 1300: 0.705892 learning rate: 0.000994
-  Minibatch perplexity: 625.82
-  predict: pihsrebmmm ctamotua nevig era ett
-  labels: pihsrebmem citamotua nevig era et
-  predict:  owt ot roip tnemaillaapeht  ni p
-  labels:  owt ot roirp tnemailrap eht ni p
-  Validation set perplexity: 1.52
-  Average loss at step 1400: 0.632579 learning rate: 0.000993
-  Minibatch perplexity: 870.64
-  predict:  fo evif eno ylno evif orez orez 
-  labels:  fo evif eno ylno evif orez orez 
-  predict: w noitaluppp neziiic iitawuk eht 
-  labels: w noitalupop nezitic itiawuk eht 
-  Validation set perplexity: 1.17
-  Average loss at step 1500: 0.596991 learning rate: 0.000993
-  Minibatch perplexity: 1096.95
-  predict: emow lla htiw etov ot dewolla saa
-  labels: emow lla htiw etov ot dewolla saw
-  predict:  snezitic desilarutan yltneeer ne
-  labels:  snezitic desilarutan yltnecer ne
-  Validation set perplexity: 1.11
-Average loss at step 1600: 0.567583 learning rate: 0.000992
-Minibatch perplexity: 1278.60
-predict: ic fo sraey ore eerht naht sssl  
-labels: ic fo sraey orez eerht naht ssel 
-predict: mar eht fo sremmm dna pihsneziiii
-labels: mra eht fo srebmem dna pihsneziti
-Validation set perplexity: 1.78
-Average loss at step 1700: 0.529126 learning rate: 0.000992
-Minibatch perplexity: 1362.85
-predict: is eno yam no dddulcxe secrof  em
-labels: is eno yam no dedulcxe secrof dem
-predict:  tnemailrap evif orez orez owt xi
-labels:  tnemailrap evif orez orez owt xi
-Validation set perplexity: 1.09
-Average loss at step 1800: 0.525059 learning rate: 0.000991
-Minibatch perplexity: 1437.78
-predict:  a yb egarfffus s nemo dettimrep 
-labels:  a yb egarffus s nemow dettimrep 
-predict: cebbus etov eerht owt evif eerht 
-labels: cejbus etov eerht owt evif eerht 
-Validation set perplexity: 1.14
-Average loss at step 1900: 0.472297 learning rate: 0.000991
-Minibatch perplexity: 2483.78
-predict: f evitceffe dna wa cimalsi otttcc
-labels: f evitceffe dna wal cimalsi ot tc
-predict: ilrap neves orez orez owt eht rof
-labels: ilrap neves orez orez owt eht rof
-Validation set perplexity: 1.08
-Average loss at step 2000: 0.386415 learning rate: 0.000990
-Minibatch perplexity: 3178.22
-predict:  raelcnu si ti noitcele yratnemai
-labels:  raelcnu si ti noitcele yratnemai
-predict:  nopu desopmi  eb lli smretttahw 
-labels:  nopu desopmi eb lliw smret tahw 
-Validation set perplexity: 1.30
-Average loss at step 2100: 0.543324 learning rate: 0.000990
-Minibatch perplexity: 1408.14
-predict: iisced eht hguorhtsretov elmef   
-labels: isiced eht hguorht sretov elamef 
-predict: diba ot meht fo nneeriuee   noiii
-labels: diba ot meht fo tnemeriuqer s noi
-Validation set perplexity: 2.29
-Average loss at step 2200: 0.852959 learning rate: 0.000989
-Minibatch perplexity: 1109.33
-predict: rehtehw sa hcus walcimalsi yb ddd
-labels: rehtehw sa hcus wal cimalsi yb ed
-predict: rd evitavresnoc riuqer lliw ttirr
-labels: rd evitavresnoc eriuqer lliw ti r
-Validation set perplexity: 1.55
-Average loss at step 2300: 0.672817 learning rate: 0.000989
-Minibatch perplexity: 3209.76
-predict:  secalp gnillop etarapes na sserr
-labels:  secalp gnillop etarapes dna sser
-predict:  tiawuk esiar dluoc noisiced eht 
-labels:  tiawuk esiar dluoc noisiced eht 
-Validation set perplexity: 1.05
-Average loss at step 2400: 0.273747 learning rate: 0.000988
-Minibatch perplexity: 5708.06
-predict: nin eerht eno  morf sllrr etov   
-labels: nin eerht eno morf sllor retov s 
-predict: t sa ynam  sa ot orez orez rez en
-labels: t sa ynam sa ot orez orez orez en
-Validation set perplexity: 2.84
-Average loss at step 2500: 1.175586 learning rate: 0.000988
-Minibatch perplexity: 1762.75
-predict: i orez orez  orez  nnn eerh  eehh
-labels: i orez orez orez enin eerht eerht
-predict: ht retsiger  nemow  lbiiile lla  
-labels: ht retsiger nemow elbigile lla fi
-Validation set perplexity: 3.40
-Average loss at step 2600: 0.599995 learning rate: 0.000987
-Minibatch perplexity: 3015.17
-predict: s  si sitiawuk fo rebmu lattt ehh
-labels: se si sitiawuk fo rebmun latot eh
-predict: ez xis enin naht erom tadetamitss
-labels: ez xis enin naht erom ta detamits
-Validation set perplexity: 1.30
-Average loss at step 2700: 0.469142 learning rate: 0.000987
-Minibatch perplexity: 5184.15
-predict: emirp yltnecer orezorez orez oree
-labels: emirp yltnecer orez orez orez ore
-predict:  dahha la habas hkiehs retsiiim e
-labels:  damha la habas hkiehs retsinim e
-Validation set perplexity: 1.08
-Average loss at step 2800: 0.682775 learning rate: 0.000986
-Minibatch perplexity: 6753.21
-predict: emtnioppa eht decnuonna habas  a 
-labels: emtnioppa eht decnuonna habas la 
-predict: alp sa karabum amuossam  d fo tte
-labels: alp sa karabum amuossam rd fo tne
-Validation set perplexity: 1.12
-Average loss at step 2900: 0.812594 learning rate: 0.000986
-Minibatch perplexity: 9716.97
-predict: s fo retsinim dna retsinim gninna
-labels: s fo retsinim dna retsinim gninna
-predict: mpoleved evitartsiniima rof ettts
-labels: mpoleved evitartsinimda rof etats
-Validation set perplexity: 1.13
-Average loss at step 3000: 0.405895 learning rate: 0.000985
-Minibatch perplexity: 18158.64
-predict: a fo tnemtnioppa eht sriaffa tnem
-labels: a fo tnemtnioppa eht sriaffa tnem
-predict: saw retsinim tenibac a sa namow a
-labels: saw retsinim tenibac a sa namow a
-Validation set perplexity: 1.01
-Average loss at step 3100: 0.218895 learning rate: 0.000985
-Minibatch perplexity: 14495.70
-predict: p itiawuk ni hgorhttkaerb gib a s
-labels: p itiawuk ni hguorhtkaerb gib a s
-predict: wuk sekam ti dna metsys lacitilop
-labels: wuk sekam ti dna metsys lacitilop
-Validation set perplexity: 1.05
-Average loss at step 3200: 0.398038 learning rate: 0.000984
-Minibatch perplexity: 13553.32
-predict: noc eht ni yrtnuoc driht eht tiaw
-labels: noc eht ni yrtnuoc driht eht tiaw
-predict: ah ot noiger bara flug evitaavres
-labels: ah ot noiger bara flug evitavresn
-Validation set perplexity: 1.19
-Average loss at step 3300: 0.217425 learning rate: 0.000984
-Minibatch perplexity: 29157.22
-predict:  ees retsinim tenibacc namow a ev
-labels:  ees retsinim tenibac namow a eva
-predict:  ees ylimaf gnilur hhaba  la osla
-labels:  ees ylimaf gnilur habas la osla 
-Validation set perplexity: 1.57
-Average loss at step 3400: 0.309424 learning rate: 0.000983
-Minibatch perplexity: 24513.52
-predict: onrevog tiawuk ni snoitcele osla 
-labels: onrevog tiawuk ni snoitcele osla 
-predict: id si tiawuk tiawuk fo pam setaro
-labels: id si tiawuk tiawuk fo pam setaro
-Validation set perplexity: 1.01
-Average loss at step 3500: 0.397040 learning rate: 0.000983
-Minibatch perplexity: 18031.18
-predict: p ro setaronevog xis otni dedivii
-labels: p ro setaronrevog xis otni dedivi
-predict: lugnis tazafhhum cibara secnivorp
-labels: lugnis tazafahum cibara secnivorp
-Validation set perplexity: 1.06
+  Average loss at step 2100: 0.543324 learning rate: 0.000990
+  Minibatch perplexity: 1408.14
+  predict: iisced eht hguorhtsretov elmef   
+  labels: isiced eht hguorht sretov elamef 
+  predict: diba ot meht fo nneeriuee   noiii
+  labels: diba ot meht fo tnemeriuqer s noi
+  Validation set perplexity: 2.29
+  Average loss at step 2200: 0.852959 learning rate: 0.000989
+  Minibatch perplexity: 1109.33
+  predict: rehtehw sa hcus walcimalsi yb ddd
+  labels: rehtehw sa hcus wal cimalsi yb ed
+  predict: rd evitavresnoc riuqer lliw ttirr
+  labels: rd evitavresnoc eriuqer lliw ti r
+  Validation set perplexity: 1.55
+  Average loss at step 2300: 0.672817 learning rate: 0.000989
+  Minibatch perplexity: 3209.76
+  predict:  secalp gnillop etarapes na sserr
+  labels:  secalp gnillop etarapes dna sser
+  predict:  tiawuk esiar dluoc noisiced eht 
+  labels:  tiawuk esiar dluoc noisiced eht 
+  Validation set perplexity: 1.05
+  Average loss at step 2400: 0.273747 learning rate: 0.000988
+  Minibatch perplexity: 5708.06
+  predict: nin eerht eno  morf sllrr etov   
+  labels: nin eerht eno morf sllor retov s 
+  predict: t sa ynam  sa ot orez orez rez en
+  labels: t sa ynam sa ot orez orez orez en
+  Validation set perplexity: 2.84
+  Average loss at step 2500: 1.175586 learning rate: 0.000988
+  Minibatch perplexity: 1762.75
+  predict: i orez orez  orez  nnn eerh  eehh
+  labels: i orez orez orez enin eerht eerht
+  predict: ht retsiger  nemow  lbiiile lla  
+  labels: ht retsiger nemow elbigile lla fi
+  Validation set perplexity: 3.40
+  Average loss at step 2600: 0.599995 learning rate: 0.000987
+  Minibatch perplexity: 3015.17
+  predict: s  si sitiawuk fo rebmu lattt ehh
+  labels: se si sitiawuk fo rebmun latot eh
+  predict: ez xis enin naht erom tadetamitss
+  labels: ez xis enin naht erom ta detamits
+  Validation set perplexity: 1.30
+  Average loss at step 2700: 0.469142 learning rate: 0.000987
+  Minibatch perplexity: 5184.15
+  predict: emirp yltnecer orezorez orez oree
+  labels: emirp yltnecer orez orez orez ore
+  predict:  dahha la habas hkiehs retsiiim e
+  labels:  damha la habas hkiehs retsinim e
+  Validation set perplexity: 1.08
+  Average loss at step 2800: 0.682775 learning rate: 0.000986
+  Minibatch perplexity: 6753.21
+  predict: emtnioppa eht decnuonna habas  a 
+  labels: emtnioppa eht decnuonna habas la 
+  predict: alp sa karabum amuossam  d fo tte
+  labels: alp sa karabum amuossam rd fo tne
+  Validation set perplexity: 1.12
+  Average loss at step 2900: 0.812594 learning rate: 0.000986
+  Minibatch perplexity: 9716.97
+  predict: s fo retsinim dna retsinim gninna
+  labels: s fo retsinim dna retsinim gninna
+  predict: mpoleved evitartsiniima rof ettts
+  labels: mpoleved evitartsinimda rof etats
+  Validation set perplexity: 1.13
+  Average loss at step 3000: 0.405895 learning rate: 0.000985
+  Minibatch perplexity: 18158.64
+  predict: a fo tnemtnioppa eht sriaffa tnem
+  labels: a fo tnemtnioppa eht sriaffa tnem
+  predict: saw retsinim tenibac a sa namow a
+  labels: saw retsinim tenibac a sa namow a
+  Validation set perplexity: 1.01
+  Average loss at step 3100: 0.218895 learning rate: 0.000985
+  Minibatch perplexity: 14495.70
+  predict: p itiawuk ni hgorhttkaerb gib a s
+  labels: p itiawuk ni hguorhtkaerb gib a s
+  predict: wuk sekam ti dna metsys lacitilop
+  labels: wuk sekam ti dna metsys lacitilop
+  Validation set perplexity: 1.05
+  Average loss at step 3200: 0.398038 learning rate: 0.000984
+  Minibatch perplexity: 13553.32
+  predict: noc eht ni yrtnuoc driht eht tiaw
+  labels: noc eht ni yrtnuoc driht eht tiaw
+  predict: ah ot noiger bara flug evitaavres
+  labels: ah ot noiger bara flug evitavresn
+  Validation set perplexity: 1.19
+  Average loss at step 3300: 0.217425 learning rate: 0.000984
+  Minibatch perplexity: 29157.22
+  predict:  ees retsinim tenibacc namow a ev
+  labels:  ees retsinim tenibac namow a eva
+  predict:  ees ylimaf gnilur hhaba  la osla
+  labels:  ees ylimaf gnilur habas la osla 
+  Validation set perplexity: 1.57
+  Average loss at step 3400: 0.309424 learning rate: 0.000983
+  Minibatch perplexity: 24513.52
+  predict: onrevog tiawuk ni snoitcele osla 
+  labels: onrevog tiawuk ni snoitcele osla 
+  predict: id si tiawuk tiawuk fo pam setaro
+  labels: id si tiawuk tiawuk fo pam setaro
+  Validation set perplexity: 1.01
+  Average loss at step 3500: 0.397040 learning rate: 0.000983
+  Minibatch perplexity: 18031.18
+  predict: p ro setaronevog xis otni dedivii
+  labels: p ro setaronrevog xis otni dedivi
+  predict: lugnis tazafhhum cibara secnivorp
+  labels: lugnis tazafahum cibara secnivorp
+  Validation set perplexity: 1.06
 #+END_EXAMPLE
 --------------
 
@@ -8506,7 +8506,7 @@ dynamic_rnn encoder / decoder
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
+#+BEGIN_EXAMPLE
 Initialized
 Average loss at step 0: 3.288493 learning rate: 0.001000
 Minibatch perplexity: 26.58
@@ -10411,7 +10411,7 @@ labels: re pre
 predict: ut t t
 labels: ut wer
 Validation set perplexity: 9.43
-#+end_example
+#+END_EXAMPLE
 
 
 --------------
